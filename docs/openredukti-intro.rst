@@ -31,7 +31,7 @@ The main differences between the Open Source release and the proprietary version
 
 * Only the core C++ pricing library has been released
 * The functionality for generating cashflows from FpML trades has not been released as this is fine tuned for the needs of MyCCP
-* The Limit Checker and VaR Calculator has not been released
+* The Limit Checker and VaR Calculator have not been released
 * The MyCCP front-end and middle tier components, written in C#, have not been released as these are very specific to requirements of a CCP.
 
 For further details of the full scope of the MyCCP product, please visit `Redukti.Com <http://redukti.com/myccp-product-specifications.html>`_. 
