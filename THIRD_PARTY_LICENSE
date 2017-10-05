@@ -1,0 +1,259 @@
+OpenReduti contains materials derived from following products:
+
+* QuantLib (http://quantlib.org/index.shtml)
+* cminpack (http://devernay.free.fr/hacks/cminpack/)
+* Lua (http://www.lua.org)
+
+These products are each subject to following licenses. However the OpenRedukti distribution as a whole is subject to GPL v3.
+
+QuantLib License
+================
+QuantLib is
+    Copyright (C) 2000, 2001, 2002, 2003 RiskMap srl
+
+    Copyright (C) 2001, 2002, 2003 Nicolas Di C�sar�
+    Copyright (C) 2001, 2002, 2003 Sadruddin Rejeb
+
+    Copyright (C) 2002, 2003, 2004 Decillion Pty(Ltd)
+    Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2014, 2015 Ferdinando Ametrano
+
+    Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2014, 2016, 2017 StatPro Italia srl
+    Copyright (C) 2003, 2004, 2007 Neil Firth
+    Copyright (C) 2003, 2004 Roman Gitlin
+    Copyright (C) 2003 Niels Elken S�nderby
+    Copyright (C) 2003 Kawanishi Tomoya
+
+    Copyright (C) 2004 FIMAT Group
+    Copyright (C) 2004 M-Dimension Consulting Inc.
+    Copyright (C) 2004 Mike Parker
+    Copyright (C) 2004 Walter Penschke
+    Copyright (C) 2004 Gianni Piolanti
+    Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017 Klaus Spanderen
+    Copyright (C) 2004 Jeff Yu
+
+    Copyright (C) 2005, 2006, 2008 Toyin Akin
+    Copyright (C) 2005 Sercan Atalik
+    Copyright (C) 2005, 2006 Theo Boafo
+    Copyright (C) 2005, 2006, 2007, 2009 Piter Dias
+    Copyright (C) 2005, 2013 Gary Kennedy
+    Copyright (C) 2005, 2006, 2007 Joseph Wang
+    Copyright (C) 2005 Charles Whitmore
+
+    Copyright (C) 2006, 2007 Banca Profilo S.p.A.
+    Copyright (C) 2006, 2007 Marco Bianchetti
+    Copyright (C) 2006 Yiping Chen
+    Copyright (C) 2006 Warren Chou
+    Copyright (C) 2006, 2007 Cristina Duminuco
+    Copyright (C) 2006, 2007 Giorgio Facchinetti
+    Copyright (C) 2006, 2007 Chiara Fornarola
+    Copyright (C) 2006 Silvia Frasson
+    Copyright (C) 2006 Richard Gould
+    Copyright (C) 2006, 2007, 2008, 2009, 2010 Mark Joshi
+    Copyright (C) 2006, 2007, 2008 Allen Kuo
+    Copyright (C) 2006, 2007, 2008, 2009, 2012 Roland Lichters
+    Copyright (C) 2006, 2007 Katiuscia Manzoni
+    Copyright (C) 2006, 2007 Mario Pucci
+    Copyright (C) 2006, 2007 Fran�ois du Vignaud
+
+    Copyright (C) 2007 Affine Group Limited
+    Copyright (C) 2007 Richard Gomes
+    Copyright (C) 2007, 2008 Laurent Hoffmann
+    Copyright (C) 2007, 2008, 2009, 2010, 2011 Chris Kenyon
+    Copyright (C) 2007 Gang Liang
+
+    Copyright (C) 2008, 2009, 2014, 2015 Jose Aparicio
+    Copyright (C) 2008 Yee Man Chan
+    Copyright (C) 2008, 2011 Charles Chongseok Hyun
+    Copyright (C) 2008 Piero Del Boca
+    Copyright (C) 2008 Paul Farrington
+    Copyright (C) 2008 Lorella Fatone
+    Copyright (C) 2008, 2009 Andreas Gaida
+    Copyright (C) 2008 Marek Glowacki
+    Copyright (C) 2008 Florent Grenier
+    Copyright (C) 2008 Frank H�vermann
+    Copyright (C) 2008 Simon Ibbotson
+    Copyright (C) 2008 John Maiden
+    Copyright (C) 2008 Francesca Mariani
+    Copyright (C) 2008, 2009, 2010, 2011, 2012, 2014 Master IMAFA - Polytech'Nice Sophia - Universit� de Nice Sophia Antipolis
+    Copyright (C) 2008, 2009 Andrea Odetti
+    Copyright (C) 2008 J. Erik Radmall
+    Copyright (C) 2008 Maria Cristina Recchioni
+    Copyright (C) 2008, 2009, 2012, 2014 Ralph Schreyer
+    Copyright (C) 2008 Roland Stamm
+    Copyright (C) 2008 Francesco Zirilli
+
+    Copyright (C) 2009 Nathan Abbott
+    Copyright (C) 2009 Sylvain Bertrand
+    Copyright (C) 2009 Fr�d�ric Degraeve
+    Copyright (C) 2009 Dirk Eddelbuettel
+    Copyright (C) 2009 Bernd Engelmann
+    Copyright (C) 2009, 2010, 2012 Liquidnet Holdings, Inc.
+    Copyright (C) 2009 Bojan Nikolic
+    Copyright (C) 2009, 2010 Dimitri Reiswich
+    Copyright (C) 2009 Sun Xiuxin
+
+    Copyright (C) 2010 Kakhkhor Abdijalilov
+    Copyright (C) 2010 Hachemi Benyahia
+    Copyright (C) 2010 Manas Bhatt
+    Copyright (C) 2010 DeriveXperts SAS
+    Copyright (C) 2010, 2014 Cavit Hafizoglu
+    Copyright (C) 2010 Michael Heckl
+    Copyright (C) 2010 Slava Mazur
+    Copyright (C) 2010, 2011, 2012, 2013 Andre Miemiec
+    Copyright (C) 2010 Adrian O' Neill
+    Copyright (C) 2010 Robert Philipp
+    Copyright (C) 2010 Alessandro Roveda
+    Copyright (C) 2010 SunTrust Bank
+
+    Copyright (C) 2011, 2013, 2014 Fabien Le Floc'h
+
+    Copyright (C) 2012, 2013 Grzegorz Andruszkiewicz
+    Copyright (C) 2012, 2013, 2014, 2015, 2016, 2017 Peter Caspers
+    Copyright (C) 2012 Mateusz Kapturski
+    Copyright (C) 2012 Simon Shakeshaft
+    Copyright (C) 2012 �douard Tallent
+    Copyright (C) 2012 Samuel Tebege
+
+    Copyright (C) 2013 BGC Partners L.P.
+    Copyright (C) 2013 Chris Higgs
+    Copyright (C) 2013, 2014, 2015 Cheng Li
+    Copyright (C) 2013 Yue Tian
+
+    Copyright (C) 2014 Francois Botha
+    Copyright (C) 2014, 2015 Johannes Goettker-Schnetmann
+    Copyright (C) 2014 Michal Kaut
+    Copyright (C) 2014, 2015 Bernd Lewerenz
+    Copyright (C) 2014, 2015, 2016 Paolo Mazzocchi
+    Copyright (C) 2014, 2015 Thema Consulting SA
+    Copyright (C) 2014, 2015, 2016 Michael von den Driesch
+
+    Copyright (C) 2015 Riccardo Barone
+    Copyright (C) 2015 CompatibL
+    Copyright (C) 2015, 2016 Andres Hernandez
+    Copyright (C) 2015 Dmitri Nesteruk
+    Copyright (C) 2015 Maddalena Zanzi
+
+    Copyright (C) 2016 Nicholas Bertocchi
+    Copyright (C) 2016 Stefano Fondi
+    Copyright (C) 2016, 2017 Fabrice Lecuyer
+    Copyright (C) 2016 Eisuke Tani
+
+    Copyright (C) 2017 Paul Giltinan
+    Copyright (C) 2017 Werner Kuerzinger
+    Copyright (C) 2017 Oleg Kulkov
+    Copyright (C) 2017 Joseph Jeisman
+
+QuantLib includes code taken from Peter J�ckel's book "Monte Carlo
+Methods in Finance".
+
+QuantLib includes software developed by the University of Chicago,
+as Operator of Argonne National Laboratory.
+
+QuantLib includes a set of numbers provided by Stephen Joe and Frances
+Kuo under a BSD-style license.
+
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+
+    Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+    Neither the names of the copyright holders nor the names of the QuantLib
+    Group and its contributors may be used to endorse or promote products
+    derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+cminpack LICENSE
+----------------
+Minpack Copyright Notice (1999) University of Chicago.  All rights reserved
+
+Redistribution and use in source and binary forms, with or
+without modification, are permitted provided that the
+following conditions are met:
+
+1. Redistributions of source code must retain the above
+copyright notice, this list of conditions and the following
+disclaimer.
+
+2. Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following
+disclaimer in the documentation and/or other materials
+provided with the distribution.
+
+3. The end-user documentation included with the
+redistribution, if any, must include the following
+acknowledgment:
+
+   "This product includes software developed by the
+   University of Chicago, as Operator of Argonne National
+   Laboratory.
+
+Alternately, this acknowledgment may appear in the software
+itself, if and wherever such third-party acknowledgments
+normally appear.
+
+4. WARRANTY DISCLAIMER. THE SOFTWARE IS SUPPLIED "AS IS"
+WITHOUT WARRANTY OF ANY KIND. THE COPYRIGHT HOLDER, THE
+UNITED STATES, THE UNITED STATES DEPARTMENT OF ENERGY, AND
+THEIR EMPLOYEES: (1) DISCLAIM ANY WARRANTIES, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO ANY IMPLIED WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE
+OR NON-INFRINGEMENT, (2) DO NOT ASSUME ANY LEGAL LIABILITY
+OR RESPONSIBILITY FOR THE ACCURACY, COMPLETENESS, OR
+USEFULNESS OF THE SOFTWARE, (3) DO NOT REPRESENT THAT USE OF
+THE SOFTWARE WOULD NOT INFRINGE PRIVATELY OWNED RIGHTS, (4)
+DO NOT WARRANT THAT THE SOFTWARE WILL FUNCTION
+UNINTERRUPTED, THAT IT IS ERROR-FREE OR THAT ANY ERRORS WILL
+BE CORRECTED.
+
+5. LIMITATION OF LIABILITY. IN NO EVENT WILL THE COPYRIGHT
+HOLDER, THE UNITED STATES, THE UNITED STATES DEPARTMENT OF
+ENERGY, OR THEIR EMPLOYEES: BE LIABLE FOR ANY INDIRECT,
+INCIDENTAL, CONSEQUENTIAL, SPECIAL OR PUNITIVE DAMAGES OF
+ANY KIND OR NATURE, INCLUDING BUT NOT LIMITED TO LOSS OF
+PROFITS OR LOSS OF DATA, FOR ANY REASON WHATSOEVER, WHETHER
+SUCH LIABILITY IS ASSERTED ON THE BASIS OF CONTRACT, TORT
+(INCLUDING NEGLIGENCE OR STRICT LIABILITY), OR OTHERWISE,
+EVEN IF ANY OF SAID PARTIES HAS BEEN WARNED OF THE
+POSSIBILITY OF SUCH LOSS OR DAMAGES.
+
+Lua LICENSE
+-----------
+Copyright (C) 1994-2017 Lua.org, PUC-Rio.
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
