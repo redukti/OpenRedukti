@@ -1,0 +1,9 @@
+PROTOC=$HOME/local/bin/protoc
+$PROTOC -I. --cpp_out=../generated/cpp enums.proto
+$PROTOC -I. --cpp_out=../generated/cpp index.proto
+$PROTOC -I. --cpp_out=../generated/cpp schedule.proto
+$PROTOC -I. --cpp_out=../generated/cpp cashflow.proto
+$PROTOC -I. --cpp_out=../generated/cpp curve.proto
+$PROTOC -I. --cpp_out=../generated/cpp shared.proto
+$PROTOC -I. --cpp_out=../generated/cpp bootstrap.proto
+$PROTOC -I. --cpp_out=../generated/cpp valuation.proto

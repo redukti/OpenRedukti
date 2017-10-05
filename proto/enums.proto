@@ -1,0 +1,475 @@
+// DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+//
+// Contributor(s):
+//
+// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
+// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
+// Authors: Dibyendu Majumdar
+//
+// Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+//
+// The contents of this file are subject to the the GNU General Public License
+// Version 3 (https://www.gnu.org/licenses/gpl.txt).
+
+syntax = "proto3";
+
+package redukti;
+option cc_enable_arenas = true;
+option csharp_namespace = "Redukti.Types";
+option java_package = "com.redukti.types";
+option java_multiple_files = true;
+option java_outer_classname = "Types";
+
+// These standard codes are meant to be
+// used in service definitions
+enum StandardResponseCode {
+	SRC_OK = 0;
+	SRC_ERROR = 1;
+	SRC_UNKNOWN_REQUEST = 2;
+	SRC_SERVICE_UNAVAILABLE = 3;
+}
+
+// Currencies - we use enums as more efficient 
+// communication formats
+enum Currency {
+	CURRENCY_UNSPECIFIED = 0;
+	USD = 1;
+	GBP = 2;
+	EUR = 3;
+	JPY = 4;
+	AUD = 5;
+	CAD = 6;
+	CHF = 7;
+	CZK = 8;
+	DKK = 9;
+	HKD = 10;
+	NOK = 11;
+	NZD = 12;
+	SEK = 13;
+	SGD = 14;
+	MXN = 15;
+	ZAR = 16;
+	HUF = 17;
+	PLN = 18;
+}
+
+// Index names closely matching those
+// used in FpML messages
+enum IsdaIndex {
+	ISDA_INDEX_UNSPECIFIED = 0;
+	AUD_AONIA_OIS_COMPOUND = 1;
+	AUD_BBR_BBSW = 2;
+	AUD_LIBOR_BBA = 3;
+	CAD_BA_CDOR = 4;
+	CAD_CORRA_OIS_COMPOUND = 5;
+	CAD_LIBOR_BBA = 6;
+	CHF_LIBOR_BBA = 7;
+	CHF_TOIS_OIS_COMPOUND = 8;
+	CZK_PRIBOR_PRBO = 9;
+	DKK_CIBOR_DKNA13 = 10;
+	DKK_CIBOR2_DKNA13 = 11;
+	EUR_EONIA_OIS_COMPOUND = 12;
+	EUR_EURIBOR_Reuters = 13;
+	EUR_EURIBOR_Telerate = 14;
+	EUR_EXT_CPI = 15;
+	EUR_LIBOR_BBA = 16;
+	FRC_EXT_CPI = 17;
+	GBP_LIBOR_BBA = 18;
+	GBP_WMBA_SONIA_COMPOUND = 19;
+	HKD_HIBOR_HIBOR = 20;
+	HKD_HIBOR_HKAB = 21;
+	HKD_HIBOR_ISDC = 22;
+	HUF_BUBOR_Reuters = 23;
+	JPY_LIBOR_BBA = 24;
+	JPY_TONA_OIS_COMPOUND = 25;
+	MXN_TIIE_Banxico = 26;
+	MXN_USDMXNBASIS = 27;
+	NOK_NIBOR_NIBR = 28;
+	NZD_BBR_FRA = 29;
+	NZD_BBR_Telerate = 30;
+	PLN_WIBOR_WIBO = 31;
+	SEK_STIBOR_SIDE = 32;
+	SGD_SOR_Reuters = 33;
+	SGD_SOR_VWAP = 34;
+	UK_RPI = 35;
+	USA_CPI_U = 36;	
+	USD_Federal_Funds_H_15 = 37;
+	USD_Federal_Funds_H_15_OIS_COMPOUND = 38;
+	USD_LIBOR_BBA = 39;
+	ZAR_JIBAR_SAFEX = 40;
+}
+
+// Index family is used to define a group of
+// indices
+enum IndexFamily {
+	INDEX_FAMILY_UNSPECIFIED = 0;
+	LIBOR = 1;
+	FEDFUND = 2;
+	EURIBOR = 3;
+	SONIA = 4;
+	AONIA = 5;
+	BBSW = 6;
+	CDOR = 7;
+	CORRA = 8;
+	TOIS = 9;
+	PRIBOR = 10;
+	CIBOR = 11;
+	HIBOR = 12;
+	BUBOR = 13;
+	TONA = 14;
+	NIBOR = 15;
+	BKBM = 16;
+	WIBOR = 17;
+	STIBOR = 18;
+	SOR = 19;
+	JIBAR = 20;
+	EONIA = 21;
+	BBR = 22;
+	BA = 23;
+	USDMXNBASIS = 24;
+	TIIE = 25;
+}
+
+// Day Count Fraction names based upon equivalent
+// names used in FpML
+enum DayCountFraction {
+	DAY_COUNT_FRACTION_UNSPECIFIED = 0;
+	ACT_360 = 1;
+	ACT_365_FIXED = 2;
+	THIRTY_360 = 3;
+	THIRTYE_360 = 4;
+	THIRTYE_360_ISDA = 5;
+	ONE_ON_ONE = 6;
+	ACT_ACT_ISDA = 7;
+	ACT_ACT_ISMA = 8;
+	BUS_252 = 9;
+}
+
+// Compounding methods as defined by FpML
+enum CompoundingMethod {
+	COMPOUNDING_METHOD_UNSPECIFIED = 0;
+	CM_NONE = 1;
+	FLAT = 2;
+	STRAIGHT = 3;
+	SPREAD_EXCLUSIVE = 4;
+}
+
+// Names of business centers as defined by ISDA / FpML
+enum BusinessCenter {
+	BUSINESS_CENTER_UNSPECIFIED = 0;
+	AUSY = 1;
+	CATO = 2;
+	CHZU = 3;
+	CZPR = 4;
+	EUTA = 5;			
+	GBLO = 6;
+	USNY = 7;
+	HKHK = 8;
+	JPTO = 9;
+	NOOS = 10;
+	BRSP = 11;
+}
+
+// Business Day Convention specifies how a date will
+// be adjusted if it falls on a holiday
+// These are based upon definitions in FpML.
+enum BusinessDayConvention {
+	BUSINESS_DAY_CONVENTION_UNSPECIFIED = 0;
+	// ISDA
+	FOLLOWING = 1;
+	// Choose the first business day after
+	// the given holiday
+	MODIFIED_FOLLOWING = 2;
+	// Choose the first business day after
+	// the given holiday unless it belongs
+	// to a different month, in which case
+	// choose the first business day before
+	// the holiday.
+	PRECEDING = 3;
+	// Choose the first business day before
+	// the given holiday. */
+	// NON ISDA
+	MODIFIED_PRECEDING = 4;
+	// Choose the first business day before
+	// the given holiday unless it belongs
+	// to a different month, in which case
+	// choose the first business day after
+	// the holiday.
+	UNADJUSTED = 5;
+	// Do not adjust.
+}
+
+// WARNING - various things will break if the tenors
+// are changed or reordered. 
+// 
+// IMPORTANT
+// 
+// 1. Each tenor has a value that is consistent
+//    with its sort order - i.e. ID < 2D < 3D < 1W
+// 2. Secondly the conversion from other representations
+//    to / from tenors is coded around this so changing
+//    the tenors means changing the conversion code
+// 3. OpennRedukti only handles tenors that are coded
+//    here - so if a tenor is not defined here it cannot
+//    be used.    
+enum Tenor {
+	TENOR_UNSPECIFIED = 0;
+	TENOR_1D = 1;
+	TENOR_2D = 2;
+	TENOR_3D = 3;
+	TENOR_4D = 4;
+	TENOR_5D = 5;
+	TENOR_6D = 6;
+	TENOR_1W = 7;
+	TENOR_2W = 8;
+	TENOR_3W = 9;
+	TENOR_1M = 10;
+	TENOR_2M = 11;
+	TENOR_3M = 12;
+	TENOR_4M = 13;
+	TENOR_5M = 14;
+	TENOR_6M = 15;
+	TENOR_7M = 16;
+	TENOR_8M = 17;
+	TENOR_9M = 18;
+	TENOR_10M = 19;
+	TENOR_11M = 20;
+	TENOR_12M = 21;
+	TENOR_13M = 22;
+	TENOR_14M = 23;
+	TENOR_15M = 24;
+	TENOR_16M = 25;
+	TENOR_17M = 26;
+	TENOR_18M = 27;
+	TENOR_19M = 28;
+	TENOR_20M = 29;
+	TENOR_21M = 30;
+	TENOR_22M = 31;
+	TENOR_23M = 32;
+	TENOR_2Y = 33;
+	TENOR_3Y = 34;
+	TENOR_4Y = 35;
+	TENOR_5Y = 36;
+	TENOR_6Y = 37;
+	TENOR_7Y = 38;
+	TENOR_8Y = 39;
+	TENOR_9Y = 40;
+	TENOR_10Y = 41;
+	TENOR_11Y = 42;
+	TENOR_12Y = 43;
+	TENOR_13Y = 44;
+	TENOR_14Y = 45;
+	TENOR_15Y = 46;
+	TENOR_16Y = 47;
+	TENOR_17Y = 48;
+	TENOR_18Y = 49;
+	TENOR_19Y = 50;
+	TENOR_20Y = 51;
+	TENOR_21Y = 52;
+	TENOR_22Y = 53;
+	TENOR_23Y = 54;
+	TENOR_24Y = 55;
+	TENOR_25Y = 56;
+	TENOR_26Y = 57;
+	TENOR_27Y = 58;
+	TENOR_28Y = 59;
+	TENOR_29Y = 60;
+	TENOR_30Y = 61;
+	TENOR_31Y = 62;
+	TENOR_32Y = 63;
+	TENOR_33Y = 64;
+	TENOR_34Y = 65;
+	TENOR_35Y = 66;
+	TENOR_36Y = 67;
+	TENOR_37Y = 68;
+	TENOR_38Y = 69;
+	TENOR_39Y = 70;
+	TENOR_40Y = 71;
+	TENOR_41Y = 72;
+	TENOR_42Y = 73;
+	TENOR_43Y = 74;
+	TENOR_44Y = 75;
+	TENOR_45Y = 76;
+	TENOR_46Y = 77;
+	TENOR_47Y = 78;
+	TENOR_48Y = 79;
+	TENOR_49Y = 80;
+	TENOR_50Y = 81;
+	TENOR_51Y = 82;
+	TENOR_52Y = 83;
+	TENOR_53Y = 84;
+	TENOR_54Y = 85;
+	TENOR_55Y = 86;
+	TENOR_56Y = 87;
+	TENOR_57Y = 88;
+	TENOR_58Y = 89;
+	TENOR_59Y = 90;
+	TENOR_60Y = 91;
+	TENOR_61Y = 92;
+	TENOR_62Y = 93;
+	TENOR_63Y = 94;
+	TENOR_64Y = 95;
+	TENOR_65Y = 96;
+	TENOR_1T = 97;
+}
+
+// Units used to describe time periods
+enum PeriodUnit {
+	PERIOD_UNIT_UNRECOGNIZED = 0;
+	TERMS = 1;
+	DAYS = 2;
+	WEEKS = 3;
+	MONTHS = 4;
+	YEARS = 5;
+}
+
+// Roll convention for computing calculation
+// periods; based upon FpML
+enum RollConvention {
+	ROLL_CONVENTION_DEFAULT = 0;
+	ROLL_CONVENTION_NONE = 1;
+	EOM = 2;
+	IMM = 3;
+	IMMAUD = 4;
+	IMMCAD = 5;
+	IMMNZD = 6;
+}
+
+// Rules for combining calendars
+// These are based upon definitions
+// in QuantLib
+enum JointCalendarRule {
+	// A date is a holiday
+	// for the joint calendar
+	// if it is a holiday
+	// for any of the given
+	// calendars
+	JOIN_HOLIDAYS = 0;
+
+	// A date is a business day
+	// for the joint calendar
+	// if it is a business day
+	// for any of the given
+	// calendars
+	JOIN_BUSINESS_DAYS = 1;
+}
+
+// Interpolation methods used in curves
+// for interpolating values between pillars
+enum InterpolatorType {
+	LINEAR = 0;
+	LOG_LINEAR = 1;
+	MONOTONE_CONVEX = 2;
+	FLAT_RIGHT = 3;
+	FLAT_LEFT = 4;
+	CUBIC_SPLINE_NOT_A_KNOT = 5;
+	CUBIC_SPLINE_NATURAL = 6;
+	LOG_CUBIC_SPLINE_NATURAL = 7;
+	CUBIC_SPLINE_CLAMPED = 8; 
+}
+
+// Curves can be assigned to a logical
+// group - useful if different curve
+// definitions are needed for different purposes
+enum CurveGroup {
+	CURVE_GROUP_UNSPECIFIED = 0;
+	CURVE_GROUP_A = 1;
+	CURVE_GROUP_B = 2;
+	CURVE_GROUP_C = 3;
+	CURVE_GROUP_D = 4;
+	CURVE_GROUP_E = 5;
+	CURVE_GROUP_F = 6;
+}
+
+// The type of value used in a curve
+enum IRRateType 
+{ 
+	ZERO_RATE = 0; 
+	DISCOUNT_FACTOR = 1; 
+	FORWARD_RATE = 2; 
+}
+
+// The usage of a curve
+enum PricingCurveType {
+	PRICING_CURVE_TYPE_UNSPECIFIED = 0;
+	PRICING_CURVE_TYPE_FORWARD = 1;
+	PRICING_CURVE_TYPE_DISCOUNT = 2;
+}
+
+// Market data (curves) can be tagged
+// with a category
+enum MarketDataQualifier {
+	// Normal market data observation
+	MDQ_NORMAL = 0;
+	// Closing observation - sets baseline for
+	// mark to market
+	MDQ_CLOSING = 1;
+}
+
+// This defines how the maturities for instruments
+// in a curve should be calculated
+enum MaturityGenerationRule {
+	MATURITY_GENERATION_RULE_DERIVE_FROM_INSTRUMENTS = 0;
+	MATURITY_GENERATION_RULE_FIXED_TENORS = 1;
+}
+
+enum ResponseSubCode {
+	kOk = 0;
+	kBadArgument = 1;
+	kError = 2;
+	kNotImplemented = 3;
+	kNotAvailable = 4;
+	kInternalError = 5;
+	kShuttingDown = 6;
+
+	kBTS_LuaInitFailure = 1201;
+	kBTS_BadInputCurves = 1202;
+	kBTS_InstrumentError = 1203;
+	kBTS_SolverFailure = 1204;
+	kBTS_BadBusinessDate = 1205;
+	kBTS_BadInterpolatedOn = 1206;
+	kBTS_MissingFixedTenors = 1207;
+	kBTS_BadMaturitiesSortOrder = 1208;
+	kBTS_CurveDefinitionNotFound = 1209;
+	kBTS_CashflowDefinitionFailed = 1210;
+	kBTS_LuaScriptFailure = 1211;
+	kBTS_LuaPricingRoutineNotFound = 1212;
+	kBTS_DuplicateCurve = 1213;
+	kBTS_ForwardCurveReferenceNotFound = 1214;
+	kBTS_DiscountCurveReferenceNotFound = 1215;
+	kBTS_CashflowGenerationFailed = 1216;
+	kBTS_MissingCurveDefinitions = 1217;
+	kBTS_MissingParCurves = 1218;
+	kBTS_DefinitonsAndCurvesMismatch = 1219;
+
+	kVAL_BadBusinessDate = 1231;
+	kVAL_BadMaturityDate = 1232;
+	kVAL_BadZeroRate = 1233;
+	kVAL_CurveDefinitionNotRegistered = 1234;
+	kVAL_MismatchedMaturitiesAndValues = 1235;
+	kVAL_InsufficientMaturities = 1236;
+	kVAL_BadFixingDate = 1237;
+	kVAL_BadFixingValue = 1238;
+	kVAL_UnsupportedIndexOrTenor = 1239;
+	kVAL_MissingCashflow = 1240;
+	kVAL_MissingPricingContext = 1241;
+	kVAL_FixingDataUnavailable = 1242;
+	kVAL_FixingNotFound = 1243;
+	kVAL_MappedCurveNotFound = 1244;
+	kVAL_UnsupportedCashflowType = 1245;
+	kVAL_CurveGroupNotFound = 1246;
+	kVAL_CashflowConversionFailed = 1247;
+	kVAL_CurveMappingsForCurveGroupNotFound = 1248;
+	kVAL_DetectedTooManyRiskFactorsInCashflow = 1249;
+	kVAL_MissingParSensitivitiesForCurve = 1250;
+	kVAL_ParSensitivitiesForCurveMismatchedMaturities = 1251;
+	kVAL_ParSensitivitiesForCurveInstrumentsOutOfRange = 1252;
+
+	kCFG_ScheduleGenerationFailed = 1260;
+	kCFG_MissingTrade = 1261;
+	kCFG_UnsupportedLegType = 1262;
+	kCFG_BadInput = 1263;
+	kCFG_UnsupportedTradeType = 1264;
+	kCFG_SteppedCashflowsNotImplementedYet = 1265;
+	kCFG_IndexConfigurationMissing = 1266;
+}

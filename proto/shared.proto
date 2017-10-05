@@ -1,0 +1,35 @@
+// DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+//
+// Contributor(s):
+//
+// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
+// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
+// Authors: Dibyendu Majumdar
+//
+// Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+//
+// The contents of this file are subject to the the GNU General Public License
+// Version 3 (https://www.gnu.org/licenses/gpl.txt).
+
+syntax = "proto3";
+
+package redukti;
+option cc_enable_arenas = true;
+option csharp_namespace = "Redukti.Types";
+option java_package = "com.redukti.types";
+option java_multiple_files = true;
+option java_outer_classname = "Types";
+
+import "enums.proto";
+
+// Should form part of every reply message
+message ReplyHeader {
+	StandardResponseCode response_code = 1;
+	// A message that can be conveyed back
+	// typically used for error responses
+	// where payload is generally missing
+	string response_message = 2;
+	// Optional sub code for more detailed 
+	// error information	
+	int32 response_sub_code = 3;
+}

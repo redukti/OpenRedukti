@@ -1,0 +1,59 @@
+// DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+//
+// Contributor(s):
+//
+// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
+// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
+// Authors: Dibyendu Majumdar
+//
+// Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+//
+// The contents of this file are subject to the the GNU General Public License
+// Version 3 (https://www.gnu.org/licenses/gpl.txt).
+
+syntax = "proto3";
+
+package redukti;
+option cc_enable_arenas = true;
+option csharp_namespace = "Redukti.Types";
+option java_package = "com.redukti.types";
+option java_multiple_files = true;
+option java_outer_classname = "Types";
+
+import "enums.proto";
+
+enum StubLocation {
+  STUB_TYPE_AUTO = 0;
+  SHORT_FRONT_STUB = 1;
+  LONG_FRONT_STUB = 2;
+  SHORT_BACK_STUB = 3;
+  LONG_BACK_STUB = 4;
+}
+
+message ScheduleParameters {
+	int32 effective_date = 1;
+	int32 termination_date = 2;
+  	RollConvention roll_convention = 3;
+  	int32 first_regular_period_start_date = 4;
+ 	int32 last_regular_period_end_date = 5;
+	Tenor term = 6;
+	Tenor calculation_frequency = 7;
+ 	Tenor payment_frequency = 8;
+	StubLocation stub_location = 9;
+	int32 first_payment_date = 10;
+	int32 last_regular_payment_date = 11;
+  	BusinessDayConvention period_convention = 12;
+  	BusinessDayConvention payment_convention = 13;
+  	sint32 payment_lag = 14;
+  	repeated BusinessCenter period_calendars = 15;
+  	repeated BusinessCenter payment_calendars = 16;
+}
+
+message Schedule {
+	bool has_front_stub = 1;
+	bool has_back_stub = 2;
+	repeated int32 adjusted_start_dates = 3;
+	repeated int32 adjusted_end_dates = 4;
+	// payment date may be zero if not applicable for a period
+	repeated int32 adjusted_payment_dates = 5; 
+}

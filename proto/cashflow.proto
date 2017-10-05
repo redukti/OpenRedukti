@@ -1,0 +1,96 @@
+// DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+//
+// Contributor(s):
+//
+// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
+// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
+// Authors: Dibyendu Majumdar
+//
+// Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+//
+// The contents of this file are subject to the the GNU General Public License
+// Version 3 (https://www.gnu.org/licenses/gpl.txt).
+
+syntax = "proto3";
+
+package redukti;
+option cc_enable_arenas = true;
+option csharp_namespace = "Redukti.Types";
+option java_package = "com.redukti.types";
+option java_multiple_files = true;
+option java_outer_classname = "Types";
+
+import "enums.proto";
+
+// Simple cashflow (known amount)
+message CFSimple {
+	Currency currency = 1;
+	double amount = 2;
+	int32 payment_date = 3;
+	IsdaIndex trade_index = 4;
+}
+
+// A floating calculation period
+message CFFloatingPeriod {
+	double notional = 1;
+	double spread = 2;
+	int32 accrual_start_date = 3;
+	int32 accrual_end_date = 4;
+	IsdaIndex index = 5;
+	Tenor tenor = 6;
+	IsdaIndex index2 = 7;
+	Tenor tenor2 = 8;
+}
+
+// Floating Coupon 
+// May contain more than one calculation period
+message CFFloating { 
+	Currency currency = 1;
+	repeated CFFloatingPeriod floating_periods = 2;
+	CompoundingMethod compounding_method = 3;
+	DayCountFraction day_count_fraction = 4;
+	int32 payment_date = 5;
+}
+
+// FRA Cashflow
+message CFFra {
+	Currency currency = 1;
+	double fixed_rate = 2;
+	int32 payment_date = 3;
+	CFFloatingPeriod floating_period = 4;
+	DayCountFraction day_count_fraction = 5;
+}
+
+// OIS cashflow
+message CFOis {
+	IsdaIndex index = 1;
+	double notional = 2;
+	int32 accrual_start_date = 3;
+	int32 accrual_end_date = 4;
+	int32 payment_date = 5;
+	DayCountFraction day_count_fraction = 6;
+}
+
+// Single cashflow
+// This is a union type
+message CFSingle {
+	oneof cashflow {
+		CFSimple simple = 1;
+		CFFloating floating = 2;
+		CFFra fra = 3;
+		CFOis ois = 4;
+	}
+}
+
+// Cashflow stream
+message CFStream {
+	repeated CFSingle cashflows = 1;
+	// multiplicative factor
+	// typically used to reverse direction using -1.0
+	double factor = 2;
+}
+
+// Collection of cashflow streams
+message CFCollection {
+	repeated CFStream streams = 1;
+}
