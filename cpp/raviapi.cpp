@@ -2799,7 +2799,7 @@ static int build_curves(lua_State *L)
 		// FIXME these should be obtained from parameters (options?)
 		bootstrap_request->set_generate_par_sensitivities(false);
 		bootstrap_request->set_max_solver_iterations(30);
-		bootstrap_request->set_solver_type(SolverType::SOLVER_TYPE_LINEAR_LEAST_SQUARE);
+		//bootstrap_request->set_solver_type(SolverType::SOLVER_TYPE_LINEAR_LEAST_SQUARE);
 
 		std::unique_ptr<CurveBuilderService> bootstrapper = get_curve_builder_service();
 		auto reply = bootstrapper->handle_bootstrap_request(&ptr->arena, bootstrap_request);
