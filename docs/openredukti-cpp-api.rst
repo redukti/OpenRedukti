@@ -29,72 +29,55 @@ For reasons of efficiency all internal data structures use integer codes rather 
 strings for values. Most of the enums used are defined in the protocol buffers definition file 
 `enums.proto <https://github.com/redukti/OpenRedukti/blob/master/proto/enums.proto>`_. 
 
-.. cpp:enum:: redukti::Currency
-   
+redukti::Currency   
    Defines currency codes
 
-.. cpp:enum:: redukti::IsdaIndex
-
+redukti::IsdaIndex
    Defines commonly used ISDA Index names
 
-.. cpp:enum:: redukti::IndexFamily
-
+redukti::IndexFamily
    Defines families of indices
 
-.. cpp:enum:: redukti::DayCountFraction
-
+redukti::DayCountFraction
    Defines supported ISDA Day Count Fractions
 
-.. cpp:enum:: redukti::CompoundingMethod
-
+redukti::CompoundingMethod
    Defines compounding methods; compatible with FpML.
 
-.. cpp:enum:: redukti::BusinessCenter
-
+redukti::BusinessCenter
    Defines commonly used ISDA codes for business centers. These are used to derive holiday calendars.
 
-.. cpp:enum:: redukti::BusinessDayConvention
-
+redukti::BusinessDayConvention
    Defines ISDA specified business day conventions.
 
-.. cpp:enum:: redukti::Tenor
-
+redukti::Tenor
    Defines a tenor period such as 1M or 1Y. The codes are designed so that larger terms have higher codes.
 
-.. cpp:enum:: redukti::PeriodUnit
-
+redukti::PeriodUnit
    Defines the unit in which a period is measured, e.g. Days or Months, etc.
 
-.. cpp:enum:: redukti::RollConvention
-
+redukti::RollConvention
    Defines ISDA specified roll conventions for calculating periods for interest rate streams.
 
-.. cpp:enum:: redukti::JointCalendarRule
-
+redukti::JointCalendarRule
    Defines how multiple business centers are to be combined for the purposes of computing holidays.
 
-.. cpp:enum:: redukti::InterpolatorType
-
+redukti::InterpolatorType
    Defines the supported interpolation methods.
 
-.. cpp:enum:: redukti::CurveGroup
-
+redukti::CurveGroup
    Defines curve group ids for the purposes of grouping curves used in pricing.
 
-.. cpp:enum:: redukti::IRRateType
-
+redukti::IRRateType
    Defines the type of value being used in a curve definition.
 
-.. cpp:enum:: redukti::PricingCurveType
-
+redukti::PricingCurveType
    Defines the usage of a curve in a pricing scenario.
 
-.. cpp:enum:: redukti::MarketDataQualifier
-
+redukti::MarketDataQualifier
    Defines the type of Market Data being used.
 
-.. cpp:enum:: redukti::MaturityGenerationRule
-
+redukti::MaturityGenerationRule
    Defines the rule name for generating maturities of instruments in a curve.
 
 Date types

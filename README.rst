@@ -36,6 +36,12 @@ The main differences between the Open Source release and the proprietary version
 
 For further details of the full scope of the MyCCP product, please visit `Redukti.Com <http://redukti.com/myccp-product-specifications.html>`_. 
 
+Documentation
+=============
+* `Building OpenRedukti <https://github.com/redukti/OpenRedukti/blob/master/docs/openredukti-building.rst>`_.
+* `OpenRedukti C++ API <https://github.com/redukti/OpenRedukti/blob/master/docs/openredukti-cpp-api.rst>`_.
+* `OpenRedukti Scripting <https://github.com/redukti/OpenRedukti/blob/master/docs/openredukti-ravi-api.rst>`_.
+
 Ackowledgements
 ===============
 OpenRedukti gratefully acknowledges ideas and code it is using from other projects.
