@@ -1332,6 +1332,7 @@ static int read_csv(lua_State *L)
 					lua_pushinteger(L, missing_date);
 				break;
 			case '-':
+				lua_pushnil(L);
 				break;
 			case 's':
 			default:
