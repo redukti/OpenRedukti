@@ -19,7 +19,7 @@ Main Features
 * Interpolate curves in the discount factor space using LogLinear and LogCubicSpline interpolators
 * Compute present value of cashflows
 * Compute first and second order derivatives using `Automatic/algorithmic Differentiation <http://www.autodiff.org/>`_.
-* Script using `Ravi <https://github.com/dibyendumajumdar/ravi>`_ - a derivative of `Lua <www.lua.org>`_ programming language
+* Script using `Ravi <https://github.com/dibyendumajumdar/ravi>`_ - a derivative of `Lua <http://www.lua.org>`_ programming language
 
 Background
 ==========
@@ -44,4 +44,4 @@ OpenRedukti gratefully acknowledges ideas and code it is using from other projec
 * `Jeffrey Fike's work <http://adl.stanford.edu/hyperdual/>`_ on automatic differentiation using hyperdual vectors.
 * `QuantLib <http://quantlib.org/index.shtml>`_ which has provided the basis for some of the key components such as interpolators.
 * The monotone convex interpolation method is based on papers and VB code from `Financial Modeling Agency <http://finmod.co.za/#our-research>`_. 
-
+* The `C/C++ Minpack <http://devernay.free.fr/hacks/cminpack/>`_ provides the Levenberg-Marquardt solver used in curve building.
