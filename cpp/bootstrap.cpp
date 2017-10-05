@@ -1,0 +1,1465 @@
+/**
+ * DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ *
+ * Contributor(s):
+ *
+ * The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
+ * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
+ * Authors: Dibyendu Majumdar
+ *
+ * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ *
+ * The contents of this file are subject to the the GNU General Public License
+ * Version 3 (https://www.gnu.org/licenses/gpl.txt).
+ */
+
+#include <bootstrap.pb.h>
+#include <curve.pb.h>
+#include <enums.pb.h>
+
+#include <bootstrap.h>
+#include <cashflow.h>
+#include <cashflow_pricing.h>
+#include <converters.h>
+#include <curve.h>
+#include <logger.h>
+#include <matrix.h>
+#include <status.h>
+
+#include <internal/cashflow_internal.h>
+#include <internal/cashflow_pricing_internal.h>
+#include <internal/raviapi_internal.h>
+
+#include <cminpack.h>
+
+#include <map>
+#include <memory>
+#include <string>
+
+#include <cmath>
+
+// TODO
+// Long term - look at using autodiff
+
+// NOTE
+// Following error occurs when the data is uninitialized or invalid and it is
+// submitted to the solver
+// Causes a crash
+// DEBUG tid(480) C:\d\redukti\Redukti-Risk\src\bootstrap.cpp:1372
+// (handle_bootstrap_request) Starting curve build
+// ** On entry to DGECON parameter number  4 had an illegal value
+
+using namespace google::protobuf;
+
+namespace redukti
+{
+
+// Given the CurveDefinitionId locate the definition
+class CurveDefinitionProvider
+{
+      public:
+	virtual ~CurveDefinitionProvider() {}
+	virtual const IRCurveDefinition *get_definition_by_id(int id) const = 0;
+};
+
+// Simple implementation of id to definition mapping
+class CurveDefinitionProviderImpl : public CurveDefinitionProvider
+{
+      private:
+	std::map<int, const IRCurveDefinition *> mapping;
+
+      public:
+	~CurveDefinitionProviderImpl() {}
+	void add(const IRCurveDefinition *def) { mapping.insert({(int)def->id(), def}); }
+	const IRCurveDefinition *get_definition_by_id(int id) const override final
+	{
+		auto &&iter = mapping.find(id);
+		if (iter != mapping.end())
+			return iter->second;
+		return nullptr;
+	}
+};
+
+// When bootstrapping we fix the curves for each pricing call
+// Based on instrument definition - the curves are referenced by
+// their respective definition ids
+// Note objects of this class are copyable
+class BootstrapCurveMapper : public CurveMapper
+{
+      private:
+	PricingCurve forward_curve_;
+	PricingCurve discount_curve_;
+	// The following reference the curves by position
+	int forward_curve_index_;
+	int discount_curve_index_;
+
+      public:
+	BootstrapCurveMapper() : forward_curve_index_(-1), discount_curve_index_(-1) {}
+	BootstrapCurveMapper(PricingCurve fc, int fc_idx, PricingCurve dc, int dc_idx)
+	    : forward_curve_(fc), discount_curve_(dc), forward_curve_index_(fc_idx), discount_curve_index_(dc_idx)
+	{
+	}
+	PricingCurve map_index_tenor(PricingCurveType curve_type, Currency currency, IndexFamily family,
+				     Tenor tenor) const override final
+	{
+		assert(forward_curve_index_ != -1 && discount_curve_index_ != -1);
+		return curve_type == PricingCurveType::PRICING_CURVE_TYPE_DISCOUNT ? discount_curve_ : forward_curve_;
+	}
+	// Returns the forward curve index
+	int forward_curve() const
+	{
+		assert(forward_curve_index_ != -1);
+		return forward_curve_index_;
+	}
+	// Returns the discount curve index
+	int discount_curve() const
+	{
+		assert(forward_curve_index_ != -1);
+		return discount_curve_index_;
+	}
+};
+
+// For bootstrapping we fix the curves to be used, as all instruments are
+// vanilla and do not have stubs etc. we only need two curves
+class BootstrapCurveProvider : public CurveProvider
+{
+      private:
+	CurveReference *discount_curve_;
+	CurveReference *forward_curve_;
+
+      public:
+	BootstrapCurveProvider(CurveReference *dc, CurveReference *fc) : discount_curve_(dc), forward_curve_(fc) {}
+	const CurveReference *get_curve(PricingCurve curve) const
+	{
+		if (curve.curve_type() == PricingCurveType::PRICING_CURVE_TYPE_DISCOUNT)
+			return discount_curve_;
+		else
+			return forward_curve_;
+	}
+};
+
+// CurveHolder contains the curve being built during
+// bootstrapping. In addition to the base curve it is also
+// used to bump pillar points on the curve so that the Jacobian
+// can be computed numerically. There is a current curve
+// pointer which can be switched from base curve to bumped curve;
+// this allows the pricing functions to be unaware of which
+// curve is being used
+struct CurveHolder : public CurveReference {
+	uint32_t n_maturities_;
+	Date as_of_date_;
+	const DayFraction *fraction_;
+	IRRateType interpolated_on_;
+	Date *maturities_;
+	// Base zero rates - computed by bootstrap process
+	double *rates_;
+	// Temp curve populated by bumping a pillar
+	double *rates_plus_h_;
+	// Temp curve populated by bumping a pillar
+	double *rates_minus_h_;
+	// Copy of the bootstrapped rates for
+	// used during construction of the PAR delta
+	// Jacobian
+	double *saved_rates_;
+
+	// Curves may be interpolated on discount factors rather than rates
+	double *values_;
+	double *values_plus_h_;
+	double *values_minus_h_;
+	double *saved_values_;
+
+	std::unique_ptr<YieldCurve, Deleter<YieldCurve>> base_curve_;
+	std::unique_ptr<YieldCurve, Deleter<YieldCurve>> curve_plus_h_;
+	std::unique_ptr<YieldCurve, Deleter<YieldCurve>> curve_minus_h_;
+
+	// The curve used for pricing - could be one of the three above
+	YieldCurve *pricing_curve_;
+
+	CurveHolder(uint32_t n_maturities);
+	~CurveHolder();
+	YieldCurve *get() const noexcept final { return pricing_curve_; }
+
+	void init(Date asOfDate, Allocator *alloc, CurveId curveId, InterpolatorType interp, IRRateType interpolated_on)
+	{
+		assert(!base_curve_);
+		as_of_date_ = asOfDate;
+		interpolated_on_ = interpolated_on;
+		std::copy(rates_, rates_ + n_maturities_, rates_plus_h_);
+		std::copy(rates_, rates_ + n_maturities_, rates_minus_h_);
+		if (interpolated_on == IRRateType::DISCOUNT_FACTOR) {
+			for (int i = 0; i < n_maturities_; i++) {
+				// Convert to discount factor
+				double t = fraction_->year_fraction(asOfDate, maturities_[i]);
+				values_[i] = values_plus_h_[i] = values_minus_h_[i] = std::exp(-rates_[i] * t);
+			}
+		} else {
+			std::copy(rates_, rates_ + n_maturities_, values_);
+			std::copy(rates_, rates_ + n_maturities_, values_plus_h_);
+			std::copy(rates_, rates_ + n_maturities_, values_minus_h_);
+		}
+		base_curve_ =
+		    make_curve(alloc, curveId, asOfDate, maturities_, values_, n_maturities_, interp, interpolated_on_);
+		curve_plus_h_ = make_curve(alloc, curveId, asOfDate, maturities_, values_plus_h_, n_maturities_, interp,
+					   interpolated_on_);
+		curve_minus_h_ = make_curve(alloc, curveId, asOfDate, maturities_, values_minus_h_, n_maturities_,
+					    interp, interpolated_on_);
+		pricing_curve_ = base_curve_.get();
+	}
+
+	void bump(uint32_t pillar, const double h)
+	{
+		std::copy(rates_, rates_ + n_maturities_, rates_plus_h_);
+		rates_plus_h_[pillar] = rates_plus_h_[pillar] + h;
+		std::copy(rates_, rates_ + n_maturities_, rates_minus_h_);
+		rates_minus_h_[pillar] = rates_minus_h_[pillar] - h;
+		for (int i = 0; i < n_maturities_; i++) {
+			if (interpolated_on_ == IRRateType::DISCOUNT_FACTOR) {
+				// Convert to discount factor
+				double t = fraction_->year_fraction(as_of_date_, maturities_[i]);
+				values_plus_h_[i] = std::exp(-rates_plus_h_[i] * t);
+				values_minus_h_[i] = std::exp(-rates_minus_h_[i] * t);
+			} else {
+				values_plus_h_[i] = rates_plus_h_[i];
+				values_minus_h_[i] = rates_minus_h_[i];
+			}
+		}
+		curve_plus_h_->update_rates(values_plus_h_, n_maturities_);
+		curve_minus_h_->update_rates(values_minus_h_, n_maturities_);
+	}
+
+	void save()
+	{
+		std::copy(rates_, rates_ + n_maturities_, saved_rates_);
+		std::copy(values_, values_ + n_maturities_, saved_values_);
+	}
+	void restore()
+	{
+		std::copy(saved_rates_, saved_rates_ + n_maturities_, rates_);
+		std::copy(saved_values_, saved_values_ + n_maturities_, values_);
+	}
+};
+
+CurveHolder::CurveHolder(uint32_t n) : n_maturities_(n), as_of_date_(0), pricing_curve_(nullptr)
+{
+	// FIXME use allocator
+	fraction_ = get_day_fraction(DayCountFraction::ACT_365_FIXED);
+	maturities_ = new Date[n];
+	rates_ = new double[n];
+	rates_plus_h_ = new double[n];
+	rates_minus_h_ = new double[n];
+	saved_rates_ = new double[n];
+	values_ = new double[n];
+	values_plus_h_ = new double[n];
+	values_minus_h_ = new double[n];
+	saved_values_ = new double[n];
+}
+
+CurveHolder::~CurveHolder()
+{
+	// FIXME use allocator
+	delete[] maturities_;
+	delete[] rates_;
+	delete[] rates_plus_h_;
+	delete[] rates_minus_h_;
+	delete[] saved_rates_;
+	delete[] values_;
+	delete[] values_plus_h_;
+	delete[] values_minus_h_;
+	delete[] saved_values_;
+}
+
+// A wrapper for each instrument
+// Holds the cashflow structure obtained from Lua script
+// as well as the processed one
+struct CashflowInstrument {
+      private:
+	std::unique_ptr<CFCollection> cfcollection_;
+	Cashflows *cashflows_;
+	Date maturity_;
+	// As the instrument is arranged in sorted order by maturity
+	// its position may be different from the input data
+	// So we track the original position where this instrument was located
+	// This can be used to get the instrument attributes from the input
+	// curve
+	int original_instrument_position_;
+	// A constraint does not contribute a pillar
+	bool is_constraint_;
+
+	BootstrapCurveMapper mapper_;
+	Date business_date_;
+
+	std::unique_ptr<CFCollection> cfcollection_backup_;
+	Cashflows *cashflows_backup_;
+
+      public:
+	CashflowInstrument() : maturity_(0), original_instrument_position_(-1), is_constraint_(false), business_date_(0)
+	{
+	}
+	~CashflowInstrument() {}
+	void backup_cashflows()
+	{
+		assert(!cfcollection_backup_);
+		cfcollection_backup_ = std::move(cfcollection_);
+		cashflows_backup_ = cashflows_;
+	}
+	void restore_cashflows()
+	{
+		assert(cfcollection_backup_);
+		cfcollection_ = std::move(cfcollection_backup_);
+		cashflows_ = cashflows_backup_;
+	}
+	void copy_cashflows(std::unique_ptr<CashflowInstrument> other)
+	{
+		cfcollection_ = std::move(other->cfcollection_);
+	}
+	void set_cfcollection(std::unique_ptr<CFCollection> collection)
+	{
+		assert(collection);
+		cfcollection_ = std::move(collection);
+	}
+	void set_maturity(Date dt)
+	{
+		assert(is_valid_date(dt));
+		maturity_ = dt;
+	}
+	void set_original_instrument_position(int pos) { original_instrument_position_ = pos; }
+	void set_is_constraint(bool value) { is_constraint_ = value; }
+	Date maturity() const { return maturity_; }
+	void set_business_date(Date business_date) { business_date_ = business_date; }
+	void set_curve_mapper(const BootstrapCurveMapper &mapper) { mapper_ = mapper; }
+	int original_instrument_position() const { return original_instrument_position_; }
+	bool build_cashflows(RegionAllocator *A)
+	{
+		ValuationContextImpl ctx(business_date_, 0);
+		cashflows_ = construct_cashflows(A, cfcollection_.get(), ctx, &mapper_);
+		return !!cashflows_;
+	}
+	double evaluate(FixedRegionAllocator *A, const ValuationContext &ctx, CurveProvider *curve_provider,
+			Sensitivities &sens, StatusCode &status)
+	{
+		return compute_present_value(A, ctx, cashflows_, curve_provider, sens, status);
+	}
+	double evaluate(FixedRegionAllocator *A, const ValuationContext &ctx, CurveReference *forward_curve,
+			CurveReference *discount_curve, Sensitivities &sens, StatusCode &status)
+	{
+		return compute_present_value(A, cashflows_, discount_curve, forward_curve, forward_curve, ctx, sens,
+					     status);
+	}
+	int forward_curve() { return mapper_.forward_curve(); }
+	int discount_curve() { return mapper_.discount_curve(); }
+};
+
+struct CashflowInstrumentByCurve {
+	std::map<Date, std::unique_ptr<CashflowInstrument>> instruments_by_maturity;
+};
+
+class LuaWrapper
+{
+      private:
+	lua_State *L_;
+
+      public:
+	LuaWrapper()
+	{
+		L_ = luaL_newstate(); /* create Lua state */
+		if (L_ == nullptr) {
+			die("Failed to create Lua State\n");
+		}
+		luaL_checkversion(L_); /* check that interpreter has correct version */
+		luaL_openlibs(L_);     /* open standard libraries */
+	}
+	~LuaWrapper()
+	{
+		if (L_ != nullptr)
+			lua_close(L_);
+	}
+	bool load_luascript(std::string lua_script)
+	{
+		if (luaL_loadfile(L_, lua_script.c_str()) != LUA_OK) {
+			error("Failed to load Lua script %s: %s\n", lua_script.c_str(), lua_tostring(L_, -1));
+			lua_pop(L_, 1); // pop the error message
+			return false;
+		}
+		if (lua_pcall(L_, 0, 0, 0) != LUA_OK) {
+			error("Failed to run Lua script %s: %s\n", lua_script.c_str(), lua_tostring(L_, -1));
+			lua_pop(L_, 1); // pop the error message
+			return false;
+		}
+		return true;
+	}
+	lua_State *L() const { return L_; }
+};
+
+class CurveBuilderOptions
+{
+      public:
+	bool use_levenberg_marquardt_solver;
+	int max_iterations;
+	bool generate_par_sensitivities;
+
+      public:
+	CurveBuilderOptions()
+	    : use_levenberg_marquardt_solver(true), max_iterations(10), generate_par_sensitivities(false)
+	{
+	}
+};
+
+class ParSensitivities
+{
+      private:
+	int m_; // rows
+	int n_; // columns
+	std::vector<double> values_;
+
+      public:
+	ParSensitivities(int m, int n) : m_(m), n_(n), values_(m * n) {}
+	void set(int row, int col, double v)
+	{
+		int pos = row * n_ + col;
+		values_[pos] = v;
+	}
+	void dump_to(FILE *fp)
+	{
+		for (int row = 0; row < m_; row++) {
+			fprintf(fp, "row[%d]", row);
+			for (int col = 0; col < n_; col++) {
+				double v = values_[row * n_ + col];
+				fprintf(fp, "\t%f", v);
+			}
+			fprintf(fp, "\n");
+		}
+	}
+	int m() const { return m_; }
+	int n() const { return n_; }
+	double value(int row, int col) const
+	{
+		assert(row < m_);
+		assert(col < n_);
+		int pos = row * n_ + col;
+		return values_[pos];
+	}
+};
+
+class CurveBuilder
+{
+      private:
+	const CurveDefinitionProvider *definition_provider_;
+	// The input curves containing raw instruments data
+	const ParCurveSet *input_curves_;
+	// The processed instruments stored by each input curve; curves are in
+	// same order as input_curves_ but instruments are sorted by maturity
+	// date
+	std::vector<std::unique_ptr<CashflowInstrumentByCurve>> instruments_by_curve_;
+	// The global list of instruments, sorted by curve index and maturity
+	// date as the composite key (uint64)
+	std::map<uint64_t, CashflowInstrument *> global_instruments_list_;
+	// The work in progress curves where the processing results are stored
+	std::vector<std::unique_ptr<CurveHolder>> bootstrap_curves_;
+	// A lookup map to allow mapping of curve definition id to its index,
+	// i.e. position in the vectors above
+	std::map<int, int> curve_by_name_;
+	std::vector<std::unique_ptr<ParSensitivities>> par_sensitivities_by_curve_;
+	// The as of date
+	Date business_date_;
+	LuaWrapper &lua_;
+	StatusCode last_error_code_;
+	char last_error_message_[1024];
+	DynamicRegionAllocator cashflow_allocator_;
+
+      public:
+	CurveBuilder(LuaWrapper &lua, Date business_date, const CurveDefinitionProvider *definition_provider);
+	~CurveBuilder();
+	bool add_input_curves(const ParCurveSet *curves);
+	const ParCurve &get_input_curve(int i) const
+	{
+		assert(i >= 0 && i < input_curves_->par_curves_size());
+		return input_curves_->par_curves(i);
+	}
+	const char *last_error_message() const { return last_error_message_; }
+	StatusCode last_error_code() const { return last_error_code_; }
+	// Generate an instrument definition
+	std::unique_ptr<CashflowInstrument> build_instrument(const ParCurve &curve, int instrument_position,
+							     double par_rate);
+	// Adds instruments for the curve into the global list
+	// The instruments are added such that the global instrument list
+	// is sorted by curve_index and instrument maturity date
+	// The 'curve_index' here means the position of the par curve
+	// in the input par curve set.
+	// curve_index is also the position of the curve in the input_curves_
+	// and instruments_by_curve_ vectors
+	void add_to_global_instrument_list(int curve_index, const CashflowInstrumentByCurve *curve);
+	// Construct the initial curve based on the input data
+	// If maturities are derived from instruments then this curve will
+	// have as many pillars as there are input instruments, else
+	// the maturities will be based on fixed set of tenors
+	bool create_bootstrap_curve(const ParCurve &input_curve, const CashflowInstrumentByCurve *instruments_by_curve);
+	bool prepare_instruments();
+	int num_instruments() const { return global_instruments_list_.size(); }
+	int num_pillars() const
+	{
+		int n = 0;
+		for (auto &&curve : bootstrap_curves_) {
+			n += curve->n_maturities_;
+		}
+		return n;
+	}
+	std::map<uint64_t, CashflowInstrument *> &sorted_instruments() { return global_instruments_list_; }
+	CurveHolder *get_curve_by_index(int id) const
+	{
+		assert(id >= 0 && id < bootstrap_curves_.size());
+		return bootstrap_curves_[id].get();
+	}
+	CurveHolder *get_curve_by_definition_id(int id) const
+	{
+		auto iter = curve_by_name_.find(id);
+		if (iter == std::end(curve_by_name_))
+			return nullptr;
+		return get_curve_by_index(iter->second);
+	}
+	ParSensitivities *get_sensitivities_by_index(int id) const
+	{
+		assert(id >= 0);
+		if (id >= 0 && id < par_sensitivities_by_curve_.size())
+			return par_sensitivities_by_curve_[id].get();
+		else
+			return nullptr;
+	}
+	ParSensitivities *get_sensitivities_by_curve_definition_id(int id) const
+	{
+		auto iter = curve_by_name_.find(id);
+		if (iter == std::end(curve_by_name_))
+			return nullptr;
+		return get_sensitivities_by_index(iter->second);
+	}
+	Date business_date() const { return business_date_; }
+	// The list of curves being bootstrapped
+	// In the same order as the input curves
+	std::vector<std::unique_ptr<CurveHolder>> &curves() { return bootstrap_curves_; }
+	StatusCode build_curves(const CurveBuilderOptions &options);
+};
+
+CurveBuilder::CurveBuilder(LuaWrapper &lua, Date business_date, const CurveDefinitionProvider *definition_provider)
+    : definition_provider_(definition_provider), business_date_(business_date), lua_(lua), last_error_code_(kOk),
+      cashflow_allocator_(64 * 1024)
+{
+	last_error_message_[0] = 0;
+}
+
+CurveBuilder::~CurveBuilder() {}
+
+/*
+** Message handler used to run all chunks
+*/
+static int msghandler(lua_State *L)
+{
+	const char *msg = lua_tostring(L, 1);
+	if (msg == NULL) {				 /* is error object not a string? */
+		if (luaL_callmeta(L, 1, "__tostring") && /* does it have a metamethod */
+		    lua_type(L, -1) == LUA_TSTRING)      /* that produces a string? */
+			return 1;			 /* that is the message */
+		else
+			msg = lua_pushfstring(L, "(error object is a %s value)", luaL_typename(L, 1));
+	}
+	luaL_traceback(L, L, msg, 1); /* append a standard traceback */
+	return 1;		      /* return the traceback */
+}
+
+/*
+** Interface to 'lua_pcall', which sets appropriate message function
+** and C-signal handler. Used to run all chunks.
+*/
+static int docall(lua_State *L, int narg, int nres)
+{
+	int status;
+	int base = lua_gettop(L) - narg;  /* function index */
+	lua_pushcfunction(L, msghandler); /* push message handler */
+	lua_insert(L, base);		  /* put it under function and args */
+	// globalL = L;  /* to be available to 'laction' */
+	// signal(SIGINT, laction);  /* set C-signal handler */
+	status = lua_pcall(L, narg, nres, base);
+	// signal(SIGINT, SIG_DFL); /* reset C-signal handler */
+	lua_remove(L, base); /* remove message handler from the stack */
+	return status;
+}
+
+// Generates CashflowInstrument for the specified
+// instrument in the parcurve; Lua script is called to obtain
+// cashflow definition
+std::unique_ptr<CashflowInstrument> CurveBuilder::build_instrument(const ParCurve &par_curve, int instrument_position,
+								   double par_rate)
+{
+	std::unique_ptr<CashflowInstrument> cfinst;
+	const IRCurveDefinition *curve_defn =
+	    definition_provider_->get_definition_by_id(par_curve.curve_definition_id());
+	if (curve_defn == nullptr) {
+		last_error_code_ = StatusCode::kBTS_CurveDefinitionNotFound;
+		snprintf(last_error_message_, sizeof last_error_message_, "%s: ID %d", error_message(last_error_code_),
+			 par_curve.curve_definition_id());
+		error("%s\n", last_error_message_);
+		return cfinst;
+	}
+	auto const &inst = par_curve.instruments(instrument_position);
+	// auto par_rate = par_curve.par_rates().values(instrument_position);
+	auto lua_function_name = inst.instrument_type();
+	lua_State *L_ = lua_.L();
+	int top = lua_gettop(L_);
+	if (lua_getglobal(L_, lua_function_name.c_str()) == LUA_TFUNCTION) {
+		lua_pushinteger(L_, business_date_);
+		lua_pushstring(L_, get_default_converter()->currency_to_string(curve_defn->currency()));
+		lua_pushstring(L_, get_default_converter()->index_family_to_string(curve_defn->index_family()));
+		lua_pushstring(L_, get_default_converter()->tenor_to_string(curve_defn->tenor()).c_str());
+		lua_pushstring(L_, inst.instrument_key().c_str());
+		lua_pushnumber(L_, par_rate);
+		int nargs = 6;
+		if (inst.floating_tenor() != Tenor::TENOR_UNSPECIFIED) {
+			lua_pushstring(L_, get_default_converter()->tenor_to_string(inst.floating_tenor()).c_str());
+			nargs++;
+		}
+		if (docall(L_, nargs, 2) == LUA_OK) {
+			if (lua_type(L_, -2) == LUA_TNUMBER && lua_type(L_, -1) == LUA_TUSERDATA) {
+				Date maturity_date = lua_tointeger(L_, -2);
+				auto cfcollection = raviapi_get_CFCollection(L_, -1);
+				if (is_valid_date(maturity_date) && cfcollection) {
+					cfinst = std::unique_ptr<CashflowInstrument>(new CashflowInstrument());
+					cfinst->set_cfcollection(std::move(cfcollection));
+					cfinst->set_maturity(maturity_date);
+					cfinst->set_original_instrument_position(instrument_position);
+					// cfinst->set_is_constraint(inst.is_constraint());
+					cfinst->set_is_constraint(false);
+					cfinst->set_business_date(business_date_);
+				} else {
+					last_error_code_ = StatusCode::kBTS_CashflowDefinitionFailed;
+					snprintf(last_error_message_, sizeof last_error_message_, "%s: \n%s",
+						 error_message(last_error_code_), inst.DebugString().c_str());
+					error("%s\n", last_error_message_);
+				}
+			} else {
+				last_error_code_ = StatusCode::kBTS_CashflowDefinitionFailed;
+				snprintf(last_error_message_, sizeof last_error_message_, "%s: \n%s",
+					 error_message(last_error_code_), inst.DebugString().c_str());
+				error("%s\n", last_error_message_);
+			}
+			// Pop the return values
+			lua_pop(L_, 2);
+		} else {
+			last_error_code_ = StatusCode::kBTS_LuaScriptFailure;
+			snprintf(last_error_message_, sizeof last_error_message_, "%s: %s \n%s",
+				 error_message(last_error_code_), lua_tostring(L_, -1), inst.DebugString().c_str());
+			error("%s\n", last_error_message_);
+			// TODO report error
+			// Pop the error object
+			lua_pop(L_, 1);
+		}
+	} else {
+		error("Could not find a Lua pricing routine for %s\n", lua_function_name.c_str());
+		/* pop the value pushed by lua_getglobal() */
+		last_error_code_ = StatusCode::kBTS_LuaPricingRoutineNotFound;
+		snprintf(last_error_message_, sizeof last_error_message_, "%s: %s", error_message(last_error_code_),
+			 lua_function_name.c_str());
+		error("%s\n", last_error_message_);
+		lua_pop(L_, 1);
+	}
+	assert(top == lua_gettop(L_));
+	return cfinst;
+}
+
+// Adds instruments for the curve into the global list
+// The instruments are added such that the global instrument list
+// is sorted by curve_index and instrument maturity date
+// The 'curve_index' here means the position of the par curve
+// in the input par curve set.
+void CurveBuilder::add_to_global_instrument_list(int curve_index, const CashflowInstrumentByCurve *curve)
+{
+	for (auto &&iter = std::begin(curve->instruments_by_maturity); iter != std::end(curve->instruments_by_maturity);
+	     iter++) {
+		uint64_t id = ((uint64_t)curve_index) << 32 | (uint64_t)(iter->first);
+		global_instruments_list_.insert({id, iter->second.get()});
+	}
+}
+
+// Construct the initial curve based on the input data
+// If maturities are derived from instruments then this curve will
+// have as many pillars as there are input instruments, else
+// the maturities will be based on fixed set of tenors
+// The curve will be added to the list of curves
+bool CurveBuilder::create_bootstrap_curve(const ParCurve &input_curve,
+					  const CashflowInstrumentByCurve *instruments_by_curve)
+{
+	const IRCurveDefinition *defn = definition_provider_->get_definition_by_id(input_curve.curve_definition_id());
+	assert(defn != nullptr);
+	std::unique_ptr<CurveHolder> ycurve;
+	if (defn->maturity_generation_rule() == MaturityGenerationRule::MATURITY_GENERATION_RULE_FIXED_TENORS) {
+		// input curve has defined set of maturities
+		// FIXME we need to implement some logic to base the initial
+		// guess on par rates as otherwise the solver may not
+		// converge. For now for discount factors we set guess to 1.0,
+		// for rates to 5%.
+		ycurve = std::make_unique<CurveHolder>(defn->tenors_size());
+		auto converter = get_default_converter();
+		for (int i = 0; i < defn->tenors_size(); i++) {
+			int offset = converter->tenor_to_days(defn->tenors(i));
+			Date maturity = business_date_ + offset;
+			ycurve->maturities_[i] = maturity;
+			ycurve->rates_[i] = 0.05;
+		}
+	} else {
+		// We will use the input instruments to define the set of
+		// maturities
+		uint32_t n = input_curve.instruments_size();
+		ycurve = std::make_unique<CurveHolder>(n);
+		// Iterate over the instruments by maturity date
+		int i = 0;
+		for (auto &&iter = std::begin(instruments_by_curve->instruments_by_maturity);
+		     iter != std::end(instruments_by_curve->instruments_by_maturity); iter++) {
+			auto par_rate = input_curve.par_rates().values(iter->second->original_instrument_position());
+			ycurve->maturities_[i] = iter->first;
+			ycurve->rates_[i] = par_rate;
+			if (ycurve->maturities_[i] <= business_date_ ||
+			    (i > 0 && ycurve->maturities_[i - 1] >= ycurve->maturities_[i])) {
+				last_error_code_ = StatusCode::kBTS_BadMaturitiesSortOrder;
+				snprintf(last_error_message_, sizeof last_error_message_, "%s: index %d",
+					 error_message(last_error_code_), i);
+				error("%s\n", last_error_message_);
+				return false;
+			}
+			i++;
+		}
+	}
+	ycurve->init(business_date_, &GlobalAllocator,
+		     make_curve_id(PricingCurveType::PRICING_CURVE_TYPE_UNSPECIFIED, defn->currency(),
+				   defn->index_family(), defn->tenor(), business_date_),
+		     defn->interpolator_type(), defn->interpolated_on());
+
+	this->bootstrap_curves_.push_back(std::move(ycurve));
+	return true;
+}
+
+bool CurveBuilder::add_input_curves(const ParCurveSet *curve)
+{
+	input_curves_ = curve;
+	bool success = true;
+	for (int k = 0; k < input_curves_->par_curves_size(); k++) {
+		// TODO validate input curve
+		// TODO If specs supplied then do the maturities make sense /
+		// are sorted / > business date etc.
+		auto &underlying = input_curves_->par_curves(k);
+		if (curve_by_name_.find(underlying.curve_definition_id()) != curve_by_name_.end()) {
+			last_error_code_ = StatusCode::kBTS_DuplicateCurve;
+			snprintf(last_error_message_, sizeof last_error_message_, "%s: ID %d",
+				 error_message(last_error_code_), underlying.curve_definition_id());
+			error("%s\n", last_error_message_);
+			return false;
+		}
+		std::unique_ptr<CashflowInstrumentByCurve> inst_by_curve =
+		    std::make_unique<CashflowInstrumentByCurve>();
+		// For each instrument in the curve call a Lua script which
+		// returns the instruments maturity date and the cashflow
+		// representation
+		for (int i = 0; i < underlying.instruments_size(); i++) {
+			auto par_rate = underlying.par_rates().values(i);
+			std::unique_ptr<CashflowInstrument> cfinst = build_instrument(underlying, i, par_rate);
+			if (cfinst) {
+				inst_by_curve->instruments_by_maturity.insert(
+				    std::make_pair(cfinst->maturity(), std::move(cfinst)));
+			} else {
+				success = false;
+				break;
+			}
+		}
+		if (success) {
+			auto curve_ptr = inst_by_curve.get();
+			instruments_by_curve_.push_back(std::move(inst_by_curve));
+			// Add instruments in this curve to the global
+			// insruments list
+			// k is the curve index
+			add_to_global_instrument_list(k, curve_ptr);
+			if (!create_bootstrap_curve(underlying, curve_ptr)) {
+				success = false;
+				break;
+			}
+			curve_by_name_.insert({underlying.curve_definition_id(), k});
+		} else {
+			break;
+		}
+	}
+	return success;
+}
+
+bool CurveBuilder::prepare_instruments()
+{
+	// Resolve references to forward / discount curves in instruments
+	ValuationContextImpl ctx(business_date_, 0);
+	for (auto &&iter : global_instruments_list_) {
+		int curve_index = (int)(iter.first >> 32);
+		assert(curve_index >= 0 && curve_index < input_curves_->par_curves_size());
+		auto &curve = input_curves_->par_curves(curve_index);
+		CashflowInstrument *cfinst = iter.second;
+		assert(cfinst->original_instrument_position() < curve.instruments_size());
+		auto &input_instrument = curve.instruments(cfinst->original_instrument_position());
+		// The forward and discount curves need to be mapped to the ones
+		// specified in the instrument defintion - the curves are
+		// identified by name in the input so we need to convert from
+		// name to index, and create a mapper that forces the mapping
+		// output to resolve to the predefined curves
+		int discount_curve = -1;
+		int forward_curve = -1;
+		auto iter2 = curve_by_name_.find(input_instrument.forward_curve_definition_id());
+		if (iter2 != curve_by_name_.end())
+			forward_curve = iter2->second;
+		iter2 = curve_by_name_.find(input_instrument.discount_curve_definition_id());
+		if (iter2 != curve_by_name_.end())
+			discount_curve = iter2->second;
+		// It is an error if the curves were not found
+		if (forward_curve < 0) {
+			last_error_code_ = kBTS_ForwardCurveReferenceNotFound;
+			snprintf(last_error_message_, sizeof last_error_message_, "%s: ID %d",
+				 error_message(last_error_code_), input_instrument.forward_curve_definition_id());
+			error("%s\n", last_error_message_);
+			return false;
+		}
+		if (forward_curve < 0 || discount_curve < 0) {
+			last_error_code_ = StatusCode::kBTS_DiscountCurveReferenceNotFound;
+			snprintf(last_error_message_, sizeof last_error_message_, "%s: ID %d",
+				 error_message(last_error_code_), input_instrument.discount_curve_definition_id());
+			error("%s\n", last_error_message_);
+			return false;
+		}
+		PricingCurve fc(
+		    PricingCurveType::PRICING_CURVE_TYPE_FORWARD,
+		    definition_provider_
+			->get_definition_by_id(input_curves_->par_curves(forward_curve).curve_definition_id())
+			->currency());
+		PricingCurve dc(
+		    PricingCurveType::PRICING_CURVE_TYPE_DISCOUNT,
+		    definition_provider_
+			->get_definition_by_id(input_curves_->par_curves(discount_curve).curve_definition_id())
+			->currency());
+		BootstrapCurveMapper mapper(fc, forward_curve, dc, discount_curve);
+		cfinst->set_curve_mapper(mapper);
+		if (!cfinst->build_cashflows(&cashflow_allocator_)) {
+			last_error_code_ = kBTS_CashflowGenerationFailed;
+			snprintf(last_error_message_, sizeof last_error_message_, "%s: %s",
+				 error_message(last_error_code_), input_instrument.DebugString().c_str());
+			error("%s\n", last_error_message_);
+			return false;
+		}
+	}
+	return true;
+}
+
+int minpack_lmder_function(void *p, int m, int n, const double *x, double *fvec, double *fjac, int ldfjac, int iflag);
+
+class SolverFunction
+{
+      private:
+	CurveBuilder *curve_builder_;
+	std::map<std::string, std::shared_ptr<YieldCurve>> output_curves_;
+	int max_iterations_;
+	Allocator *alloc_;
+	FILE *debug_output_;
+	double *A;
+	std::vector<bool> InitialA;
+	double *bx;
+	int savings;
+	int iter;
+	Sensitivities dummy_sens;
+	FixedRegionAllocator *pricing_allocator;
+
+      public:
+	SolverFunction(CurveBuilder *builder, int max_iterations, Allocator *alloc, FILE *debug_output)
+	    : curve_builder_(builder), max_iterations_(max_iterations), alloc_(alloc), debug_output_(debug_output),
+	      InitialA(curve_builder_->num_instruments() * curve_builder_->num_pillars(), false), savings(0), iter(0),
+	      dummy_sens(alloc)
+	{
+		A = new double[curve_builder_->num_instruments() * curve_builder_->num_pillars()];
+		// Note that bx is sized to be as big as the m() = num
+		// instruments although we are only interested in n (pillars)
+		// because the LAPACK routines require this. But when applying
+		// corrections and checking the solution we must only look at
+		// n() elements in bx
+		bx = new double[curve_builder_->num_instruments()];
+		pricing_allocator = get_threadspecific_allocators()->tempspace_allocator;
+	}
+
+	~SolverFunction()
+	{
+		delete[] bx;
+		delete[] A;
+	}
+	// number of functions
+	int32_t m() { return (int32_t)curve_builder_->num_instruments(); }
+
+	// number of variables
+	int32_t n() { return (int32_t)curve_builder_->num_pillars(); }
+
+	double *solution_vector() { return bx; }
+
+	double *jacobian() { return A; }
+
+	// Reset any cached data
+	void reset() {}
+
+	double evaluate_instrument(CashflowInstrument *cfinst, StatusCode &status)
+	{
+		CurveReference *forward_curve = curve_builder_->get_curve_by_index(cfinst->forward_curve());
+		CurveReference *discount_curve = curve_builder_->get_curve_by_index(cfinst->discount_curve());
+		ValuationContextImpl ctx(curve_builder_->business_date());
+		BootstrapCurveProvider provider(discount_curve, forward_curve);
+		return cfinst->evaluate(pricing_allocator, ctx, &provider, dummy_sens, status);
+		// return cfinst->evaluate(pricing_allocator, ctx,
+		// forward_curve,
+		//                        discount_curve, dummy_sens, status);
+	}
+
+	// Evaluate the system of equations and populate the vector bx
+	bool evaluate()
+	{
+		reset();
+
+		StatusCode status = StatusCode::kOk;
+		// and populate vector
+		unsigned int instrument_num = 0;
+		for (auto &item : curve_builder_->sorted_instruments()) {
+			bx[instrument_num] = evaluate_instrument(item.second, status);
+			// printf("bx[%d] = %f\n", instrument_num,
+			// bx[instrument_num]);
+			instrument_num++;
+			if (status != StatusCode::kOk)
+				return false;
+		}
+		//  dump("Computed PV", bx);
+		return true;
+	}
+
+	// calculate the jacobian numerically
+	bool compute_jacobian()
+	{
+		// To populate the Jacobian , we process by curve pillar by
+		// instrument so that we can setup the curve once for each
+		// pillar rate_num tracks where we are in terms of the
+		// curve/pillar combination - i.e. rate_num is 0 for first
+		// curve/pillar
+		int rate_num = 0;
+		int curve_num = 0;
+		StatusCode status = StatusCode::kOk;
+		for (auto &ch : curve_builder_->curves()) {
+			// for each pillar on the curve we
+			// compute the partial derivative for each instrument's
+			// PV with respect to the pillar - we use a numerical
+			// approach to ensure we can handle unknown
+			// interpolation methods
+			for (uint32_t pillar = 0; pillar < ch->n_maturities_; pillar++) {
+				const double h = 0.0001;
+				ch->bump(pillar, h);
+
+				size_t instrument_num = 0;
+				for (auto &item : curve_builder_->sorted_instruments()) {
+					if (iter == 0 || InitialA[rate_num * m() + instrument_num]) {
+						// First calculate PV using -h
+						// bump
+						ch->pricing_curve_ = ch->curve_minus_h_.get();
+						double minus_h_pv = evaluate_instrument(item.second, status);
+						if (status != StatusCode::kOk)
+							return false;
+
+						// Now calculate PV using +h
+						// bump
+						ch->pricing_curve_ = ch->curve_plus_h_.get();
+						double plus_h_pv = evaluate_instrument(item.second, status);
+						if (status != StatusCode::kOk)
+							return false;
+
+						// Calculate partial derivative
+						double partial = 0.0;
+						if (plus_h_pv != minus_h_pv) {
+							partial = (plus_h_pv - minus_h_pv) / (2 * h);
+						}
+
+						// reset pricing curve
+						ch->pricing_curve_ = ch->base_curve_.get();
+
+						// printf("Setting matrix A for
+						// curve %d, curve pillar %d,
+						// global pillar %d instrument
+						// %d at [%d]\n", curve_num,
+						// (int)pillar, rate_num,
+						// instrument_num, rate_num *
+						// m() + instrument_num); Set
+						// value in matrix
+						A[rate_num * m() + instrument_num] = partial;
+						if (iter == 0 && partial != 0.0)
+							InitialA[rate_num * m() + instrument_num] = true;
+						// printf("A[%d, %d] = %f\n",
+						// (int)instrument_num,
+						// rate_num, partial);
+					}
+					instrument_num++;
+				}
+				rate_num++;
+			}
+			curve_num++;
+		}
+
+		// if (redukti_debug) fprintf(stderr, "Solving\n");
+		if (iter == 0) {
+			// We save the first Jacobian so that in subsequent
+			// iterations we can avoid computing partials where the
+			// original partial was 0.0 exactly; this is a
+			// performance feature InitialA.add(A);
+		}
+		// dump("Jacobian:", A, debug_output_);
+		// dump("Vector:", bx, debug_output_);
+		return true;
+	}
+
+	bool solution()
+	{
+		// Now solve.
+		// We use a linear square solver - the -1.0 argument says that
+		// the solver should estimate the reciprocal condition number of
+		// the matrix
+		redukti_matrix_t X = {m(), n(), A};
+		redukti_matrix_t c = {m(), 1, bx}; // NOTE bx must be sized to m() not n()
+		double rcond = -1.0;
+
+		if (!redukti_matrix_estimate_rcond(&X, &rcond)) {
+			redukti_matrix_dump_to(&X, "Failed matrix", stderr);
+			error("Failed to solve the system of equations\n");
+			return false;
+		}
+		if (!redukti_matrix_lsq_solve(&X, &c, rcond /* 0.0000001*/, true)) {
+			error("Failed to solve the system of equations\n");
+			return false;
+		}
+		return true;
+	}
+
+	void apply_corrections()
+	{
+		// Now we apply corrections that are in bx to the
+		// zero rates
+		// dump("Corrections vector:", bx, debug_output_);
+		int rate_num = 0;
+		for (auto &ch : curve_builder_->curves()) {
+			// for each pillar on the curve we
+			// compute the partial derivative for each instrument
+			for (uint32_t pillar = 0; pillar < ch->n_maturities_; pillar++) {
+				double correction = bx[rate_num];
+				ch->rates_[pillar] = ch->rates_[pillar] - correction;
+				if (ch->interpolated_on_ == IRRateType::DISCOUNT_FACTOR) {
+					ch->values_[pillar] = std::exp(
+					    -ch->rates_[pillar] *
+					    ch->fraction_->year_fraction(ch->as_of_date_, ch->maturities_[pillar]));
+				} else {
+					ch->values_[pillar] = ch->rates_[pillar];
+				}
+				// fprintf(debug_output_, "Curve %s pillar %d
+				// value %.10f\n",
+				//        ch->curvename_, pillar,
+				//        ch->rates_[pillar]);
+				rate_num++;
+			}
+			ch->base_curve_->update_rates(ch->values_, ch->n_maturities_);
+		}
+	}
+
+	void set_vector(const double *x, size_t n)
+	{
+		assert(n == this->n());
+		int rate_num = 0;
+		for (auto &ch : curve_builder_->curves()) {
+			// for each pillar on the curve we
+			// compute the partial derivative for each instrument
+			for (uint32_t pillar = 0; pillar < ch->n_maturities_; pillar++) {
+				ch->rates_[pillar] = x[rate_num];
+				if (ch->interpolated_on_ == IRRateType::DISCOUNT_FACTOR) {
+					ch->values_[pillar] = std::exp(
+					    -ch->rates_[pillar] *
+					    ch->fraction_->year_fraction(ch->as_of_date_, ch->maturities_[pillar]));
+				} else {
+					ch->values_[pillar] = ch->rates_[pillar];
+				}
+				// fprintf(debug_output_, "Curve %s pillar %d
+				// value %.10f\n",
+				//        ch->curvename_, pillar,
+				//        ch->rates_[pillar]);
+				rate_num++;
+			}
+			ch->base_curve_->update_rates(ch->values_, ch->n_maturities_);
+		}
+	}
+
+	void get_vector(double *x, size_t len)
+	{
+		assert(len == n());
+		int rate_num = 0;
+		for (auto &ch : curve_builder_->curves()) {
+			// for each pillar on the curve we
+			// compute the partial derivative for each instrument
+			for (uint32_t pillar = 0; pillar < ch->n_maturities_; pillar++) {
+				x[rate_num] = ch->rates_[pillar];
+				rate_num++;
+			}
+		}
+	}
+
+	bool is_solved(int iter)
+	{
+		// Check if corrections were good enough that we can stop
+		// iterating
+		bool iterate = false;
+		// NOTE we are only interested in n() elements of bx as
+		// they correspond to pillars
+		for (size_t i = 0; i < n(); i++) {
+			if (std::fabs(bx[i]) > 1e-10) {
+				iterate = true;
+				break;
+			}
+		}
+		return iterate;
+	}
+
+	bool solve()
+	{
+		for (int iter = 0; iter < max_iterations_; iter++) {
+			// fprintf(stderr, "Pricing instruments: iteration
+			// %d\n", iter);
+			if (!evaluate())
+				return false;
+			if (!compute_jacobian())
+				return false;
+			if (!solution())
+				return false;
+			apply_corrections();
+			// Check if corrections were good enough that we can
+			// stop iterating
+			bool iterate = is_solved(iter);
+			if (!iterate)
+				break;
+		}
+		fprintf(stdout, "+");
+		return true;
+	}
+
+	bool solve_lmder()
+	{
+		size_t lwa = 5 * this->n() + this->m();
+		std::unique_ptr<double[]> wa = std::unique_ptr<double[]>(new double[lwa]);
+		std::unique_ptr<int[]> ipvt = std::unique_ptr<int[]>(new int[this->n()]);
+
+		double tol = std::sqrt(dpmpar(1));
+		int info = 0;
+
+		std::unique_ptr<double[]> x = std::unique_ptr<double[]>(new double[this->n()]);
+		get_vector(x.get(), this->n());
+		info = lmder1(minpack_lmder_function, this, this->m(), this->n(), x.get(), this->solution_vector(),
+			      this->jacobian(), this->m(), tol, ipvt.get(), wa.get(), lwa);
+
+		// fprintf(stderr, "info = %d\n", info);
+		set_vector(x.get(), this->n());
+
+		// debug
+		// unsigned int instrument_num = 0;
+		// for (auto &item : curve_builder_->sorted_instruments()) {
+		//  double pv = evaluate_instrument(item.second);
+		//  printf("bx[%d] = %f\n", instrument_num, pv);
+		//  instrument_num++;
+		//}
+		fprintf(stdout, "%d", info);
+		return info == 1 || info == 2 || info == 3;
+	}
+};
+
+/* for lmder1 and lmder */
+/*         if iflag = 1 calculate the functions at x and */
+/*         return this vector in fvec. do not alter fjac. */
+/*         if iflag = 2 calculate the jacobian at x and */
+/*         return this matrix in fjac. do not alter fvec. */
+/* return a negative value to terminate lmder1/lmder */
+int minpack_lmder_function(void *p, int m, int n, const double *x, double *fvec, double *fjac, int ldfjac, int iflag)
+{
+	SolverFunction *fn = reinterpret_cast<SolverFunction *>(p);
+	assert((size_t)n == fn->n());
+	assert((size_t)m == fn->m());
+	assert((size_t)ldfjac == fn->m());
+
+	fn->set_vector(x, n);
+	if (iflag == 1) {
+		if (!fn->evaluate())
+			return -1;
+		if (fvec != fn->solution_vector()) {
+			std::copy_n(fn->solution_vector(), m, fvec);
+		}
+	} else if (iflag == 2) {
+		if (!fn->compute_jacobian())
+			return -1;
+		if (fjac != fn->jacobian()) {
+			std::copy_n(fn->jacobian(), m * n, fjac);
+		}
+	}
+	return 0;
+}
+
+// This function builds the base curves and optionally
+// also builds the par sensitivities matrix (Jacobian) for
+// each curve
+StatusCode CurveBuilder::build_curves(const CurveBuilderOptions &options)
+{
+	SolverFunction solver(this, options.max_iterations, &GlobalAllocator, stderr);
+	bool result = options.use_levenberg_marquardt_solver ? solver.solve_lmder() : solver.solve();
+	if (!result) {
+		return StatusCode::kBTS_SolverFailure;
+	}
+	if (!options.generate_par_sensitivities)
+		return StatusCode::kOk;
+	auto &curves = this->curves();
+	// First save all the bootstrapped rates as we can use these
+	// as our initial guess curve.
+	for (auto &ch : curves) {
+		ch->save();
+	}
+	par_sensitivities_by_curve_.clear();
+	for (int curve_index = 0; curve_index < instruments_by_curve_.size(); curve_index++) {
+		// m is the number of instruments
+		// and also the rows of the par sensitivities matrix
+		int m = instruments_by_curve_[curve_index]->instruments_by_maturity.size();
+		// n is the number of pillars in the curve
+		// and also the number of columns in the par sensitivities
+		// matrix And n therefore matches the number of zero
+		// sensitivities that we get
+		int n = curves[curve_index]->n_maturities_;
+		auto par_sens = std::make_unique<ParSensitivities>(m, n);
+		auto par_sens_ptr = par_sens.get();
+		par_sensitivities_by_curve_.push_back(std::move(par_sens));
+
+		std::unique_ptr<double[]> up_rates = std::make_unique<double[]>(n);
+		std::unique_ptr<double[]> down_rates = std::make_unique<double[]>(n);
+
+		auto &curve_holder = curves[curve_index];
+
+		DynamicRegionAllocator temp_allocator(32 * 1024);
+		int row = 0; // tracks instrument number - goes up to m
+		for (auto &entry : instruments_by_curve_[curve_index]->instruments_by_maturity) {
+			auto &cfinst = entry.second;
+
+			// Backup instrument cashflows as we will
+			// use bumped cashflows below, and after that we
+			// need to restore the original cashflows
+			cfinst->backup_cashflows();
+
+			// Get the par rate that was originally provided
+			auto input_curve = get_input_curve((int)curve_index);
+			auto par_rate = input_curve.par_rates().values(cfinst->original_instrument_position());
+
+			const double h = 0.00001;
+			// Bump par rate up
+			double par_rate_up = par_rate + h;
+
+			// Rebuild cashflows using the bumped par rate
+			// We do this by just building a temporary instrument
+			// instance
+			auto tmp_cfinst =
+			    build_instrument(input_curve, cfinst->original_instrument_position(), par_rate_up);
+			// Copy the cashflows from the temp instance
+			cfinst->copy_cashflows(std::move(tmp_cfinst));
+			cfinst->build_cashflows(&temp_allocator);
+
+			// By default we have baseline rates as initial guess
+			// Run solver
+			bool result = options.use_levenberg_marquardt_solver ? solver.solve_lmder() : solver.solve();
+			if (!result) {
+				return StatusCode::kBTS_SolverFailure;
+			}
+			// Copy the up rates
+			std::copy(curve_holder->rates_, curve_holder->rates_ + n, up_rates.get());
+
+			// Restore the baseline rates
+			for (auto &ch : curves) {
+				ch->restore();
+			}
+			// Bump par rate down
+			double par_rate_down = par_rate - h;
+
+			// Rebuild cashflows using the bumped par rate
+			// We do this by just building a temporary instrument
+			// instance
+			tmp_cfinst =
+			    build_instrument(input_curve, cfinst->original_instrument_position(), par_rate_down);
+			cfinst->copy_cashflows(std::move(tmp_cfinst));
+			cfinst->build_cashflows(&temp_allocator);
+
+			// Rebuild curves
+			result = options.use_levenberg_marquardt_solver ? solver.solve_lmder() : solver.solve();
+			if (!result) {
+				return StatusCode::kBTS_SolverFailure;
+			}
+
+			// Copy the down rates
+			std::copy(curve_holder->rates_, curve_holder->rates_ + n, down_rates.get());
+
+			// Restore the baseline curves
+			for (auto &ch : curves) {
+				ch->restore();
+			}
+
+			// col represents curve pillar - goes up to n
+			for (int col = 0; col < n; col++) {
+				double difference = (up_rates[col] - down_rates[col]) / (2 * h);
+				par_sens_ptr->set(row, col, difference);
+			}
+
+			// Restore the original cashlows as
+			// we are done with this instrument
+			cfinst->restore_cashflows();
+			row++;
+
+			temp_allocator.release();
+		}
+		// par_sens_ptr->dump_to(stdout);
+	}
+	return StatusCode::kOk;
+}
+
+class BootstrapperImpl : public CurveBuilderService
+{
+      private:
+	std::unique_ptr<LuaWrapper> lua_;
+	bool luaok_;
+
+      public:
+	BootstrapperImpl();
+	~BootstrapperImpl() {}
+	BootstrapCurvesReply *handle_bootstrap_request(Arena *arena,
+						       const BootstrapCurvesRequest *request) override final;
+};
+
+BootstrapperImpl::BootstrapperImpl()
+{
+	lua_ = std::unique_ptr<LuaWrapper>(new LuaWrapper());
+	luaok_ = lua_->load_luascript(PRICING_SCRIPT);
+}
+
+BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(Arena *arena, const BootstrapCurvesRequest *request)
+{
+	BootstrapCurvesReply *reply = Arena::CreateMessage<BootstrapCurvesReply>(arena);
+	auto header = Arena::CreateMessage<ReplyHeader>(arena);
+	reply->set_allocated_header(header);
+	header->set_response_code(StandardResponseCode::SRC_ERROR);
+	header->set_response_message(error_message(StatusCode::kInternalError));
+	// debug("Request %s\n", request->DebugString().c_str());
+	if (!luaok_) {
+		header->set_response_message(error_message(StatusCode::kBTS_LuaInitFailure));
+		header->set_response_sub_code(StatusCode::kBTS_LuaInitFailure);
+		return reply;
+	}
+	if (!is_valid_date(request->business_date())) {
+		header->set_response_message(error_message(StatusCode::kBTS_BadBusinessDate));
+		header->set_response_sub_code(StatusCode::kBTS_BadBusinessDate);
+		return reply;
+	}
+	if (request->curve_definitions_size() == 0) {
+		header->set_response_message(error_message(StatusCode::kBTS_MissingCurveDefinitions));
+		header->set_response_sub_code(StatusCode::kBTS_MissingCurveDefinitions);
+		return reply;
+	}
+	if (!request->has_par_curve_set()) {
+		header->set_response_message(error_message(StatusCode::kBTS_MissingParCurves));
+		header->set_response_sub_code(StatusCode::kBTS_MissingParCurves);
+		return reply;
+	}
+	if (request->curve_definitions_size() != request->par_curve_set().par_curves_size()) {
+		header->set_response_message(error_message(StatusCode::kBTS_DefinitonsAndCurvesMismatch));
+		header->set_response_sub_code(StatusCode::kBTS_DefinitonsAndCurvesMismatch);
+		return reply;
+	}
+	CurveDefinitionProviderImpl defn_provider;
+	for (int i = 0; i < request->curve_definitions_size(); i++) {
+		if (request->curve_definitions(i).maturity_generation_rule() ==
+			MaturityGenerationRule::MATURITY_GENERATION_RULE_FIXED_TENORS &&
+		    request->curve_definitions(i).tenors_size() == 0) {
+			header->set_response_message(error_message(StatusCode::kBTS_MissingFixedTenors));
+			header->set_response_sub_code(StatusCode::kBTS_MissingFixedTenors);
+			return reply;
+		}
+		if (request->curve_definitions(i).interpolated_on() == IRRateType::ZERO_RATE ||
+		    request->curve_definitions(i).interpolated_on() == IRRateType::DISCOUNT_FACTOR) {
+			defn_provider.add(&request->curve_definitions(i));
+		} else {
+			header->set_response_message(error_message(StatusCode::kBTS_BadInterpolatedOn));
+			header->set_response_sub_code(StatusCode::kBTS_BadInterpolatedOn);
+			return reply;
+		}
+	}
+	CurveBuilder curve_builder(*lua_, request->business_date(), &defn_provider);
+	if (!curve_builder.add_input_curves(&request->par_curve_set())) {
+		header->set_response_message(curve_builder.last_error_message());
+		header->set_response_sub_code(curve_builder.last_error_code());
+		return reply;
+	}
+	if (!curve_builder.prepare_instruments()) {
+		header->set_response_message(curve_builder.last_error_message());
+		header->set_response_sub_code(curve_builder.last_error_code());
+		return reply;
+	}
+	CurveBuilderOptions options;
+	options.generate_par_sensitivities = request->generate_par_sensitivities();
+	options.use_levenberg_marquardt_solver = request->solver_type() == SolverType::SOLVER_TYPE_LEVENBERG_MARQUARDT;
+	options.max_iterations = request->max_solver_iterations() != 0 ? request->max_solver_iterations() : 20;
+	debug("Starting curve build\n");
+	auto status = curve_builder.build_curves(options);
+	debug("Curve build completed %s\n", status != StatusCode::kOk ? "with ERROR" : "successfully");
+	if (status != StatusCode::kOk) {
+		header->set_response_message(error_message(status));
+		header->set_response_sub_code(status);
+		return reply;
+	}
+	for (int i = 0; i < request->curve_definitions_size(); i++) {
+		auto &def = request->curve_definitions(i);
+		auto curveholder = curve_builder.get_curve_by_definition_id(def.id());
+		ParSensitivities *parsens = options.generate_par_sensitivities
+						? curve_builder.get_sensitivities_by_curve_definition_id(def.id())
+						: nullptr;
+		if (curveholder == nullptr || (options.generate_par_sensitivities && parsens == nullptr)) {
+			return reply;
+		}
+		ZeroCurve *zc = reply->add_curves();
+		for (int i = 0; i < curveholder->n_maturities_; i++) {
+			zc->add_maturities(curveholder->maturities_[i]);
+			zc->add_values(curveholder->rates_[i]);
+		}
+		zc->set_curve_definition_id(def.id());
+		if (parsens) {
+			ZeroCurveParSensitivities *zc_par_sens = reply->add_par_sensitivities();
+			zc_par_sens->set_num_instruments(parsens->m());
+			zc_par_sens->set_num_maturities(parsens->n());
+			zc_par_sens->set_curve_definition_id(def.id());
+			for (int row = 0; row < parsens->m(); row++) {
+				for (int col = 1; col < parsens->n(); col++) {
+					auto v = parsens->value(row, col);
+					if (std::fabs(v) > 1e-10) {
+						uint32_t return_row = row;
+						uint32_t return_col = col;
+						uint32_t return_index = (uint32_t)((return_col << 16) | return_row);
+						zc_par_sens->mutable_values()->insert(
+						    google::protobuf::MapPair<google::protobuf::uint32, double>(
+							return_index, v));
+					}
+				}
+			}
+		}
+	}
+	header->set_response_code(StandardResponseCode::SRC_OK);
+	header->set_response_message("");
+	return reply;
+}
+
+std::unique_ptr<CurveBuilderService> get_curve_builder_service() { return std::make_unique<BootstrapperImpl>(); }
+
+int test_bootstrap()
+{
+	// CODE not released
+	printf("Bootstrap Tests skipped\n");
+	return 0;
+}
+
+} // namespace redukti
