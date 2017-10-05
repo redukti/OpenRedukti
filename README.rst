@@ -44,4 +44,4 @@ OpenRedukti gratefully acknowledges ideas and code it is using from other projec
 * `Jeffrey Fike's work <http://adl.stanford.edu/hyperdual/>`_ on automatic differentiation using hyperdual vectors.
 * `QuantLib <http://quantlib.org/index.shtml>`_ which has provided the basis for some of the key components such as interpolators.
 * The monotone convex interpolation method is based on papers and VB code from `Financial Modeling Agency <http://finmod.co.za/#our-research>`_. 
-* The `C/C++ Minpack <http://devernay.free.fr/hacks/cminpack/>`_ provides the Levenberg-Marquardt solver used in curve building.
+* The `C/C++ Minpack <http://devernay.free.fr/hacks/cminpack/>`_ library provides the Levenberg-Marquardt solver used in curve building.
