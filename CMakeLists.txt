@@ -234,6 +234,8 @@ add_test(RunTests runtests)
 
 install(FILES ${HEADERS}
 	DESTINATION include/openredukti)
+install(DIRECTORY scripts/
+        DESTINATION scripts)
 install(TARGETS openredukti dylan
 	RUNTIME DESTINATION bin
 	ARCHIVE DESTINATION lib

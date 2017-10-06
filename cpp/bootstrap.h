@@ -21,6 +21,7 @@
 #include <enums.pb.h>
 
 #include <memory>
+#include <string>
 
 namespace redukti
 {
@@ -33,7 +34,7 @@ class CurveBuilderService
 							       const BootstrapCurvesRequest *request) = 0;
 };
 
-std::unique_ptr<CurveBuilderService> get_curve_builder_service();
+std::unique_ptr<CurveBuilderService> get_curve_builder_service(std::string script);
 
 extern int test_bootstrap();
 

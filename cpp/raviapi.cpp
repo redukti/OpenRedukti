@@ -2779,6 +2779,12 @@ static int build_curves(lua_State *L)
 	luaL_argcheck(L, is_valid_date(as_of_date), 1, "invalid date");
 	const char *errmsg = nullptr;
 	char temp[256];
+	char pricing_script[256];
+	if (lua_gettop(L) == 4 && lua_isstring(L, 4)) {
+		snprintf(pricing_script, sizeof pricing_script, "%s", lua_tostring(L, 4));
+	} else {
+		string_copy(pricing_script, PRICING_SCRIPT, sizeof pricing_script);
+	}
 
 	ZeroCurveSetHolder *ptr = (ZeroCurveSetHolder *)lua_newuserdata(L, sizeof(ZeroCurveSetHolder));
 	new (ptr) ZeroCurveSetHolder();
@@ -2800,9 +2806,10 @@ static int build_curves(lua_State *L)
 		// FIXME these should be obtained from parameters (options?)
 		bootstrap_request->set_generate_par_sensitivities(false);
 		bootstrap_request->set_max_solver_iterations(30);
-		//bootstrap_request->set_solver_type(SolverType::SOLVER_TYPE_LINEAR_LEAST_SQUARE);
+		// bootstrap_request->set_solver_type(SolverType::SOLVER_TYPE_LINEAR_LEAST_SQUARE);
 
-		std::unique_ptr<CurveBuilderService> bootstrapper = get_curve_builder_service();
+		std::unique_ptr<CurveBuilderService> bootstrapper =
+		    get_curve_builder_service(std::string(pricing_script));
 		auto reply = bootstrapper->handle_bootstrap_request(&ptr->arena, bootstrap_request);
 		assert(reply->has_header());
 		if (reply->header().response_code() != StatusCode::kOk) {

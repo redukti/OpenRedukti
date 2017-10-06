@@ -701,7 +701,7 @@ Here is a dump of the first three lines of the table::
 Building Curves
 ===============
 
-redukti.build_curves( business_date, curve_definitions, par_rates )
+redukti.build_curves( business_date, curve_definitions, par_rates [, pricing_script] )
 	Builds a set of Zero Rate curves from par rates. Requires curve definitions and par rates as input.
 
 	curve_definitions
@@ -757,6 +757,9 @@ redukti.build_curves( business_date, curve_definitions, par_rates )
 
 		floating_tenor
 			The tenor to be used on floating leg of the instrument.
+
+	pricing_script
+		This is a Lua script that is responsible for generating the cashflow structure for each instrument used in the curve. See the default script named ``pricing.lua`` that is supplied with OpenRedukti. If a name isn't supplied the script defaults to the one used when building OpenRedukti; this is useful for testing but not very good for deployment as the path to the script is baked in at compile time! 
 
 Examples:
 

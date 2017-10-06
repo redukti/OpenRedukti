@@ -646,7 +646,6 @@ std::unique_ptr<CashflowInstrument> CurveBuilder::build_instrument(const ParCurv
 			snprintf(last_error_message_, sizeof last_error_message_, "%s: %s \n%s",
 				 error_message(last_error_code_), lua_tostring(L_, -1), inst.DebugString().c_str());
 			error("%s\n", last_error_message_);
-			// TODO report error
 			// Pop the error object
 			lua_pop(L_, 1);
 		}
@@ -1327,16 +1326,16 @@ class BootstrapperImpl : public CurveBuilderService
 	bool luaok_;
 
       public:
-	BootstrapperImpl();
+	BootstrapperImpl(std::string script);
 	~BootstrapperImpl() {}
 	BootstrapCurvesReply *handle_bootstrap_request(Arena *arena,
 						       const BootstrapCurvesRequest *request) override final;
 };
 
-BootstrapperImpl::BootstrapperImpl()
+BootstrapperImpl::BootstrapperImpl(std::string script)
 {
 	lua_ = std::unique_ptr<LuaWrapper>(new LuaWrapper());
-	luaok_ = lua_->load_luascript(PRICING_SCRIPT);
+	luaok_ = lua_->load_luascript(script);
 }
 
 BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(Arena *arena, const BootstrapCurvesRequest *request)
@@ -1453,7 +1452,10 @@ BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(Arena *arena, c
 	return reply;
 }
 
-std::unique_ptr<CurveBuilderService> get_curve_builder_service() { return std::make_unique<BootstrapperImpl>(); }
+std::unique_ptr<CurveBuilderService> get_curve_builder_service(std::string script)
+{
+	return std::make_unique<BootstrapperImpl>(script);
+}
 
 int test_bootstrap()
 {
