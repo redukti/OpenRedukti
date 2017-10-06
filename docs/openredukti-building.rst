@@ -20,8 +20,7 @@ OpenRedukti makes use of following external libraries:
 Setup OpenBLAS and LAPACK
 -------------------------
 
-These are available as pre-built packages from `Ravi Dist <https://github.com/dibyendumajumdar/ravi-dist>`_. 
-We assume here that the installed libraries are under ``c:\ravi``.
+These are available as pre-built packages from `Ravi Dist <https://github.com/dibyendumajumdar/ravi-dist>`_. We assume here that the installed libraries are under ``c:\OpenRedukti``.
 
 If you have your OpenBLAS and LAPACK files installed differently, please review and amend the ``FindOpenBLAS.cmake`` file in the ``cmake`` folder.
 
