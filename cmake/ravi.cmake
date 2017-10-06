@@ -1,5 +1,10 @@
 include_directories("${PROJECT_SOURCE_DIR}/ravi/include")
 file(GLOB RAVI_HEADERS "${PROJECT_SOURCE_DIR}/ravi/include/*.h")
+set(LUA_HEADERS 
+  ${PROJECT_SOURCE_DIR}/ravi/include/lua.h 
+  ${PROJECT_SOURCE_DIR}/ravi/include/luaconf.h 
+  ${PROJECT_SOURCE_DIR}/ravi/include/lualib.h 
+  ${PROJECT_SOURCE_DIR}/ravi/include/lauxlib.h)
 
 add_definitions(-DLUA_COMPAT_5_2)
 add_definitions(-DLUA_COMPAT_MODULE)

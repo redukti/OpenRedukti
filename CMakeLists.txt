@@ -234,8 +234,12 @@ add_test(RunTests runtests)
 
 install(FILES ${HEADERS}
 	DESTINATION include/openredukti)
+install(FILES ${GENERATED_HEADERS}
+	DESTINATION include/openredukti/proto)
+install(FILES ${LUA_HEADERS} 
+	DESTINATION include/ravi)
 install(DIRECTORY scripts/
-        DESTINATION scripts)
+	DESTINATION scripts)
 install(TARGETS openredukti dylan
 	RUNTIME DESTINATION bin
 	ARCHIVE DESTINATION lib
