@@ -46,7 +46,7 @@ Ackowledgements
 ===============
 OpenRedukti gratefully acknowledges ideas and code it is using from other projects.
 
-* My good friend `Christer Rydberg <https://www.linkedin.com/in/christer-rydberg-phd-98012a7/>`_ for showing me how to implement Automatic Differentiation and for help and advice over the years. 
+* My good friend `Christer Rydberg <https://www.linkedin.com/in/christer-rydberg-phd-98012a7/>`_ for showing me `how to implement Automatic Differentiation <https://github.com/redukti/OpenRedukti/blob/master/docs/Sensitivities.pdf>`_ and for help and advice over the years. 
 * `Jeffrey Fike's work <http://adl.stanford.edu/hyperdual/>`_ on automatic differentiation using hyperdual vectors.
 * `QuantLib <http://quantlib.org/index.shtml>`_ which has provided the basis for some of the key components such as interpolators.
 * The monotone convex interpolation method is based on papers and VB code from `Financial Modeling Agency <http://finmod.co.za/#our-research>`_. 
