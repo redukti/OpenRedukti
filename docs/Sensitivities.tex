@@ -1,0 +1,123 @@
+\documentclass[11pt, oneside]{article}
+\usepackage{fancyhdr}
+\title{Calculating Sensitivities}
+\author{Christer Rydberg \and Dibyendu Majumdar}
+\fancypagestyle{plain}{
+\fancyhf{} % clear all header and footer fields
+\fancyfoot[L]{\copyright 2017 REDUKTI LIMITED}
+\fancyfoot[C]{}
+\fancyfoot[R]{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+}
+
+\pagestyle{fancy}{
+\fancyhf{}
+\fancyfoot[R]{}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\begin{document}
+\maketitle
+
+\section{Cashflow to Curve Sensitivities}
+The problem we wish to solve is to attribute cashflow sensitivities to pillar points on the Zero Rate Curve used for pricing such that the approach works with all supported interpolation strategies. A pre-requisite for this is the ability to generate sensitivities with respect to cashflow dates, and the ability to compute sensititivity of a given date to the pillar points on the Curve. Assuming that these capabilities exist then the cashflow sensitivities can be attributed to the Curve's pillar points as follows.
+
+Let $PV$ be the function that generates the present value.
+Let $Z_i$ and $Z_j$ be points on the Curve that the $PV$ function is sensitive to. These represent cashflow dates such as payment date, maturity date, etc. 
+Let $Z_{k_1}$ and $Z_{k_2}$ represent two pillar points on the curve.
+
+\subsection{First Order Sensitivities}
+We compute the delta sensitivity as follows.
+\begin{equation}
+\frac{\partial PV}{\partial Z_{k_1}} = \sum_{i} \frac{\partial PV}{\partial Z_i} \cdot \frac{\partial Z_i}{\partial Z_{k_1}}
+\end{equation}
+
+\subsection{Second Order Sensitivities}
+We compute second order sensitivity as follows.
+\begin{equation}
+\frac{\partial^2 PV}{\partial Z_{k_1} Z_{k_2}} = \frac{\partial}{\partial Z_{k_2}} \sum_{i} \frac{\partial PV}{\partial Z_i} \cdot \frac{\partial Z_i}{\partial Z_{k_1}} 
+\end{equation}
+By sum and product rules:
+\begin{equation}
+\frac{\partial^2 PV}{\partial Z_{k_1} Z_{k_2}} = \sum_{i}(\frac{\partial}{\partial Z_{k_2}} (\frac{\partial PV}{\partial Z_i}) \cdot \frac{\partial Z_i}{\partial Z_{k_1}} + \frac{\partial PV}{\partial Z_i} \cdot \frac{\partial}{\partial Z_{k_2}} (\frac{\partial Z_i}{\partial Z_{k_1}}) )
+\end{equation}
+\begin{equation}
+\frac{\partial^2 PV}{\partial Z_{k_1} Z_{k_2}} = \sum_{i}( \frac{\partial^2 PV}{\partial Z_i Z_{k_2}} \cdot \frac{\partial Z_i}{\partial Z_{k_1}} + \frac{\partial PV}{\partial Z_i} \cdot \frac{\partial^2 Z_i}{\partial Z_{k_1} Z_{k_2}} )
+\end{equation}
+\begin{equation}
+\frac{\partial^2 PV}{\partial Z_{k_1} Z_{k_2}} = \sum_{i}( \sum_{j} (\frac{\partial^2 PV}{\partial Z_i Z_j} \cdot \frac{\partial Z_j}{\partial Z_{k_2}} ) \frac{\partial Z_i}{\partial Z_{k_1}} + \frac{\partial PV}{\partial Z_i} \cdot \frac{\partial^2 Z_i}{\partial Z_{k_1} Z_{k_2}} )
+\end{equation}
+\begin{equation}
+\frac{\partial^2 PV}{\partial Z_{k_1} Z_{k_2}} = \sum_{i} \sum_{j} \frac{\partial^2 PV}{\partial Z_i Z_j} \cdot \frac{\partial Z_j}{\partial Z_{k_2}} \cdot \frac{\partial Z_i}{\partial Z_{k_1}} + \sum_{i} \frac{\partial PV}{\partial Z_i} \cdot \frac{\partial^2 Z_i}{\partial Z_{k_1} Z_{k_2}} 
+\end{equation}
+
+\section{Auto Differentiation}
+
+\subsection{Derivative Rules}
+
+\subsubsection{Product Rule}
+
+First order:
+\begin{equation}
+D(f \cdot g) = f^\prime \cdot g + f \cdot g^\prime
+\end{equation}
+
+Second order:
+\begin{equation}
+D^2(f \cdot g) = D(f^\prime \cdot g + f \cdot g^\prime) 
+\end{equation}
+\begin{equation}
+D^2(f \cdot g) = f^{\prime\prime} \cdot g + f^\prime \cdot g^\prime + f^\prime \cdot g^\prime + f \cdot g^{\prime\prime} 
+\end{equation}
+
+\subsubsection{Chain Rule}
+First order:
+\begin{equation}
+D(f(g)) = f^\prime (g) \cdot g^\prime
+\end{equation}
+
+Second order:
+\begin{equation}
+D^2(f(g)) = D(f^\prime(g) \cdot g^\prime) 
+\end{equation}
+\begin{equation}
+D^2(f(g)) = D[f^\prime(g)] \cdot g^\prime + f^\prime \cdot g^{\prime\prime} 
+\end{equation}
+\begin{equation}
+D^2(f(g)) = f^{\prime\prime}(g) \cdot g^\prime \cdot g^\prime + f^\prime \cdot g^{\prime\prime} 
+\end{equation}
+
+\subsubsection{Exponent Rule}
+First order:
+\begin{equation}
+D(e^g) = e^g \cdot g^\prime
+\end{equation}
+
+Second order:
+\begin{equation}
+D^2(e^g) = e^g \cdot g^\prime \cdot g^\prime + e^g \cdot g^{\prime\prime} 
+\end{equation}
+
+\subsubsection{Quotient Rule}
+First order:
+\begin{equation}
+D(\frac{g}{h}) = \frac{g^\prime \cdot h - g \cdot h^\prime}{h^2}
+\end{equation}
+
+Second order:
+\begin{equation}
+D^2(\frac{g}{h}) = \frac{D(g^\prime \cdot h - g \cdot h^\prime) \cdot h^2 - (g^\prime \cdot h - g \cdot h^\prime) \cdot 2 \cdot h \cdot h^\prime}{h^4} 
+\end{equation}
+\begin{equation}
+D^2(\frac{g}{h}) = \frac{(g^{\prime\prime} \cdot h + g^\prime \cdot h^\prime - g^\prime \cdot h^\prime - g \cdot h^{\prime\prime}) \cdot h - (g^\prime \cdot h - g \cdot h^\prime) \cdot 2 \cdot h^\prime}{h^3} 
+\end{equation}
+\begin{equation}
+D^2(\frac{g}{h}) = \frac{g^{\prime\prime} \cdot h^2 - g \cdot h^{\prime\prime} \cdot h - 2 \cdot h^\prime \cdot g^\prime \cdot h + 2 \cdot [h^\prime]^2 \cdot g }{h^3} 
+\end{equation}
+
+\subsection{Setting Up AutoDiff}
+
+Each partial function is represent as a tuple containing a scalar, vector and a matrix, representing the function, its first order derivative and second order derivative respectively. The vector is sized as $N$ where $N$ is the number of variables. The matrix is sized as $N \cdot N$. When a variable is created, its scalar is set to the value of the variable, the vector is set to zeros except for the element that represents the variable which is set to 1, and the matrix is set to zeros. Then we simply use these components as required by the equations above. When we need to multiply two vectors we transpose one of them so that the result is a $N \cdot N$ matrix.
+
+\end{document}
