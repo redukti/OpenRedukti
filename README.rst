@@ -38,9 +38,9 @@ For further details of the full scope of the MyCCP product, please visit `Redukt
 
 Documentation
 =============
-* `Building OpenRedukti <https://github.com/redukti/OpenRedukti/blob/master/docs/openredukti-building.rst>`_.
-* `OpenRedukti C++ API <https://github.com/redukti/OpenRedukti/blob/master/docs/openredukti-cpp-api.rst>`_.
-* `OpenRedukti Scripting <https://github.com/redukti/OpenRedukti/blob/master/docs/openredukti-ravi-api.rst>`_.
+* `Building OpenRedukti <http://openredukti.readthedocs.io/en/latest/openredukti-building.html>`_.
+* `OpenRedukti C++ API <http://openredukti.readthedocs.io/en/latest/openredukti-cpp-api.html>`_.
+* `OpenRedukti Scripting <http://openredukti.readthedocs.io/en/latest/openredukti-ravi-api.html>`_.
 
 Ackowledgements
 ===============
