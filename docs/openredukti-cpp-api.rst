@@ -4,19 +4,23 @@
 OpenRedukti C++ API
 ===================
 
-This document described the C++ api that is available for programmers.
+This document described the C++ API that is available to programmers.
 
 Basics
 ======
-The OpenRedukti C++ api is designed to be fairly simple to use. While OpenRedukti uses C++ templates internally, these are not exposed at 
-a user level. The api is presented as a simple set of modular classes or functions.
+The OpenRedukti C++ API is designed to be fairly simple to use. While OpenRedukti uses C++ templates internally, these are not exposed at 
+a user level. The API is presented as a simple set of virtual classes and functions. 
 
 OpenRedukti uses a bunch of data types defined using Google Protocol Buffers. These reduce the need to manually maintain data types
 and greatly improve the ability to make rapid changes to the codebase.
 
 Namespace
 =========
-All components are put in the namespace ``redukti``.
+All components live in the namespace ``redukti``. 
+
+About this document
+===================
+The description of the C++ classes below focuses on the API - hence all other aspects have been removed.
 
 Common Enums
 ============
@@ -80,8 +84,8 @@ redukti::MarketDataQualifier
 redukti::MaturityGenerationRule
    Defines the rule name for generating maturities of instruments in a curve.
 
-Date types
-==========
+Date type
+=========
 
 ::
 
@@ -319,7 +323,7 @@ OpenRedukti comes with predefined calendar implementations for following Busines
 
 These implementations are derived from the QuantLib library.
 
-The Calendar api is as described below.
+The Calendar API is as described below.
 
 ::
 
@@ -333,13 +337,13 @@ The Calendar api is as described below.
    public:
       virtual ~Calendar() noexcept;
       
-      virtual int id() const noexcept = 0;
+      virtual int id() const noexcept;
 
       // Returns all the ids - relevant for calendars made by combining
       // others
       virtual void get_ids(std::array<BusinessCenter, 4> &ids) const noexcept;
 
-      virtual bool is_holiday(Date d) const noexcept = 0;
+      virtual bool is_holiday(Date d) const noexcept;
 
       bool is_businessday(Date d) const noexcept;
 
@@ -394,14 +398,14 @@ The Calendar api is as described below.
       virtual ~CalendarService() {}
       // Return the calendar specified. Memory is managed by the
       // CalendarFactory so the caller must not delete.
-      virtual const Calendar *get_calendar(BusinessCenter id) noexcept = 0;
+      virtual const Calendar *get_calendar(BusinessCenter id) noexcept;
 
       // Set a calendar to given instance.
       // The service will take ownership of the instance
       // May fail if calendar instance already set and has been
       // accessed by a client - i.e. new calendars can only be set prior to
       // any use.
-      virtual bool set_calendar(BusinessCenter id, std::unique_ptr<Calendar> calendar) noexcept = 0;
+      virtual bool set_calendar(BusinessCenter id, std::unique_ptr<Calendar> calendar) noexcept;
 
       // Create joint calendar
       // Note that the order in which the business centers are given
@@ -409,7 +413,7 @@ The Calendar api is as described below.
       // combined so that for a given combination the returned instance is
       // always the same
       virtual Calendar *get_calendar(JointCalendarParameters calendars,
-                      JointCalendarRule rule = JointCalendarRule::JOIN_HOLIDAYS) noexcept = 0;
+                      JointCalendarRule rule = JointCalendarRule::JOIN_HOLIDAYS) noexcept;
    };
 
    // Get the calendar factory
@@ -461,14 +465,14 @@ The implementation is derived from QuantLib.
       // Calculate the difference d2-d2 as per convention
       // for the DayFraction; value is a decimal expressed as a year fraction.
       // So 1.0 means 1 year.
-      virtual double year_fraction(Date d1, Date d2) const = 0;
+      virtual double year_fraction(Date d1, Date d2) const;
 
       // Only used for ThirtyE360ISDA (30E/360.ISDA)
       // The finalPeriod flag indicates whether this fraction is for the
       // final period - i.e. d2 is maturity date. So typically,
       // when calculating the last calc period in a swap, this flag must be
       // set to true.
-      virtual double year_fraction(Date d1, Date d2, bool finalPeriod) const = 0;
+      virtual double year_fraction(Date d1, Date d2, bool finalPeriod) const;
 
       // Used only for ACT/ACT.ISMA
       // refStart - If regular period or front stub then adjusted end date
@@ -477,10 +481,10 @@ The implementation is derived from QuantLib.
       // refEnd - If regular period or front stub then adjusted end date,
       //    else adjusted start date minus calculation period
       //    frequency (roll convention NONE)
-      virtual double year_fraction(Date d1, Date d2, Date refStart, Date refEnd) const = 0;
+      virtual double year_fraction(Date d1, Date d2, Date refStart, Date refEnd) const;
 
       // Returns the ISDA name
-      virtual DayCountFraction id() const = 0;
+      virtual DayCountFraction id() const;
    };
 
    // Get an instance of a DayFraction
@@ -591,7 +595,7 @@ To support other tenors, one can simply take above and change folloowing:
 
 The ``IndexDefinition`` acts as a template for creating instances of the ``InterestRateIndex`` type. 
 
-The C++ api for working with indices is given below::
+The C++ API for working with indices is given below::
 
    // Unique identifier for an index 
    typedef uint32_t IndexId;
@@ -607,7 +611,7 @@ The C++ api for working with indices is given below::
    {
    public:
       virtual ~Index() {}
-      virtual IndexId id() const = 0;
+      virtual IndexId id() const;
    };
 
    // An interest rate index representation. A requirement of 
@@ -659,15 +663,15 @@ The C++ api for working with indices is given below::
 
       // Adds a definition for use as a template for generating instances of
       // InterestRateIndex
-      virtual bool register_index(const IndexDefinition &definition) = 0;
+      virtual bool register_index(const IndexDefinition &definition);
 
       // Obtains an instance of IntrestRateIndex - must return an existing instance
       // if already defined 
-      virtual InterestRateIndex *get_index(IsdaIndex isda_index, Tenor tenor) = 0;
+      virtual InterestRateIndex *get_index(IsdaIndex isda_index, Tenor tenor);
 
       // Obtains an instance of IntrestRateIndex - must return an existing instance
       // if already defined 
-      virtual InterestRateIndex *get_index(Currency currency, IndexFamily index_family, Tenor tenor) = 0;
+      virtual InterestRateIndex *get_index(Currency currency, IndexFamily index_family, Tenor tenor);
    };
 
    extern IndexService *get_default_index_service();
@@ -680,7 +684,7 @@ Useful Conversions
    #include <converters.h>
 
 
-The api is as follows::
+The API is as follows::
 
    class Converter
    {
@@ -728,8 +732,11 @@ hand.
 This approach does have the drawback that it is compute and memory intensive. Hence to improve performance 
 special care is taken with regards to memory management.
 
-The implementation of the adouble type is based on implementation of a vector-mode hyper-dual numbers
-written by: Jeffrey A. Fike at Stanford University, Department of Aeronautics and Astronautics.
+The implementation of the adouble type is based on followinG
+* `Calculating Sensitivities <https://github.com/redukti/OpenRedukti/blob/master/docs/Sensitivities.pdf>`_.
+* `vector-mode hyper-dual numbers <http://adl.stanford.edu/hyperdual/>`_ by Jeffrey A. Fike at Stanford University, Department of Aeronautics and Astronautics.
+
+Note that this API is pretty low level and requires the caller to be aware of and manage memory explicitly. This is deliberate as the cost of memory management can overwhelm performance of this API.
 
 The core API is as follows::
 
@@ -881,7 +888,7 @@ The following protocol buffer definitions capture parameters for creating calcul
    }
 
 
-The C++ api to generate a schedule from given parameters is as defined below::
+The C++ API to generate a schedule from given parameters is as defined below::
 
    class ScheduleParameters;
    class Schedule;
@@ -1060,7 +1067,7 @@ Interpolators
 
    #include <interpolators.h>
 
-OpenRedukti supports the most common interpolators used in interest rate curves. The api for setting up interpolators is
+OpenRedukti supports the most common interpolators used in interest rate curves. The API for setting up interpolators is
 described below.::
 
    struct InterpolationOptions;
@@ -1071,7 +1078,7 @@ described below.::
       virtual ~Interpolator() {}
 
       // Interpolate at x
-      virtual double interpolate(double x) = 0;
+      virtual double interpolate(double x);
 
       // Interpolate at x
       // And also compute sensitivities of value at x
@@ -1081,7 +1088,7 @@ described below.::
       // the interpolator was created.
       // Uses automatic differentiation
       virtual std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>>
-      interpolate_with_sensitivities(double x, FixedRegionAllocator *A) = 0;
+      interpolate_with_sensitivities(double x, FixedRegionAllocator *A);
 
       // Interpolate at x
       // And also compute sensitivities of value at x
@@ -1091,12 +1098,12 @@ described below.::
       // the interpolator was created.
       // Uses numeric differentiation
       virtual std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>>
-      interpolate_with_numeric_sensitivities(double x, FixedRegionAllocator *A) = 0;
+      interpolate_with_numeric_sensitivities(double x, FixedRegionAllocator *A);
 
       // If underlying values have changed, this
       // method can be called to reinitialise the
       // interpolator.
-      virtual void update() = 0;
+      virtual void update();
 
       // Only available on Monotone Convex interpolator as it is an
       // interest rate aware interpolator - for everything else
@@ -1104,15 +1111,15 @@ described below.::
       virtual double forward(double x);
 
       // Return the interpolator type
-      virtual InterpolatorType type() const = 0;
+      virtual InterpolatorType type() const;
 
       // Returns 0 if derivatives are not enabled
       // Returns 1 if first order derivatives are enabled
       // Returns 2 if both first and second order derivatives are enabled
-      virtual int order() const = 0;
+      virtual int order() const;
 
       // Returns the options that are enabled
-      virtual void get_options(InterpolationOptions &optons) const = 0;
+      virtual void get_options(InterpolationOptions &optons) const;
    };
 
    struct InterpolationOptions {
@@ -1199,7 +1206,7 @@ There are a bunch of protocol buffers types related to curves.::
       map<uint32, double> values = 4;
    }
 
-The api for setting up and using curves is as follows::
+The API for setting up and using curves is as follows::
 
    // Curve identifier
    typedef uint64_t CurveId;
@@ -1370,7 +1377,7 @@ Time Series / Fixings
 
 
 The timeseries type enables a set of date/value pairs to be managed. Values may be looked up by date. The
-api is quite simple::
+API is quite simple::
 
    class Value
    {
@@ -1493,7 +1500,7 @@ The client supplies cashflow data in the form of following protocol buffer types
       repeated CFStream streams = 1;
    }
 
-The external cashflow definition must be converted to an internal representation for pricing. The api for performing this
+The external cashflow definition must be converted to an internal representation for pricing. The API for performing this
 conversion is described below.::
 
    // We separate out the concept of a Cashflow
@@ -1658,7 +1665,7 @@ cashflow pricing functions described below.::
    {
    public:
       virtual ~CurveProvider() {}
-      virtual const CurveReference *get_curve(PricingCurve curve) const = 0;
+      virtual const CurveReference *get_curve(PricingCurve curve) const;
    };
 
    // Calculate PV and if ValuationContext.derivative_order > 0
@@ -1751,7 +1758,7 @@ Most of the data required to build curves is described in protocol buffers types
    }
 
 
-The api for invoking the curve builder is relatively simple.::
+The API for invoking the curve builder is relatively simple.::
 
    class CurveBuilderService
    {
@@ -1957,7 +1964,7 @@ The message definitions used by this service are as follows.::
       repeated double values = 2;
    }
 
-The api for interacting with the ValuationService is shown below.::
+The API for interacting with the ValuationService is shown below.::
 
    class ValuationService
    {
