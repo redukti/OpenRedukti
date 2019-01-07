@@ -52,6 +52,7 @@ class Converter
 	virtual IRRateType rate_type_from_string(const char *s) const = 0;
 	virtual CurveGroup curve_group_from_string(const char *value) const = 0;
 	virtual MaturityGenerationRule maturity_generation_rule_from_string(const char *value) const = 0;
+	virtual JointCalendarRule joint_calendar_rule_from_string(const char *value) const = 0;
 };
 
 extern const Converter *get_default_converter();

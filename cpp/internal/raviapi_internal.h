@@ -30,6 +30,7 @@ extern "C" {
 
 namespace redukti
 {
+
 extern std::unique_ptr<CFCollection> raviapi_get_CFCollection(lua_State *L, int idx);
 }
 

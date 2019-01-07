@@ -12,7 +12,13 @@ if (WIN32)
 	option(USE_MKL      "Controls whether Intel MKL will be used" OFF)
 endif(WIN32)
 
-find_package(PROTOBUF REQUIRED)
+## On Windows
+## If using vcpkg, put protoc on the path as follows
+## set PATH=C:\work\vcpkg\installed\x64-windows\tools\protobuf;%PATH%
+
+find_package(Protobuf REQUIRED)
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 #LAPACK and BLAS
 if (USE_OPENBLAS)
@@ -25,9 +31,8 @@ if (NOT WIN32)
 	find_package(LAPACK REQUIRED)
 endif()
 
-message( STATUS "PROJECT_SOURCE_DIR      : " ${PROJECT_SOURCE_DIR} )
-message( STATUS "PROTOBUF_LIBRARIES      : " ${PROTOBUF_LIBRARIES} )
-message( STATUS "PROTOBUF_INCLUDE_DIRS   : " ${PROTOBUF_INCLUDE_DIRS} )
+message( STATUS "Protobuf_LIBRARIES      : " ${Protobuf_LIBRARIES} )
+message( STATUS "Protobuf_INCLUDE_DIRS   : " ${Protobuf_INCLUDE_DIRS} )
 message( STATUS "LAPACK_LINKER_FLAGS     : " ${LAPACK_LINKER_FLAGS} )
 message( STATUS "LAPACK_LIBRARIES        : " ${LAPACK_LIBRARIES} )
 message( STATUS "BLAS_LIBRARIES          : " ${BLAS_LIBRARIES} )
@@ -88,12 +93,10 @@ if (APPLE)
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O1 -g3 -Wall -Wno-sign-compare -std=c++14 -fno-exceptions")
 endif ()
 
-include( cmake/protos.cmake )
 include( cmake/ravi.cmake )
 include( cmake/cminpack.cmake )
 
 include_directories("${PROJECT_SOURCE_DIR}/cpp")
-include_directories("${PROTOBUF_INCLUDE_DIRS}")
 
 if (WIN32)
 	# LAPACK defines  
@@ -131,6 +134,20 @@ else()
 endif()
 # FIXME
 link_directories("${CMAKE_INSTALL_PREFIX}/lib")
+
+set(PROTO_FILES 
+    proto/enums.proto 
+    proto/index.proto 
+    proto/schedule.proto 
+    proto/cashflow.proto 
+    proto/curve.proto
+    proto/shared.proto 
+    proto/bootstrap.proto 
+    proto/valuation.proto)
+
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+
+set(CMAKE_CXX_STANDARD 11)
 
 set (SRCS 
 	cpp/allocators.cpp
@@ -192,8 +209,6 @@ set (INTERNAL_HEADERS
     
 add_definitions(-DPRICING_SCRIPT="${PROJECT_SOURCE_DIR}/scripts/pricing.lua")
 
-file(GLOB_RECURSE PROTOBUF_HEADERS "${PROTOBUF_INCLUDE_DIRS}/*.h")
-
 if (APPLE)
 	set(EXTRA_LIBRARIES m readline)
 elseif (UNIX)
@@ -202,7 +217,7 @@ endif ()
 
 source_group("OpenRedukti Sources" FILES ${SRCS})
 source_group("OpenRedukti Headers" FILES ${HEADERS} ${INTERNAL_HEADERS})
-source_group("Protobuf Headers" FILES ${PROTOBUF_HEADERS})
+source_group("Protobuf Headers" FILES ${PROTO_HDRS})
 
 if (MSVC)
 	set(LIBRARY_TYPE STATIC)
@@ -212,9 +227,9 @@ endif()
 
 #Main library
 add_library(openredukti ${LIBRARY_TYPE} 
-	${HEADERS} ${INTERNAL_HEADERS} ${PROTOBUF_HEADERS} ${GENERATED_HEADERS} ${RAVI_HEADERS}
-	${SRCS} ${GENERATED_SRCS} ${RAVI_CORE_SRCS} ${RAVI_LIB_SRCS} ${RAVI_JIT_SRCS} ${cminpack_srcs} ${cminpack_hdrs})
-target_link_libraries(openredukti ${PROTOBUF_LIBRARIES} ${LUA_LIBRARIES} 
+	${HEADERS} ${INTERNAL_HEADERS} ${PROTO_HDRS} ${RAVI_HEADERS}
+	${SRCS} ${PROTO_SRCS} ${RAVI_CORE_SRCS} ${RAVI_LIB_SRCS} ${RAVI_JIT_SRCS} ${cminpack_srcs} ${cminpack_hdrs})
+target_link_libraries(openredukti ${Protobuf_LIBRARIES} ${LUA_LIBRARIES} 
 	${SYSTEM_LIBS} ${LAPACK_LIBRARIES} ${EXTRA_LIBRARIES}) 
 if(APPLE)
 	set_target_properties(openredukti PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
@@ -234,8 +249,10 @@ add_test(RunTests runtests)
 
 install(FILES ${HEADERS}
 	DESTINATION include/openredukti)
-install(FILES ${GENERATED_HEADERS}
+install(FILES ${PROTO_HDRS}
 	DESTINATION include/openredukti/proto)
+install(FILES ${PROTO_FILES}
+	DESTINATION proto)
 install(FILES ${LUA_HEADERS} 
 	DESTINATION include/ravi)
 install(DIRECTORY scripts/

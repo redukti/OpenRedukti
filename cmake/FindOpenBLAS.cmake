@@ -1,21 +1,21 @@
 find_path(OPENBLAS_INCLUDE_DIR openblas_config.h
   PATHS
-  c:/OpenRedukti/include/openblas
-  ~/OpenRedukti/include/openblas
+  c:/Software/OpenRedukti/include/openblas
+  ~/Software/OpenRedukti/include/openblas
 )
 
 find_library(OPENBLAS_LIBRARY
   NAMES openblas libopenblas
   PATHS
-  c:/OpenRedukti/lib
-  ~/OpenRedukti/lib
+  c:/Software/OpenRedukti/lib
+  ~/Software/OpenRedukti/lib
 )
 
 find_library(LAPACK_LIBRARY
   NAMES lapack liblapack
   PATHS
-  c:/OpenRedukti/lib
-  ~/OpenRedukti/lib
+  c:/Software/OpenRedukti/lib
+  ~/Software/OpenRedukti/lib
 )
 
 

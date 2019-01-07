@@ -417,13 +417,13 @@ class Business252 : public DayFraction
 	}
 };
 
-static const DayFraction &Act360 = Actual360();
-static const DayFraction &Act365F = Actual365Fixed();
-static const DayFraction &Thirty360 = Thirty360_();
-static const DayFraction &ThirtyE360 = Thirty360_E();
-static const DayFraction &ThirtyE360ISDA = Thirty360_E_ISDA();
-static const DayFraction &ActActISDA = ActualActual();
-static const DayFraction &ActActISMA = ActualActualISMA();
+static const Actual360 Act360;
+static const Actual365Fixed Act365F;
+static const Thirty360_ Thirty360;
+static const Thirty360_E ThirtyE360;
+static const Thirty360_E_ISDA ThirtyE360ISDA;
+static const ActualActual ActActISDA;
+static const ActualActualISMA ActActISMA;
 
 static const DayFraction *fractions[]{
     nullptr,	 // DAY_COUNT_FRACTION_UNSPECIFIED = 0;

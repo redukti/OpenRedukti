@@ -56,12 +56,13 @@ Following api is provided for adding a period to date.
 
 redukti.addperiod(date, period)
 	Adds period to date and returns resulting date
-	Periods are enitities like 1D, 4W, 1M or 15Y.
+	Periods are entities like 1D, 4W, 1M or 15Y.
 
 Examples::
 
 	date = redukti.date()
-	print(redukti.addperiod(date, '5Y'))
+	print(redukti.addperiod(date, '5Y'))    -- add 5 years to the date
+	print(redukti.addperiod(date, '-1D'))   -- subtract 1 day from date
 
 
 Holiday Calendars
@@ -71,13 +72,13 @@ The api for obtaining and working with calendars is as follows:
 
 redukti.calendar(businesscenters)
 	Returns a calendar object. Suported business centers are AUSY, USNY, GBLO, EUTA, JPTO and BRSP. You can specify more than one 
-	center if separate the values by a comma.
+	center by separating the values by a comma.
 
 calendar:advance(date, period [, business_day_convention])
 	Advances the given date by the given period and adjusts it to be on a business day. Business day convention defaults to FOLLOWING. 
 
 calendar:advance(date, days [, business_day_convention])
-	Moves the date forward by specified number of business days. Business day convention defaults to FOLLOWING.
+	Moves the date forward or back by specified number of business days. Business day convention defaults to FOLLOWING.
 
 Examples::
 

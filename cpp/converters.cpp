@@ -294,6 +294,9 @@ class ValueConverter : public Converter
 		return unit;
 	}
 
+	/**
+	 * Parses a period of the form [-]n[D|W|M|Y|T]
+	 */
 	bool period_from_string(const char *periodName, Period *p) const override final
 	{
 		int n = strlen(periodName);
@@ -311,8 +314,6 @@ class ValueConverter : public Converter
 				unit = PeriodUnit::DAYS;
 				x = 2;
 			} else {
-				// fprintf(stderr, "unknown period type %s\n",
-				// periodName);
 				return false;
 			}
 		} else {
@@ -660,6 +661,12 @@ class ValueConverter : public Converter
 			return IRRateType::ZERO_RATE;
 		}
 	}
+
+	JointCalendarRule joint_calendar_rule_from_string(const char *value) const {
+		if (strcmp(value, "JOIN_BUSINESS_DAYS") == 0)
+			return JointCalendarRule::JOIN_BUSINESS_DAYS;
+		return JointCalendarRule::JOIN_HOLIDAYS;
+	}
 };
 
 static ValueConverter default_converter;
@@ -684,6 +691,9 @@ int test_conversions()
 	Period p;
 	if (!get_default_converter()->period_from_string("12M", &p) || p.units() != PeriodUnit::MONTHS ||
 	    p.length() != 12)
+		failure_count++;
+	if (!get_default_converter()->period_from_string("-12M", &p) || p.units() != PeriodUnit::MONTHS ||
+		p.length() != -12)
 		failure_count++;
 	for (int i = TENOR_1D; i <= TENOR_1T /* Max value */; i++) {
 		Tenor t1 = (Tenor)i;

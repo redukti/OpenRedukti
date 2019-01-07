@@ -449,7 +449,6 @@ static int make_date(lua_State *L)
 	} else if (lua_isstring(L, 1)) {
 		const char *s = lua_tostring(L, 1);
 		if (!parse_date(s, &date)) {
-			fprintf(stderr, "failed to parse date: %s\n", s);
 			luaL_error(L, "Invalid argument, failed to parse date %s", s);
 			return 0;
 		}
@@ -478,6 +477,21 @@ static int date_parts(lua_State *L)
 	lua_pushinteger(L, ymd.m);
 	lua_pushinteger(L, ymd.y);
 	return 3;
+}
+
+// add period to date
+// redukti.addperiod(date, period) -> date
+// period is a string of the form [-]n[D|M|W|Y|T]
+static int add_period(lua_State *L)
+{
+	Date d = luaL_checkinteger(L, 1);
+	luaL_argcheck(L, is_valid_date(d), 1, "invalid date");
+	const char *period = luaL_checkstring(L, 2);
+	Period p;
+	luaL_argcheck(L, get_default_converter()->period_from_string(period, &p), 2, "invalid period");
+	d = add(d, p);
+	lua_pushinteger(L, d);
+	return 1;
 }
 
 static void parse_calendars(const char *startp, const char *endp, std::vector<BusinessCenter> &centers)
@@ -1003,16 +1017,24 @@ static int get_day_count_fraction(lua_State *L)
 	return 1;
 }
 
+// calendar(calendars [, join_rule])
+//   calendars (string) can contain comma separated values
+//   join rule defaults to JOIN_HOLIDAYS
 static int get_calendar(lua_State *L)
 {
 	const char *calendar_str = luaL_checkstring(L, 1);
 	std::vector<BusinessCenter> centers;
 	parse_calendars(calendar_str, calendar_str + strlen(calendar_str), centers);
 	luaL_argcheck(L, centers.size() > 0, 1, "Invalid calendar");
+	JointCalendarRule joint_calendar_rule = JointCalendarRule::JOIN_HOLIDAYS;
+	if (lua_gettop(L) == 2) {
+		const char *joinmethod = luaL_checkstring(L, 2);
+		joint_calendar_rule = get_default_converter()->joint_calendar_rule_from_string(joinmethod);
+	}
 	CalendarHolder *holder = (CalendarHolder *)lua_newuserdata(L, sizeof(CalendarHolder));
 	raviL_getmetatable(L, Type_Calendar);
 	lua_setmetatable(L, -2);
-	holder->calendar = build_calendar(get_calendar_factory(), centers);
+	holder->calendar = build_calendar(get_calendar_factory(), centers, joint_calendar_rule);
 	return 1;
 }
 
@@ -1083,19 +1105,6 @@ static int day_fraction_tostring(lua_State *L)
 	return 1;
 }
 
-// add period to date
-// dy.addperiod(date, period) -> date
-static int add_period(lua_State *L)
-{
-	Date d = luaL_checkinteger(L, 1);
-	luaL_argcheck(L, is_valid_date(d), 1, "invalid date");
-	const char *period = luaL_checkstring(L, 2);
-	Period p;
-	luaL_argcheck(L, get_default_converter()->period_from_string(period, &p), 2, "invalid period");
-	d = add(d, p);
-	lua_pushinteger(L, d);
-	return 1;
-}
 
 static int calendar_advance(lua_State *L)
 {

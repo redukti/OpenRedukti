@@ -69,6 +69,11 @@ YearMonthDay nth_weekday(unsigned n, unsigned wd, unsigned month, int year)
 	return YearMonthDay{(short)year, (unsigned char)month, (unsigned char)day};
 }
 
+// Adds or subtracts a period from a date
+// For handling month periods it ensures that the day stays the same if possible,
+// but if not (e.g. no 29th Feb in final date) then the day is adjusted to fit in the month
+// When handling year periods, the day and month are kept the same if possible
+// or adjusted as above.
 static Date advance(Date date, int n, PeriodUnit units) noexcept
 {
 	switch (units) {
