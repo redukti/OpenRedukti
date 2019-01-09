@@ -910,9 +910,8 @@ class ValuationServiceImpl : public ValuationService
 			}
 			StatusCode status = StatusCode::kOk;
 			Sensitivities sens(allocSet->sensitivities_allocator);
-			auto reply = Arena::CreateMessage<ValuationReply>(arena);
 			auto result = Arena::CreateMessage<ValuationResult>(arena);
-			reply->set_allocated_result(result);
+			response->set_allocated_result(result);
 			for (int scenario = request->pricing_context().from_scenario();
 			     status == StatusCode::kOk && scenario <= request->pricing_context().to_scenario();
 			     scenario++) {
