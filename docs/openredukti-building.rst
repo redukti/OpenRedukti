@@ -2,13 +2,8 @@
 Building OpenRedukti
 ====================
 
-Build Instructions for Windows
-==============================
-
-These are instructions for building OpenRedukti on Windows 10 64-bit.
-
-Pre-Requisites
---------------
+Dependencies
+------------
 
 OpenRedukti makes use of following external libraries:
 
@@ -17,60 +12,64 @@ OpenRedukti makes use of following external libraries:
 * `LAPACK <http://www.netlib.org/lapack/>`_ is used for Linear Algebra
 * `CMake <https://cmake.org/>`_ is used to generate build scripts 
 
-Setup OpenBLAS and LAPACK
--------------------------
+Build Instructions for Ubuntu Linux 18.04 LTS
+=============================================
 
-These are available as pre-built packages from `Ravi Dist <https://github.com/dibyendumajumdar/ravi-dist>`_. We assume here that the installed libraries are under ``c:\OpenRedukti``.
+Pre-Requisites
+--------------
 
-If you have your OpenBLAS and LAPACK files installed differently, please review and amend the ``FindOpenBLAS.cmake`` file in the ``cmake`` folder.
+Install following::
 
-Build Protocol Buffers
-----------------------
-I extracted protocol-buffers 3.2 release under ``c:\d\github\protobuf-3.2.0``. 
-
-Since on Windows the release and debug builds depend upon different DLLs, you need to create both versions of protobuf.
-
-I used following steps to create a release build of protobuf::
-
-	cd \d\github\protobuf-3.2.0\cmake
-	mkdir buildrelease
-	cd buildrelease
-	cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_INSTALL_PREFIX=c:\d\protobuf32 -Dprotobuf_MSVC_STATIC_RUNTIME=OFF ..
-
-I then performed Release build using VS2017 followed by INSTALL.
-
-For the debug build I used following steps::
-
-	cd \d\github\protobuf-3.2.0\cmake
-	mkdir builddebug
-	cd builddebug
-	cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_INSTALL_PREFIX=c:\d\protobuf32d -Dprotobuf_MSVC_STATIC_RUNTIME=OFF ..
-
-I then performed a Debug build using VS2017 followed by INSTALL.
-
-After these steps I ended up with following:
-
-* ``c:\d\protobuf32`` - release build
-* ``c:\d\protobuf32d`` - debug build
-
-If your installation of Protocol Buffers is different, please review and amend the ``FindPROTOBUF.cmake`` script in the ``cmake`` folder.
-
-Generate Protobuf sources
--------------------------
-The next step is to generate the source files for the ``.proto`` definitions. 
-From the folder containing OpenRedukti, do following::
-
-	mkdir generated
-	mkdir generated\cpp
-	cd proto
-	generate_protos.bat
-	cd ..
-
-This should result in C++ header and source files being generated in ``generated\cpp`` folder.
+    sudo apt install git
+    sudo apt install cmake
+    sudo apt install libreadline-dev
+    sudo apt install libopenblas-dev
+    sudo apt install libprotobuf-dev
+    sudo apt install protobuf-compiler
 
 Build OpenRedukti
 -----------------
 
+Clone the OpenRedukti github repository and do following:: 
+
+    mkdir buildrelease
+    cd buildrelease
+    cmake -DCMAKE_INSTALL_PREFIX=~/Software/OpenRedukti -DCMAKE_BUILD_TYPE=Release ..
+    make install
+
+Build Instructions for Windows
+==============================
+These are instructions for building OpenRedukti on Windows 10 64-bit.
+
+
+Setup OpenBLAS and LAPACK
+-------------------------
+These are available as pre-built packages from `Ravi Distribution Dependencies <https://github.com/dibyendumajumdar/ravi-external-libs>`_. 
+We assume here that the installed libraries are under ``c:\Software\OpenRedukti``. 
+
+If you have your OpenBLAS and LAPACK files installed differently, please review and amend the ``FindOpenBLAS.cmake`` file in the ``cmake`` folder.
+
+Obtain Protocol Buffers via vcpkg
+---------------------------------
+Install `vcpkg <https://github.com/Microsoft/vcpkg>`_.
+We assume below that ``vcpkg`` is installed at ``c:\work\vcpkg``.
+
+Get protobuf as follows::
+
+    vcpkg install protobuf:x64-windows
+
+On my machine after installation I get this::
+
+    C:\work\vcpkg>vcpkg list
+    protobuf:x64-windows                               3.6.1-2          Protocol Buffers - Google's data interchange format
+
+Ensure protoc is on the path as follows::
+
+    set PATH=C:\work\vcpkg\installed\x64-windows\tools\protobuf;%PATH%
+
+
+Build OpenRedukti
+-----------------
 Once all of above steps are done, you can build OpenRedukti as follows::
 
 	mkdir build
@@ -83,7 +82,7 @@ For a release build, do following::
 
 	mkdir buildrelease
 	cd buildrelease
-	cmake -DCMAKE_INSTALL_PREFIX=c:\OpenRedukti -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release ..
+	cmake -DCMAKE_INSTALL_PREFIX=c:\Software\OpenRedukti -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release ..
 
 Remember to select Release configuration in VS2017. You can run the INSTALL target to copy the final binaries to the installation location specified with ``-DCMAKE_INSTALL_PREFIX`` option.
 

@@ -147,7 +147,7 @@ set(PROTO_FILES
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 set (SRCS 
 	cpp/allocators.cpp

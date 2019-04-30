@@ -2197,7 +2197,11 @@ int checkSymmetry(const char *type, Interpolator &cubic, double xMin)
 	return failure_count;
 }
 
-template <class F> class errorFunction : public std::unary_function<double, double>
+template <class F>
+class errorFunction
+#ifndef _MSC_VER
+    : public std::unary_function<double, double>
+#endif
 {
 	public:
 	errorFunction(F &f) : f_(f) {}
