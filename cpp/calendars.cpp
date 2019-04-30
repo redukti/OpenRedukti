@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -37,16 +37,16 @@ namespace redukti
 
 class CalendarImpl : public Calendar
 {
-      public:
+	public:
 	CalendarImpl(BusinessCenter id, std::set<Date> &holidays) noexcept : id_(id), holidays_(holidays) {}
 	virtual int id() const noexcept override { return id_; }
 	virtual bool is_holiday(Date d) const noexcept override { return holidays_.find(d) != holidays_.end(); }
 
-      private:
+	private:
 	BusinessCenter id_;
 	std::set<Date> holidays_;
 
-      private:
+	private:
 	CalendarImpl(const CalendarImpl &) = delete;
 	CalendarImpl &operator=(const CalendarImpl &) = delete;
 };
@@ -168,6 +168,7 @@ bool is_weekend(Weekday w) noexcept { return w == Saturday || w == Sunday; }
 
 int easter_monday(int y) noexcept
 {
+	// clang-format off
 	static const int EasterMonday[] = {
 	    98,  90,  103, 95,  114, 106, 91,  111, 102,      // 1901-1909
 	    87,  107, 99,  83,  103, 95,  115, 99,  91,  111, // 1910-1919
@@ -200,12 +201,13 @@ int easter_monday(int y) noexcept
 	    108, 92,  112, 104, 89,  108, 100, 85,  105, 96,  // 2180-2189
 	    116, 101, 93,  112, 97,  89,  109, 100, 85,  105  // 2190-2199
 	};
+	// clang-format on
 	return EasterMonday[y - 1901];
 }
 
 class GBLOCalendarImpl : public Calendar
 {
-      public:
+	public:
 	GBLOCalendarImpl() noexcept {}
 	virtual int id() const noexcept override { return BusinessCenter::GBLO; }
 	virtual bool is_holiday(Date date) const noexcept override
@@ -215,6 +217,7 @@ class GBLOCalendarImpl : public Calendar
 		int dd = day_of_year(ymd);
 		int d = ymd.d, m = ymd.m, y = ymd.y;
 		int em = easter_monday(y);
+		// clang-format off
 		if (is_weekend(w)
 		    // New Year's Day (possibly moved to Monday)
 		    || ((d == 1 || ((d == 2 || d == 3) && w == Monday)) && m == January)
@@ -238,17 +241,18 @@ class GBLOCalendarImpl : public Calendar
 		    // December 31st, 1999 only
 		    || (d == 31 && m == December && y == 1999))
 			return true;
+		// clang-format on
 		return false;
 	}
 
-      private:
+	private:
 	GBLOCalendarImpl(const GBLOCalendarImpl &);
 	GBLOCalendarImpl &operator=(const GBLOCalendarImpl &);
 };
 
 class USNYCalendarImpl : public Calendar
 {
-      public:
+	public:
 	USNYCalendarImpl() noexcept {}
 	virtual int id() const noexcept override { return BusinessCenter::USNY; }
 	virtual bool is_holiday(Date date) const noexcept override
@@ -258,6 +262,7 @@ class USNYCalendarImpl : public Calendar
 		int dd = day_of_year(ymd);
 		int d = ymd.d, m = ymd.m, y = ymd.y;
 		int em = easter_monday(y);
+		// clang-format off
 		if (is_weekend(w)
 		    // New Year's Day (possibly moved to Monday if on Sunday)
 		    || ((d == 1 || (d == 2 && w == Monday)) && m == January)
@@ -282,17 +287,18 @@ class USNYCalendarImpl : public Calendar
 		    // Christmas (Monday if Sunday or Friday if Saturday)
 		    || ((d == 25 || (d == 26 && w == Monday) || (d == 24 && w == Friday)) && m == December))
 			return true;
+		// clang-format on
 		return false;
 	}
 
-      private:
+	private:
 	USNYCalendarImpl(const USNYCalendarImpl &);
 	USNYCalendarImpl &operator=(const USNYCalendarImpl &);
 };
 
 class EUTACalendarImpl : public Calendar
 {
-      public:
+	public:
 	EUTACalendarImpl() noexcept {}
 	virtual int id() const noexcept override { return BusinessCenter::EUTA; }
 	virtual bool is_holiday(Date date) const noexcept override
@@ -302,6 +308,7 @@ class EUTACalendarImpl : public Calendar
 		int dd = day_of_year(ymd);
 		int d = ymd.d, m = ymd.m, y = ymd.y;
 		int em = easter_monday(y);
+		// clang-format off
 		if (is_weekend(w)
 		    // New Year's Day
 		    || (d == 1 && m == January)
@@ -318,10 +325,11 @@ class EUTACalendarImpl : public Calendar
 		    // December 31st, 1998, 1999, and 2001 only
 		    || (d == 31 && m == December && (y == 1998 || y == 1999 || y == 2001)))
 			return true;
+		// clang-format on
 		return false;
 	}
 
-      private:
+	private:
 	EUTACalendarImpl(const EUTACalendarImpl &);
 	EUTACalendarImpl &operator=(const EUTACalendarImpl &);
 };
@@ -350,7 +358,7 @@ class EUTACalendarImpl : public Calendar
     */
 class BRSPCalendarImpl : public Calendar
 {
-      public:
+	public:
 	BRSPCalendarImpl() noexcept {}
 	virtual int id() const noexcept override { return BusinessCenter::BRSP; }
 	virtual bool is_holiday(Date date) const noexcept override
@@ -360,6 +368,7 @@ class BRSPCalendarImpl : public Calendar
 		int dd = day_of_year(ymd);
 		int d = ymd.d, m = ymd.m, y = ymd.y;
 		int em = easter_monday(y);
+		// clang-format off
 		if (is_weekend(w)
 		    // New Year's Day
 		    || (d == 1 && m == January)
@@ -393,17 +402,18 @@ class BRSPCalendarImpl : public Calendar
 		    //|| (m == December && (d == 31 || (d >= 29 && w == Friday)))
 		)
 			return true;
+		// clang-format on
 		return false;
 	}
 
-      private:
+	private:
 	BRSPCalendarImpl(const BRSPCalendarImpl &);
 	BRSPCalendarImpl &operator=(const BRSPCalendarImpl &);
 };
 
 class AUSYCalendarImpl : public Calendar
 {
-      public:
+	public:
 	AUSYCalendarImpl() noexcept {}
 	virtual int id() const noexcept override { return BusinessCenter::AUSY; }
 	virtual bool is_holiday(Date date) const noexcept override
@@ -413,6 +423,7 @@ class AUSYCalendarImpl : public Calendar
 		int dd = day_of_year(ymd);
 		int d = ymd.d, m = ymd.m, y = ymd.y;
 		int em = easter_monday(y);
+		// clang-format off
 		if (is_weekend(w)
 		    // New Year's Day (possibly moved to Monday)
 		    || (d == 1 && m == January)
@@ -435,17 +446,18 @@ class AUSYCalendarImpl : public Calendar
 		    // Boxing Day, December 26th (possibly Monday or Tuesday)
 		    || ((d == 26 || (d == 28 && (w == Monday || w == Tuesday))) && m == December))
 			return true;
+		// clang-format on
 		return false;
 	}
 
-      private:
+	private:
 	AUSYCalendarImpl(const BRSPCalendarImpl &);
 	AUSYCalendarImpl &operator=(const AUSYCalendarImpl &);
 };
 
 class JPTOCalendarImpl : public Calendar
 {
-      public:
+	public:
 	JPTOCalendarImpl() noexcept {}
 	virtual int id() const noexcept override { return BusinessCenter::JPTO; }
 	virtual bool is_holiday(Date date) const noexcept override
@@ -465,6 +477,7 @@ class JPTOCalendarImpl : public Calendar
 		int ae = // autumnal equinox day
 		    int(exact_autumnal_equinox_time + moving_amount - number_of_leap_years);
 		// checks
+		// clang-format off
 		if (is_weekend(w)
 		    // New Year's Day
 		    || (d == 1 && m == January)
@@ -525,10 +538,11 @@ class JPTOCalendarImpl : public Calendar
 		    // Marriage of Prince Naruhito
 		    || (d == 9 && m == June && y == 1993))
 			return true;
+		// clang-format on
 		return false;
 	}
 
-      private:
+	private:
 	JPTOCalendarImpl(const JPTOCalendarImpl &);
 	JPTOCalendarImpl &operator=(const JPTOCalendarImpl &);
 };
@@ -559,7 +573,7 @@ template <> struct NilHelper<Calendar *> {
 
 class CalendarFactoryImpl : public CalendarService
 {
-      public:
+	public:
 	CalendarFactoryImpl() : inuse_(false), lock_()
 	{
 		std::fill(std::begin(default_calendars_), std::end(default_calendars_), nullptr);
@@ -599,11 +613,11 @@ class CalendarFactoryImpl : public CalendarService
 
 	virtual Calendar *get_calendar(JointCalendarParameters calendars, JointCalendarRule rule) noexcept;
 
-      private:
+	private:
 	CalendarFactoryImpl(const CalendarFactoryImpl &) = delete;
 	CalendarFactoryImpl &operator=(const CalendarFactoryImpl &) = delete;
 
-      private:
+	private:
 	std::mutex lock_;
 	std::array<Calendar *, BusinessCenter_ARRAYSIZE> default_calendars_;
 	std::array<bool, BusinessCenter_ARRAYSIZE> default_calendars_allocstatus_;
@@ -677,7 +691,7 @@ CalendarService *get_calendar_factory() noexcept { return defaultCalendarFactory
  */
 class CalendarSet : public Calendar
 {
-      public:
+	public:
 	CalendarSet(int id, JointCalendarRule rule, const Calendar *c1, const Calendar *c2,
 		    const Calendar *c3 = nullptr, const Calendar *c4 = nullptr) noexcept
 	    : id_(id), rule_(rule)
@@ -703,12 +717,12 @@ class CalendarSet : public Calendar
 		}
 	}
 
-      private:
+	private:
 	int id_;
 	const Calendar *calendars_[4];
 	JointCalendarRule rule_;
 
-      private:
+	private:
 	CalendarSet(const CalendarSet &) = delete;
 	CalendarSet &operator=(const CalendarSet &) = delete;
 };
@@ -828,4 +842,4 @@ int test_calendars()
 		printf("Calendar Tests FAILED\n");
 	return failure_count;
 }
-}
+} // namespace redukti

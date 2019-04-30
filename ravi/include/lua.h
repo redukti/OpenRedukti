@@ -1,5 +1,5 @@
 /*
-** $Id: lua.h,v 1.332 2016/12/22 15:51:20 roberto Exp $
+** $Id: lua.h,v 1.332.1.2 2018/06/13 16:58:17 roberto Exp $
 ** Lua - A Scripting Language
 ** Lua.org, PUC-Rio, Brazil (http://www.lua.org)
 ** See Copyright Notice at the end of this file
@@ -19,11 +19,11 @@
 #define LUA_VERSION_MAJOR	"5"
 #define LUA_VERSION_MINOR	"3"
 #define LUA_VERSION_NUM		503
-#define LUA_VERSION_RELEASE	"4"
+#define LUA_VERSION_RELEASE	"5"
 
 #define LUA_VERSION	"Ravi " LUA_VERSION_MAJOR "." LUA_VERSION_MINOR
 #define LUA_RELEASE	LUA_VERSION "." LUA_VERSION_RELEASE
-#define LUA_COPYRIGHT	LUA_RELEASE "\nCopyright (C) 1994-2017 Lua.org, PUC-Rio\nPortions Copyright (C) 2015-2017 Dibyendu Majumdar"
+#define LUA_COPYRIGHT	LUA_RELEASE "\nCopyright (C) 1994-2018 Lua.org, PUC-Rio\nPortions Copyright (C) 2015-2018 Dibyendu Majumdar"
 #define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes, Dibyendu Majumdar"
 
 
@@ -129,13 +129,89 @@ typedef void(*ravi_Writeline)(void);
 typedef void(*ravi_Writestringerror)(const char *fmt, const char *p);
 /** RAVI change end **/
 
-/*
-** generic extra include file
-*/
-#if defined(LUA_USER_H)
-#include LUA_USER_H
+/* RAVI change - always enable LTESTS in debug builds */
+#if !defined(NDEBUG) && !defined(NO_LUA_DEBUG)
+#define LUA_DEBUG
 #endif
 
+#ifdef LUA_DEBUG
+/* turn on assertions */
+#include <assert.h>
+#define lua_assert(c)           assert(c)
+
+#if !defined(RAVI_OPTION_STRING1)
+#define RAVI_OPTION_STRING1 " assertions"
+#endif
+
+#define RAVI_OPTION_STRING2 " ltests"
+
+/* to avoid warnings, and to make sure value is really unused */
+#define UNUSED(x)       (x=0, (void)(x))
+
+
+/* test for sizes in 'l_sprintf' (make sure whole buffer is available) */
+#undef l_sprintf
+#if !defined(LUA_USE_C89)
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), snprintf(s,sz,f,i))
+#else
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), sprintf(s,f,i))
+#endif
+
+
+/* memory-allocator control variables */
+typedef struct Memcontrol {
+	unsigned long numblocks;
+	unsigned long total;
+	unsigned long maxmem;
+	unsigned long memlimit;
+	unsigned long objcount[LUA_NUMTAGS];
+} Memcontrol;
+
+/*
+** generic variable for debug tricks
+*/
+extern void *l_Trick;
+
+
+/*
+** Function to traverse and check all memory used by Lua
+*/
+extern int lua_checkmemory(lua_State *L);
+
+
+/* test for lock/unlock */
+struct L_EXTRA { int lock; int *plock; };
+#undef LUA_EXTRASPACE
+#define LUA_EXTRASPACE	sizeof(struct L_EXTRA)
+#define getlock(l)	cast(struct L_EXTRA*, lua_getextraspace(l))
+#define luai_userstateopen(l)  \
+	(getlock(l)->lock = 0, getlock(l)->plock = &(getlock(l)->lock))
+#define luai_userstateclose(l)  \
+  lua_assert(getlock(l)->lock == 1 && getlock(l)->plock == &(getlock(l)->lock))
+#define luai_userstatethread(l,l1) \
+  lua_assert(getlock(l1)->plock == getlock(l)->plock)
+#define luai_userstatefree(l,l1) \
+  lua_assert(getlock(l)->plock == getlock(l1)->plock)
+#define lua_lock(l)     lua_assert((*getlock(l)->plock)++ == 0)
+#define lua_unlock(l)   lua_assert(--(*getlock(l)->plock) == 0)
+
+
+LUA_API int luaB_opentests(lua_State *L);
+
+LUA_API void *debug_realloc(void *ud, void *block,
+	size_t osize, size_t nsize);
+
+LUA_API Memcontrol* luaB_getmemcontrol(void);
+
+#if defined(lua_c)
+#define luaL_newstate()		lua_newstate(debug_realloc, luaB_getmemcontrol())
+#define luaL_openlibs(L)  \
+  { (luaL_openlibs)(L); \
+     luaL_requiref(L, "T", luaB_opentests, 1); \
+     lua_pop(L, 1); }
+#endif
+
+#endif
 
 /*
 ** RCS ident string
@@ -471,6 +547,14 @@ struct lua_Debug {
 
 /* RAVI Extensions */
 
+LUA_API void  (ravi_pushcfastcall)(lua_State *L, void *ptr, int tag);
+
+/* Allowed tags - subject to change. Max value is 128. Note that
+   each tag requires special handling in ldo.c */
+#define RAVI_TFCF_EXP 1
+#define RAVI_TFCF_LOG 2
+#define RAVI_TFCF_D_D 3
+
 /* Create an integer array (specialization of Lua table)
  * of given size and initialize array with supplied initial value
  */
@@ -526,6 +610,14 @@ LUA_API void ravi_writestringerror(lua_State *L, const char *fmt, const char *p)
 /* The debugger can set some data - but only once */
 LUA_API void ravi_set_debugger_data(lua_State *L, void *data);
 LUA_API void *ravi_get_debugger_data(lua_State *L);
+
+/* 
+** Experimental (wip) implementation of new
+** parser and code generator 
+*/
+LUA_API int (ravi_build_ast_from_buffer) (lua_State *L, lua_Reader reader, void *dt,
+                          const char *chunkname, const char *mode);
+
 
 /////////////////////////////////////////////////////////////////////////////
 /*

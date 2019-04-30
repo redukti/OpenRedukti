@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -17,6 +17,7 @@
 #define _REDUKTI_MATRIX_H_
 
 #include <linalg.h>
+#include <logger.h>
 
 #include <assert.h>
 #include <stdbool.h>
@@ -126,6 +127,7 @@ static inline int redukti_matrix_lufactor(redukti_matrix_t *A, int32_t ipsize, i
 	lda = (1 < A->m ? A->m : 1);
 	dgetrf_(&A->m, &A->n, A->data, &lda, ipiv, &info);
 Lerror:
+	trace("Error ocurred during LU factorization: %d\n", info);
 	return info;
 }
 

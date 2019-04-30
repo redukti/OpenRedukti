@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -25,7 +25,7 @@ class Period;
 
 class Converter
 {
-      public:
+	public:
 	virtual ~Converter() {}
 	virtual BusinessCenter business_center_from_string(const char *value) const = 0;
 	virtual const char *business_center_to_string(BusinessCenter value) const = 0;

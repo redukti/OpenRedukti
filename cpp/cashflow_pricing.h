@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -27,17 +27,17 @@ class Sensitivities;
 struct Sensitivities1D {
 	friend class Sensitivities;
 
-      private:
+	private:
 	Allocator *A_;
 	const CurveReference *curve_;
 	Sensitivities1D *next_;
 	double *delta_;
 
-      private:
+	private:
 	Sensitivities1D(const Sensitivities1D &) = delete;
 	Sensitivities1D &operator=(const Sensitivities1D &) = delete;
 
-      public:
+	public:
 	Sensitivities1D(const CurveReference *curve, Allocator *A);
 	~Sensitivities1D();
 	YieldCurve *curve() const { return curve_->get(); }
@@ -60,7 +60,7 @@ struct Sensitivities1D {
 struct Sensitivities2D {
 	friend class Sensitivities;
 
-      private:
+	private:
 	Allocator *A_;
 	const CurveReference *curve1_;
 	const CurveReference *curve2_;
@@ -68,11 +68,11 @@ struct Sensitivities2D {
 	Sensitivities2D *next_;
 	double *gamma_;
 
-      private:
+	private:
 	Sensitivities2D(const Sensitivities2D &) = delete;
 	Sensitivities2D &operator=(const Sensitivities2D &) = delete;
 
-      public:
+	public:
 	Sensitivities2D(const CurveReference *curve1, const CurveReference *curve2, Allocator *A);
 	~Sensitivities2D();
 	YieldCurve *curve1() const { return curve1_->get(); }
@@ -97,7 +97,7 @@ struct Sensitivities2D {
 
 class Sensitivities
 {
-      private:
+	private:
 	Allocator *A_;
 	Sensitivities1D *first_1d_;
 	Sensitivities1D *last_1d_;
@@ -105,7 +105,7 @@ class Sensitivities
 	Sensitivities2D *last_2d_;
 	std::array<CurveWrapper, 20> curves_;
 
-      private:
+	private:
 	void add_first_order_sensitivities(Sensitivities1D *d)
 	{
 		if (!first_1d_)
@@ -123,7 +123,7 @@ class Sensitivities
 		last_2d_ = g;
 	}
 
-      public:
+	public:
 	Sensitivities(Allocator *A);
 	~Sensitivities();
 	// Find or add
@@ -167,7 +167,7 @@ extern void compute_sensitivity_numerically(FixedRegionAllocator *allocator, con
 // interfaces= defines such a component.
 class CurveProvider
 {
-      public:
+	public:
 	virtual ~CurveProvider() {}
 	virtual const CurveReference *get_curve(PricingCurve curve) const = 0;
 };

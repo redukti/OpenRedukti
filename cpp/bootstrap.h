@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -28,7 +28,7 @@ namespace redukti
 
 class CurveBuilderService
 {
-      public:
+	public:
 	virtual ~CurveBuilderService() {}
 	virtual BootstrapCurvesReply *handle_bootstrap_request(google::protobuf::Arena *arena,
 							       const BootstrapCurvesRequest *request) = 0;

@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -57,6 +57,9 @@ extern "C" {
 // In general this module requires the caller to allocate memory
 // correctly - as it assumes that all supplied arguments are
 // properly sized and allocated.
+// The rationale for this design choice is so that
+// the caller can use their own memory allocation strategy to
+// maximise performance
 
 /* autodiff variable */
 struct redukti_adouble_t {
@@ -73,14 +76,26 @@ struct redukti_adouble_t {
 
 // Compute memory requirement for given number of variables and order
 // Supported orders are 0,1,2.
+// Returns the estimated size in bytes
 size_t redukti_adouble_alloc_size(int vars, int order);
 
 // Initialize A; caller must have allocated memory of correct
 // size.
-void redukti_adouble_init(redukti_adouble_t *A, int n_vars, int order, int var, double v);
+//
+// n_vars - is the number of variables in the equation
+// order - should be 1 or 2, 1 means first order derivatives required
+//         and 2 means second order derivatives required
+// variable - index of the variable, should range from 0 to n_vars-1
+// initial_value - initial value of the variable
+//
+// Upon return the adouble instance will have set variable's first order
+// derivative to 1, and second order derivatives will be zero.
+void redukti_adouble_init(redukti_adouble_t *A, int n_vars, int order, int variable, double initial_value);
 
 // A = B
 // must be same size
+// equivalent to memcpy
+// If A == B then no action is taken
 void redukti_adouble_assign(redukti_adouble_t *A, const redukti_adouble_t *B);
 
 // A = A + alpha*B

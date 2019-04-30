@@ -1,5 +1,5 @@
 /*
-** $Id: linit.c,v 1.39 2016/12/04 20:17:24 roberto Exp $
+** $Id: linit.c,v 1.39.1.1 2017/04/19 17:20:42 roberto Exp $
 ** Initialization of libraries for lua.c and other clients
 ** See Copyright Notice in lua.h
 */
@@ -34,6 +34,7 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
+LUAMOD_API int raviopen_dmrcluaapi(lua_State *L);
 
 /*
 ** these libs are loaded by lua.c and are readily available to any Lua
@@ -55,9 +56,12 @@ static const luaL_Reg loadedlibs[] = {
 #ifdef USE_LLVM
   {LUA_LLVMLIBNAME, raviopen_llvmluaapi},
 #endif
+  { "dmrc", raviopen_dmrcluaapi },
 #if defined(LUA_COMPAT_BITLIB)
   {LUA_BITLIBNAME, luaopen_bit32},
 #endif
+  {LUAJIT_BITLIBNAME, luaopen_bit },
+  {LUA_ASTLIBNAME, raviopen_ast_library},
   {NULL, NULL}
 };
 

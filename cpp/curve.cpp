@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -135,7 +135,7 @@ std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Date as_of_date, con
  */
 template <typename Derived> class InterestRateCurveImpl : public YieldCurve
 {
-      public:
+	public:
 	InterestRateCurveImpl(CurveId id, Date as_of_date, Date maturities[], double values[], size_t n,
 			      Allocator *alloc, InterpolatorType interpolator,
 			      DayCountFraction fraction = DayCountFraction::ACT_365_FIXED,
@@ -187,7 +187,7 @@ template <typename Derived> class InterestRateCurveImpl : public YieldCurve
 	virtual bool is_valid() const noexcept final { return valid_; }
 	virtual InterpolatorType interpolator_type() const noexcept final { return interpolator_->type(); }
 
-      protected:
+	protected:
 	size_t n_;
 	Date *maturities_;
 	double *values_;
@@ -200,11 +200,11 @@ template <typename Derived> class InterestRateCurveImpl : public YieldCurve
 	int deriv_order_;
 	bool valid_;
 
-      private:
+	private:
 	InterestRateCurveImpl(const InterestRateCurveImpl &) = delete;
 	InterestRateCurveImpl &operator=(const InterestRateCurveImpl &) = delete;
 
-      private:
+	private:
 	IRRateType apply_values(InterpolatorType itype, const double *rates, size_t n) noexcept;
 };
 
@@ -426,7 +426,7 @@ template <typename Derived> Date InterestRateCurveImpl<Derived>::last_maturity()
 // Continuous compounded rates assumed
 class ZeroRateImpl : public InterestRateCurveImpl<ZeroRateImpl>
 {
-      public:
+	public:
 	double discount_impl(double t) const noexcept { return std::exp(-zero_rate_impl(t) * t); }
 
 	double zero_rate_impl(double t) const noexcept { return interpolator_->interpolate(t); }
@@ -454,7 +454,7 @@ class ZeroRateImpl : public InterestRateCurveImpl<ZeroRateImpl>
 // Continuous compounded rates assumed
 class MonotoneConvexImpl : public InterestRateCurveImpl<MonotoneConvexImpl>
 {
-      public:
+	public:
 	double discount_impl(double t) const noexcept { return std::exp(-zero_rate_impl(t) * t); }
 
 	double zero_rate_impl(double t) const noexcept { return interpolator_->interpolate(t); }
@@ -477,7 +477,7 @@ class MonotoneConvexImpl : public InterestRateCurveImpl<MonotoneConvexImpl>
 // Continuous compounded rates assumed
 class ForwardRateImpl : public InterestRateCurveImpl<ForwardRateImpl>
 {
-      public:
+	public:
 	double discount_impl(double t) const noexcept { return std::exp(-zero_rate_impl(t) * t); }
 
 	double zero_rate_impl(double t) const noexcept
@@ -511,7 +511,7 @@ class ForwardRateImpl : public InterestRateCurveImpl<ForwardRateImpl>
 // Continuous compounded rates assumed
 class DiscountFactorImpl : public InterestRateCurveImpl<DiscountFactorImpl>
 {
-      public:
+	public:
 	double discount_impl(double t) const noexcept { return interpolator_->interpolate(t); }
 
 	double zero_rate_impl(double t) const noexcept { return -std::log(discount_impl(t)) / t; }

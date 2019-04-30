@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -53,7 +53,7 @@ Date adjust_date(Date d, RollConvention rc) noexcept
 
 class CalculationPeriod
 {
-      private:
+	private:
 	Date unadjustedStart_;
 	Date unadjustedEnd_;
 	int flags_;
@@ -62,7 +62,7 @@ class CalculationPeriod
 	Date paymentDate_;
 	Date adjustedPayment_;
 
-      public:
+	public:
 	CalculationPeriod(Date start, Date end, bool stub)
 	    : unadjustedStart_(start), unadjustedEnd_(end), flags_(0), adjustedStart_(start), adjustedEnd_(end),
 	      paymentDate_(end), adjustedPayment_(end)
@@ -99,7 +99,7 @@ class CalculationPeriod
 	}
 	Date adjusted_payment() const noexcept { return adjustedPayment_; }
 
-      private:
+	private:
 	CalculationPeriod &set(int value) noexcept
 	{
 		flags_ |= value;
@@ -110,7 +110,7 @@ class CalculationPeriod
 
 class ScheduleHelper
 {
-      public:
+	public:
 	bool build_zero_coupon(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
 	{
 		periods.push_back(CalculationPeriod(params.effective_date(), params.termination_date(), false));

@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -31,6 +31,8 @@
 
 namespace redukti
 {
+class IRCurveDefinition;
+class ZeroCurve;
 
 // Curve identifier
 typedef uint64_t CurveId;
@@ -51,7 +53,7 @@ extern std::string curve_id_to_string(CurveId id);
 
 class Curve
 {
-      public:
+	public:
 	virtual ~Curve() noexcept {}
 	double time_from_reference(Date d) const noexcept { return day_fraction().year_fraction(as_of_date(), d); }
 	virtual const DayFraction &day_fraction() const noexcept = 0;
@@ -61,18 +63,18 @@ class Curve
 	std::string name() const noexcept { return curve_id_to_string(curve_id_); }
 	virtual bool is_valid() const noexcept { return false; }
 
-      private:
+	private:
 	Curve(const Curve &) = delete;
 	Curve &operator=(const Curve &) = delete;
 
-      protected:
+	protected:
 	Curve(CurveId id) noexcept;
 	CurveId curve_id_;
 };
 
 class YieldCurve : public Curve
 {
-      public:
+	public:
 	virtual ~YieldCurve() noexcept {}
 
 	virtual double discount(double time) const noexcept = 0;
@@ -143,10 +145,10 @@ class YieldCurve : public Curve
 
 	virtual InterpolatorType interpolator_type() const noexcept = 0;
 
-      protected:
+	protected:
 	YieldCurve(CurveId id) noexcept : Curve(id) {}
 
-      private:
+	private:
 	YieldCurve(const YieldCurve &) = delete;
 	YieldCurve &operator=(const YieldCurve &) = delete;
 };
@@ -158,7 +160,7 @@ class YieldCurve : public Curve
 // indirection.
 class CurveReference
 {
-      public:
+	public:
 	virtual ~CurveReference() noexcept {}
 	virtual YieldCurve *get() const noexcept = 0;
 };
@@ -166,10 +168,10 @@ class CurveReference
 // Wraps a curve pointer
 class CurveWrapper : public CurveReference
 {
-      private:
+	private:
 	YieldCurve *curve_;
 
-      public:
+	public:
 	CurveWrapper(YieldCurve *curve = nullptr) noexcept : curve_(curve) {}
 	virtual YieldCurve *get() const noexcept { return curve_; }
 	void set(YieldCurve *c) { curve_ = c; }
@@ -197,9 +199,6 @@ extern std::unique_ptr<YieldCurve, Deleter<YieldCurve>>
 make_curve(Allocator *A, CurveId id, Date as_of_date, Date maturities[], double values[], size_t n,
 	   InterpolatorType interpolator, IRRateType type = IRRateType::ZERO_RATE, int deriv_order = 0,
 	   DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
-
-class IRCurveDefinition;
-class ZeroCurve;
 
 extern std::unique_ptr<YieldCurve, Deleter<YieldCurve>>
 make_curve(Date as_of_date, const IRCurveDefinition *defn, const ZeroCurve &curve, int deriv_order,

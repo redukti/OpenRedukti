@@ -228,7 +228,8 @@ endif()
 #Main library
 add_library(openredukti ${LIBRARY_TYPE} 
 	${HEADERS} ${INTERNAL_HEADERS} ${PROTO_HDRS} ${RAVI_HEADERS}
-	${SRCS} ${PROTO_SRCS} ${RAVI_CORE_SRCS} ${RAVI_LIB_SRCS} ${RAVI_JIT_SRCS} ${cminpack_srcs} ${cminpack_hdrs})
+	${SRCS} ${PROTO_SRCS} ${RAVI_CORE_SRCS} ${RAVI_LIB_SRCS} ${RAVI_JIT_SRCS} 
+	${DMR_C_SRCS} ${DMR_C_JIT_SRCS} ${cminpack_srcs} ${cminpack_hdrs})
 target_link_libraries(openredukti ${Protobuf_LIBRARIES} ${LUA_LIBRARIES} 
 	${SYSTEM_LIBS} ${LAPACK_LIBRARIES} ${EXTRA_LIBRARIES}) 
 if(APPLE)

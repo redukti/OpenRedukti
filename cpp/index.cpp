@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -54,7 +54,7 @@ struct InterestRateIndexTemplate {
 
 class InterestRateIndexImpl : public InterestRateIndex
 {
-      private:
+	private:
 	IndexId id_;
 	IsdaIndex isda_index_;
 	IndexFamily index_family_;
@@ -68,7 +68,7 @@ class InterestRateIndexImpl : public InterestRateIndex
 	const Calendar *index_calendar_;
 	const DayFraction *day_fraction_;
 
-      public:
+	public:
 	InterestRateIndexImpl(IndexId id, IsdaIndex isda_index, IndexFamily index_family, Currency currency,
 			      Tenor tenor, int fixing_lag, BusinessDayConvention bdc, bool eom,
 			      const Calendar *fixing_calendar, const Calendar *value_date_calendar,
@@ -114,14 +114,14 @@ class InterestRateIndexImpl : public InterestRateIndex
 
 class IndexServiceImpl : public IndexService
 {
-      private:
+	private:
 	std::mutex lock_;
 	std::map<IndexId, std::unique_ptr<InterestRateIndexTemplate>> cached_templates_;
 	std::map<IndexId, std::unique_ptr<InterestRateIndexImpl>> cached_indices_;
 	std::map<int, IsdaIndex> index_family_to_isdaindex_;
 
-      private:
-      public:
+	private:
+	public:
 	bool register_index(const IndexDefinition &definition) override final
 	{
 		auto calendar_service = get_calendar_factory();

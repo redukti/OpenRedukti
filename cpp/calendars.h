@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -38,7 +38,7 @@ namespace redukti
 // Immutable for thread safety.
 class Calendar
 {
-      public:
+	public:
 	virtual ~Calendar() noexcept {}
 	virtual int id() const noexcept = 0;
 	// Returns all the ids - relevant for calendars made by combining
@@ -96,15 +96,16 @@ struct JointCalendarParameters {
 	}
 };
 
-// The Calendar Service manages calendar instances. It has to meet following requirements:
-// a) It must always return the same Calendar instance for a given business center. Clients
-//    can assume that the instance will not go away or change in any way as long as the
-//    service is live.
+// The Calendar Service manages calendar instances. It has to meet following
+// requirements: a) It must always return the same Calendar instance for a given
+// business center. Clients
+//    can assume that the instance will not go away or change in any way as long
+//    as the service is live.
 // b) Ditto for joint calendar instances.
 // c) Calendar instances must be immutable.
 class CalendarService
 {
-      public:
+	public:
 	virtual ~CalendarService() {}
 	// Return the calendar specified. Memory is managed by the
 	// CalendarFactory so the caller must not delete.

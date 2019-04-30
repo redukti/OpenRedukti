@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -32,7 +32,7 @@ namespace redukti
 
 class Actual360 : public DayFraction
 {
-      public:
+	public:
 	virtual DayCountFraction id() const override final { return DayCountFraction::ACT_360; }
 	virtual double year_fraction(Date d1, Date d2) const override final { return (d2 - d1) / 360.0; }
 	virtual double year_fraction(Date d1, Date d2, bool eom) const override final { return year_fraction(d1, d2); }
@@ -44,7 +44,7 @@ class Actual360 : public DayFraction
 
 class Actual365Fixed : public DayFraction
 {
-      public:
+	public:
 	virtual DayCountFraction id() const override final { return DayCountFraction::ACT_365_FIXED; }
 	virtual double year_fraction(Date d1, Date d2) const override final { return (d2 - d1) / 365.0; }
 	virtual double year_fraction(Date d1, Date d2, bool eom) const override final { return year_fraction(d1, d2); }
@@ -59,7 +59,7 @@ class Actual365Fixed : public DayFraction
  */
 class Thirty360_ : public DayFraction
 {
-      public:
+	public:
 	virtual DayCountFraction id() const override final { return DayCountFraction::THIRTY_360; }
 	virtual double year_fraction(Date d1, Date d2) const override final
 	{
@@ -90,7 +90,7 @@ class Thirty360_ : public DayFraction
  */
 class Thirty360_E : public DayFraction
 {
-      public:
+	public:
 	virtual DayCountFraction id() const override final { return DayCountFraction::THIRTYE_360; }
 	virtual double year_fraction(Date d1, Date d2) const override final
 	{
@@ -128,7 +128,7 @@ class Thirty360_E_ISDA : public DayFraction
 		return dayOfMonth;
 	}
 
-      public:
+	public:
 	virtual DayCountFraction id() const override final { return DayCountFraction::THIRTYE_360_ISDA; }
 	virtual double year_fraction(Date d1, Date d2) const override final
 	{
@@ -156,7 +156,7 @@ class Thirty360_E_ISDA : public DayFraction
  */
 class ActualActual : public DayFraction
 {
-      public:
+	public:
 	virtual DayCountFraction id() const override final { return DayCountFraction::ACT_ACT_ISDA; }
 	virtual double year_fraction(Date d1, Date d2) const override final
 	{
@@ -185,7 +185,7 @@ class ActualActual : public DayFraction
  */
 class ActualActualISMA : public DayFraction
 {
-      public:
+	public:
 	virtual DayCountFraction id() const override final { return DayCountFraction::ACT_ACT_ISMA; }
 	virtual double year_fraction(Date d1, Date d2) const override final
 	{
@@ -380,7 +380,7 @@ class Business252 : public DayFraction
 		}
 	}
 
-      public:
+	public:
 	virtual DayCountFraction id() const override final { return DayCountFraction::BUS_252; }
 	Business252(const Calendar *c) : calendar_(c)
 	{

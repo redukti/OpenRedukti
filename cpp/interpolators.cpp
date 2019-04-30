@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -93,7 +93,7 @@ class AbstractInterpolator : public Interpolator
 	typedef AutoDiffTraits<redukti_adouble_t> AD;
 	typedef typename AD::ptr_type ad_type_ptr;
 
-      public:
+	public:
 	virtual ~AbstractInterpolator() {}
 	virtual double interpolate(double x) = 0;
 
@@ -245,7 +245,7 @@ class LinearInterpolator : public AbstractInterpolator
 	double *primitiveConst_, *s_;
 	int order_;
 
-      public:
+	public:
 	LinearInterpolator(double *x, double *y, unsigned int size, int order, Allocator *alloc)
 	    : x_(x), y_(y), xend_(x + size), size_(size), A_(alloc), primitiveConst_(nullptr), s_(nullptr),
 	      order_(order)
@@ -315,7 +315,7 @@ class LinearInterpolator : public AbstractInterpolator
 		return make_interpolator(InterpolatorType::LINEAR, xa, ya, size, A, options);
 	}
 
-      private:
+	private:
 	LinearInterpolator(const LinearInterpolator &) = delete;
 	LinearInterpolator &operator=(const LinearInterpolator &) = delete;
 };
@@ -323,7 +323,7 @@ class LinearInterpolator : public AbstractInterpolator
 // Dev: allocator usage verified
 class LogInterpolator : public AbstractInterpolator
 {
-      private:
+	private:
 	typedef AutoDiffTraits<redukti_adouble_t> AD;
 	typedef typename AD::ptr_type ad_type_ptr;
 	std::unique_ptr<Interpolator, Deleter<Interpolator>> I_;
@@ -334,7 +334,7 @@ class LogInterpolator : public AbstractInterpolator
 	Allocator *A_;
 	InterpolatorType type_;
 
-      public:
+	public:
 	LogInterpolator(double *x, double *y, unsigned int size, InterpolatorType subtype, InterpolatorType type,
 			Allocator *A, const InterpolationOptions &data = InterpolationOptions())
 	    : x_(x), y_(y), logy_(nullptr), size_(size), A_(A), type_(type)
@@ -401,7 +401,7 @@ class LogInterpolator : public AbstractInterpolator
 		return make_interpolator(I_->type(), xa, ya, size, A, options);
 	}
 
-      private:
+	private:
 	LogInterpolator(const LogInterpolator &) = delete;
 	LogInterpolator &operator=(const LogInterpolator &) = delete;
 };
@@ -417,7 +417,7 @@ class ForwardFlatInterpolation : public AbstractInterpolator
 	double *primitive_;
 	int order_;
 
-      public:
+	public:
 	ForwardFlatInterpolation(double *x, double *y, size_t size, int order)
 	    : x_(x), xend_(x + size), y_(y), size_(size), type_(InterpolatorType::FLAT_RIGHT), primitive_(nullptr),
 	      order_(order)
@@ -488,7 +488,7 @@ class BackwardFlatInterpolation : public AbstractInterpolator
 	double *primitive_;
 	int order_;
 
-      public:
+	public:
 	BackwardFlatInterpolation(double *x, double *y, size_t size, int order)
 	    : x_(x), xend_(x + size), y_(y), size_(size), type_(InterpolatorType::FLAT_LEFT), primitive_(nullptr),
 	      order_(order)
@@ -588,11 +588,7 @@ template <typename T> struct CubicInterpolator {
 		update_internal();
 	}
 
-	~CubicInterpolator()
-	{
-		// printf("CubicInterpolator destroyed\n");
-		A_->deallocate(primitiveConst_);
-	}
+	~CubicInterpolator() { A_->deallocate(primitiveConst_); }
 
 	size_t locate(double x) const { return locate_x(xBegin_, xEnd_, x); }
 	double interpolate(double x)
@@ -1002,7 +998,7 @@ static inline redukti_adouble_t &bound(redukti_adouble_t &minimum, redukti_adoub
  */
 template <typename T> class MonotoneConvexInterpolator
 {
-      public:
+	public:
 	typedef AutoDiffTraits<T> AD;
 	typedef typename AD::ad_type ad_type;
 	typedef typename AD::ptr_type ad_type_ptr;
@@ -1043,7 +1039,7 @@ template <typename T> class MonotoneConvexInterpolator
 		options.extrapolate = extrapolate_;
 	}
 
-      private:
+	private:
 	void estimateFI();
 
 	bool inputsAreForwards_;
@@ -1094,7 +1090,7 @@ template <typename T> class MonotoneConvexInterpolator
 
 	std::unique_ptr<FixedRegionAllocator> internal_allocator_;
 
-      private:
+	private:
 	MonotoneConvexInterpolator(const MonotoneConvexInterpolator &) = delete;
 	MonotoneConvexInterpolator &operator=(const MonotoneConvexInterpolator &) = delete;
 };
@@ -1800,7 +1796,7 @@ class CubicInterpolatorFacade : public AbstractInterpolator
 	std::unique_ptr<CubicInterpolator<redukti_adouble_t>, Deleter<CubicInterpolator<redukti_adouble_t>>> ad_;
 	std::unique_ptr<CubicInterpolator<double>, Deleter<CubicInterpolator<double>>> non_ad_;
 
-      public:
+	public:
 	CubicInterpolatorFacade(double *xBegin, double *xEnd, double *yBegin, BoundaryCondition leftCondition,
 				double leftConditionValue, BoundaryCondition rightCondition, double rightConditionValue,
 				InterpolatorType it, int order, Allocator *A)
@@ -1888,7 +1884,7 @@ class CubicInterpolatorFacade : public AbstractInterpolator
 // convenience classes
 class CubicSplineNotAKnotImpl : public CubicInterpolatorFacade
 {
-      public:
+	public:
 	/*! \pre the \f$ x \f$ values must be sorted. */
 	CubicSplineNotAKnotImpl(double *xBegin, double *xEnd, double *yBegin, Allocator *A, int order = 0,
 				double k1 = 0.0, double k2 = 0.0)
@@ -1901,7 +1897,7 @@ class CubicSplineNotAKnotImpl : public CubicInterpolatorFacade
 // convenience classes
 class CubicSplineClampedImpl : public CubicInterpolatorFacade
 {
-      public:
+	public:
 	/*! \pre the \f$ x \f$ values must be sorted. */
 	CubicSplineClampedImpl(double *xBegin, double *xEnd, double *yBegin, Allocator *A, int order = 0,
 			       double k1 = 0.0, double k2 = 0.0)
@@ -1914,7 +1910,7 @@ class CubicSplineClampedImpl : public CubicInterpolatorFacade
 // convenience classes
 class CubicNaturalSplineImpl : public CubicInterpolatorFacade
 {
-      public:
+	public:
 	/*! \pre the \f$ x \f$ values must be sorted. */
 	CubicNaturalSplineImpl(double *xBegin, double *xEnd, double *yBegin, Allocator *A, int order = 0,
 			       double k1 = 0.0, double k2 = 0.0)
@@ -1943,7 +1939,7 @@ class MonotoneConvexInterpolatorFacade : public AbstractInterpolator
 	 */
 	Allocator *A_;
 
-      public:
+	public:
 	MonotoneConvexInterpolatorFacade(double *x, double *y, unsigned int size, bool inputsAreForwards,
 					 bool allowNegativeForwards, InterpolatorType type, int order, Allocator *alloc,
 					 bool extrapolate = false)
@@ -2203,7 +2199,7 @@ int checkSymmetry(const char *type, Interpolator &cubic, double xMin)
 
 template <class F> class errorFunction : public std::unary_function<double, double>
 {
-      public:
+	public:
 	errorFunction(F &f) : f_(f) {}
 	double operator()(double x) const
 	{
@@ -2211,7 +2207,7 @@ template <class F> class errorFunction : public std::unary_function<double, doub
 		return temp * temp;
 	}
 
-      private:
+	private:
 	F &f_;
 };
 
@@ -2236,7 +2232,7 @@ double epanechnikovKernel(double u) {
 
 class Integrator
 {
-      public:
+	public:
 	Integrator(double absoluteAccuracy, size_t maxEvaluations);
 	virtual ~Integrator() {}
 
@@ -2260,13 +2256,13 @@ class Integrator
 
 	virtual bool integrationSuccess() const;
 
-      protected:
+	protected:
 	virtual double integrate(const std::function<double(double)> &f, double a, double b) const = 0;
 	void setAbsoluteError(double error) const;
 	void setNumberOfEvaluations(size_t evaluations) const;
 	void increaseNumberOfEvaluations(size_t increase) const;
 
-      private:
+	private:
 	double absoluteAccuracy_;
 	mutable double absoluteError_;
 	size_t maxEvaluations_;
@@ -2335,10 +2331,10 @@ against known good values.
 */
 template <class IntegrationPolicy> class TrapezoidIntegral : public Integrator
 {
-      public:
+	public:
 	TrapezoidIntegral(double accuracy, size_t maxIterations) : Integrator(accuracy, maxIterations) {}
 
-      protected:
+	protected:
 	double integrate(const std::function<double(double)> &f, double a, double b) const
 	{
 		// start from the coarsest trapezoid...
@@ -2396,10 +2392,10 @@ against known good values.
 */
 class SimpsonIntegral : public TrapezoidIntegral<Default>
 {
-      public:
+	public:
 	SimpsonIntegral(double accuracy, size_t maxIterations) : TrapezoidIntegral<Default>(accuracy, maxIterations) {}
 
-      protected:
+	protected:
 	double integrate(const std::function<double(double)> &f, double a, double b) const
 	{
 		// start from the coarsest trapezoid...

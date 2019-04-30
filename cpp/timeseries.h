@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -26,11 +26,11 @@ namespace redukti
 
 class Value
 {
-      private:
+	private:
 	Date date_;
 	double value_;
 
-      public:
+	public:
 	Value() : value_(0.0) {}
 	Value(Date d, double v = 0.0) : date_(d), value_(v) {}
 	Value(const Value &other) : date_(other.date_), value_(other.value_) {}
@@ -52,10 +52,10 @@ struct ValueComparator {
 
 class TimeSeries
 {
-      private:
+	private:
 	std::vector<Value> values_;
 
-      public:
+	public:
 	TimeSeries() {}
 	TimeSeries(size_t num_values, Value *data) : values_(num_values) { add(num_values, data); }
 	void add(size_t num_values, Value *data)
@@ -79,7 +79,7 @@ class TimeSeries
 		return false;
 	}
 
-      private:
+	private:
 	TimeSeries(const TimeSeries &) = delete;
 	TimeSeries &operator=(const TimeSeries &) = delete;
 };

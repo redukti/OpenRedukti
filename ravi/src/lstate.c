@@ -1,5 +1,5 @@
 /*
-** $Id: lstate.c,v 2.133 2015/11/13 12:16:51 roberto Exp $
+** $Id: lstate.c,v 2.133.1.1 2017/04/19 17:39:34 roberto Exp $
 ** Global State
 ** See Copyright Notice in lua.h
 */
@@ -28,8 +28,13 @@
 #include "ltable.h"
 #include "ltm.h"
 
+#ifdef RAVI_USE_ASMVM
+#include "ravi_asmvm_defs.h"
+#endif
+
 #include "ravijit.h"
 #include "ravi_profile.h"
+#include "ravi_alloc.h"
 
 #if !defined(LUAI_GCPAUSE)
 #define LUAI_GCPAUSE	200  /* 200% */
@@ -116,6 +121,7 @@ CallInfo *luaE_extendCI (lua_State *L) {
   L->ci->next = ci;
   ci->previous = L->ci;
   ci->next = NULL;
+  ci->magic = 42;
   L->nci++;
   return ci;
 }
@@ -167,6 +173,7 @@ static void stack_init (lua_State *L1, lua_State *L) {
   ci->next = ci->previous = NULL;
   ci->callstatus = 0;
   ci->jitstatus = 0; /* RAVI extension */
+  ci->magic = 42; /* RAVI extension */
   ci->func = L1->top;
   setnilvalue(L1->top++);  /* 'function' entry for this 'ci' */
   ci->top = L1->top + LUA_MINSTACK;
@@ -243,6 +250,21 @@ static void preinit_thread (lua_State *L, global_State *g) {
   L->status = LUA_OK;
   L->errfunc = 0;
   L->base_ci.stacklevel = 0; /* RAVI base stack level */
+  L->base_ci.magic = 42;
+  L->magic = 42; /* RAVI extension */
+}
+
+void *ravi_alloc_f(void *msp, void *ptr, size_t osize, size_t nsize)
+{
+  (void)osize;
+  if (nsize == 0) {
+    mspace_free(msp, ptr);
+    return NULL;
+  } else if (ptr == NULL) {
+    return mspace_malloc(msp, nsize);
+  } else {
+    return mspace_realloc(msp, ptr, nsize);
+  }
 }
 
 
@@ -256,7 +278,10 @@ static void close_state (lua_State *L) {
   freestack(L);
   lua_assert(gettotalbytes(g) == sizeof(LG));
   raviV_close(L);
-  (*g->frealloc)(g->ud, fromstate(L), sizeof(LG), 0);  /* free main block */
+  if (g->frealloc == ravi_alloc_f) /* Using LuaJIt allocator? */
+    destroy_mspace(g->ud);
+  else
+    (*g->frealloc)(g->ud, fromstate(L), sizeof(LG), 0);  /* free main block */
 }
 
 
@@ -315,6 +340,23 @@ void raviE_default_writestringerror(const char *fmt, const char *p) {
   fflush(stderr);
 }
 
+#ifdef RAVI_USE_ASMVM
+/* Initialize dispatch table used by the ASM VM */
+static void dispatch_init(global_State *G) {
+  ASMFunction *disp = G->dispatch;
+  for (uint32_t i = 0; i < NUM_OPCODES; i++) {
+    /*
+    Following computes an offset for the assembly routine for the given OpCode.
+    The offset is relative to the global symbol ravi_vm_asm_begin that is
+    generated as part of the VMBuilder code generation. All the bytecode
+    routines are at some offset to this global symbol.
+    */
+    /* NOTE: enabling ltests.h modifies the global_State and breaks the assumptions abou the location of the dispatch table */
+    disp[i] = makeasmfunc(ravi_bytecode_offsets[i]);
+  }
+}
+#endif
+
 LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   int i;
   lua_State *L;
@@ -364,6 +406,10 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
     close_state(L);
     L = NULL;
   }
+#ifdef RAVI_USE_ASMVM
+  /* setup dispatch table - this is only used by the new ASM VM - see vmbuilder */
+  dispatch_init(g);
+#endif
 #if RAVI_BYTECODE_PROFILING_ENABLED
   raviV_init_profiledata(L);
 #endif

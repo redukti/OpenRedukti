@@ -1,5 +1,5 @@
 /*
-** $Id: lopcodes.h,v 1.149 2016/07/19 17:12:21 roberto Exp $
+** $Id: lopcodes.h,v 1.149.1.1 2017/04/19 17:20:42 roberto Exp $
 ** Opcodes for Lua virtual machine
 ** See Copyright Notice in lua.h
 */
@@ -12,15 +12,17 @@
 
 /*===========================================================================
   We assume that instructions are unsigned numbers.
-  All instructions have an opcode in the first 6 bits.
+  All instructions have an opcode in the first 8 bits.
   Instructions can have the following fields:
-	'A' : 8 bits
-	'B' : 9 bits
-	'C' : 9 bits
-	'Ax' : 26 bits ('A', 'B', and 'C' together)
-	'Bx' : 18 bits ('B' and 'C' together)
+	'A' : 8 bits (7 bits used)
+	'B' : 8 bits
+	'C' : 8 bits
+	'Ax' : 24 bits ('A', 'B', and 'C' together)
+	'Bx' : 16 bits ('B' and 'C' together)
 	'sBx' : signed Bx
 
+  Above is based on LuaJIT scheme but unlike LuaJIT A is actually
+  represented in 7 bits.
   A signed argument is represented in excess K; that is, the number
   value is the unsigned value minus K. K is exactly the maximum value
   for that argument (so that -max is represented by 0, and +max is
@@ -31,108 +33,64 @@
 
 enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction format */
 
+#include "ravi_arch.h"
 
 /*
-** size and position of opcode arguments.
-*/
-/** RAVI changes **/
-#define SIZE_C		8
-#define SIZE_B		8
-#define SIZE_Bx		(SIZE_C + SIZE_B)
-#define SIZE_A		7
-#define SIZE_Ax		(SIZE_C + SIZE_B + SIZE_A)
 
-#define SIZE_OP		9
+The bytecode layout here uses LuaJIT inspired format.
 
-#define POS_OP		0
-#define POS_A		(POS_OP + SIZE_OP)
-#define POS_C		(POS_A + SIZE_A)
-#define POS_B		(POS_C + SIZE_C)
-#define POS_Bx		POS_C
-#define POS_Ax		POS_A
++---+---+---+----+
+| B | C | A | Op |
++---+---+---+----+
+| Bx    | A | Op |
++-------+---+----+
+| Ax        | Op |
++-----------+----+
 
-
-/*
-** limits for opcode arguments.
-** we use (signed) int to manipulate most arguments,
-** so they must fit in LUAI_BITSINT-1 bits (-1 for sign)
-*/
-#if SIZE_Bx < LUAI_BITSINT-1
-#define MAXARG_Bx        ((1<<SIZE_Bx)-1)
-#define MAXARG_sBx        (MAXARG_Bx>>1)         /* 'sBx' is signed */
-#else
-#define MAXARG_Bx        MAX_INT
-#define MAXARG_sBx        MAX_INT
-#endif
-
-#if SIZE_Ax < LUAI_BITSINT-1
-#define MAXARG_Ax	((1<<SIZE_Ax)-1)
-#else
-#define MAXARG_Ax	MAX_INT
-#endif
-
-
-#define MAXARG_A        ((1<<SIZE_A)-1)
-#define MAXARG_B        ((1<<SIZE_B)-1)
-#define MAXARG_C        ((1<<SIZE_C)-1)
-
-
-/* creates a mask with 'n' 1 bits at position 'p' */
-#define MASK1(n,p)	((~((~(Instruction)0)<<(n)))<<(p))
-
-/* creates a mask with 'n' 0 bits at position 'p' */
-#define MASK0(n,p)	(~MASK1(n,p))
-
-/*
-** the following macros help to manipulate instructions
 */
 
-#define GET_OPCODE(i)	(cast(OpCode, ((i)>>POS_OP) & MASK1(SIZE_OP,0)))
-#define SET_OPCODE(i,o)	((i) = (((i)&MASK0(SIZE_OP,POS_OP)) | \
-		((cast(Instruction, o)<<POS_OP)&MASK1(SIZE_OP,POS_OP))))
+#define MAXARG_A 0x7f
+#define MAXARG_B 0xff
+#define MAXARG_C 0xff
+#define MAXARG_Bx 0xffff
+#define MAXARG_Ax 0xffffff
 
-#define getarg(i,pos,size)	(cast(int, ((i)>>pos) & MASK1(size,0)))
-#define setarg(i,v,pos,size)	((i) = (((i)&MASK0(size,pos)) | \
-                ((cast(Instruction, v)<<pos)&MASK1(size,pos))))
+#define GET_OPCODE(i)	cast(OpCode, ((i)&0xff))
+#define GETARG_A(i)	cast(int, ((i)>>8)&0x7f)
+#define GETARG_B(i)	cast(int, (i)>>24)
+#define GETARG_C(i)	cast(int, ((i)>>16)&0xff)
+#define GETARG_Bx(i)	cast(int, (i)>>16)
+#define GETARG_Ax(i)	cast(int, (i)>>8)
+#define GETARG_sBx(i)	(((int)GETARG_Bx(i))-MAXARG_sBx)
+#define MAXARG_sBx      0x8000
 
-#define GETARG_A(i)	getarg(i, POS_A, SIZE_A)
-#define SETARG_A(i,v)	setarg(i, v, POS_A, SIZE_A)
+#define setbc_byte(p, x, ofs) \
+  ((lu_byte *)(&(p)))[RAVI_ENDIAN_SELECT(ofs, 3-ofs)] = ((lu_byte)cast(Instruction, x))
 
-#define GETARG_B(i)	getarg(i, POS_B, SIZE_B)
-#define SETARG_B(i,v)	setarg(i, v, POS_B, SIZE_B)
-
-#define GETARG_C(i)	getarg(i, POS_C, SIZE_C)
-#define SETARG_C(i,v)	setarg(i, v, POS_C, SIZE_C)
-
-#define GETARG_Bx(i)	getarg(i, POS_Bx, SIZE_Bx)
-#define SETARG_Bx(i,v)	setarg(i, v, POS_Bx, SIZE_Bx)
-
-#define GETARG_Ax(i)	getarg(i, POS_Ax, SIZE_Ax)
-#define SETARG_Ax(i,v)	setarg(i, v, POS_Ax, SIZE_Ax)
-
-#define GETARG_sBx(i)	(GETARG_Bx(i)-MAXARG_sBx)
-#define SETARG_sBx(i,b)	SETARG_Bx((i),cast(unsigned int, (b)+MAXARG_sBx))
-
-
-#define CREATE_ABC(o,a,b,c)	((cast(Instruction, o)<<POS_OP) \
-			| (cast(Instruction, a)<<POS_A) \
-			| (cast(Instruction, b)<<POS_B) \
-			| (cast(Instruction, c)<<POS_C))
-
-#define CREATE_ABx(o,a,bc)	((cast(Instruction, o)<<POS_OP) \
-			| (cast(Instruction, a)<<POS_A) \
-			| (cast(Instruction, bc)<<POS_Bx))
-
-#define CREATE_Ax(o,a)		((cast(Instruction, o)<<POS_OP) \
-			| (cast(Instruction, a)<<POS_Ax))
+#define SET_OPCODE(p, x) setbc_byte(p, (x), 0)
+#define SETARG_A(p, x)   setbc_byte(p, ((x)&0x7f), 1)
+#define SETARG_B(p, x)   setbc_byte(p, (x), 3)
+#define SETARG_C(p, x)   setbc_byte(p, (x), 2)
+#define SETARG_Bx(p, x) \
+  ((unsigned short *)(&(p)))[RAVI_ENDIAN_SELECT(1, 0)] = (unsigned short)(cast(Instruction, x))
+#define SETARG_sBx(p, x) SETARG_Bx(p, cast(unsigned int, cast(Instruction, x)+MAXARG_sBx))
+#define SETARG_Ax(p, x) p = (cast(Instruction, p)&0xff | (cast(Instruction, x)<<8))
 
 
-/*
-** Macros to operate RK indices
-*/
+#define CREATE_ABC(o,a,b,c)	((cast(Instruction, o)) \
+			| (cast(Instruction, a)<<8) \
+			| (cast(Instruction, b)<<24) \
+			| (cast(Instruction, c)<<16))
+
+#define CREATE_ABx(o,a,bc)	((cast(Instruction, o)) \
+			| (cast(Instruction, a)<<8) \
+			| (cast(Instruction, bc)<<16))
+
+#define CREATE_Ax(o,a)		((cast(Instruction, o)) \
+			| (cast(Instruction, a)<<8))
 
 /* this bit 1 means constant (0 means register) */
-#define BITRK		(1 << (SIZE_B - 1))
+#define BITRK		0x80
 
 /* test whether value is a constant */
 #define ISK(x)		((x) & BITRK)
@@ -232,8 +190,8 @@ OP_CLOSURE,/*	A Bx	R(A) := closure(KPROTO[Bx])			*/
 OP_VARARG,/*	A B	R(A), R(A+1), ..., R(A+B-2) = vararg		*/
 OP_EXTRAARG,/*	Ax	extra (larger) argument for previous opcode	*/
 
-OP_RAVI_NEWARRAYI, /* A R(A) := array of int */
-OP_RAVI_NEWARRAYF, /* A R(A) := array of float */
+OP_RAVI_NEW_IARRAY, /* A R(A) := array of int */
+OP_RAVI_NEW_FARRAY, /* A R(A) := array of float */
 
 OP_RAVI_LOADIZ,  /*	A R(A) := tointeger(0)		*/
 OP_RAVI_LOADFZ,  /*	A R(A) := tonumber(0)		*/
@@ -261,32 +219,37 @@ OP_RAVI_DIVII,  /*	A B C	R(A) := RK(B) / RK(C)		*/
 
 OP_RAVI_TOINT, /* A R(A) := toint(R(A)) */
 OP_RAVI_TOFLT, /* A R(A) := tofloat(R(A)) */
-OP_RAVI_TOARRAYI, /* A R(A) := to_arrayi(R(A)) */
-OP_RAVI_TOARRAYF, /* A R(A) := to_arrayf(R(A)) */
+OP_RAVI_TOIARRAY, /* A R(A) := to_arrayi(R(A)) */
+OP_RAVI_TOFARRAY, /* A R(A) := to_arrayf(R(A)) */
+OP_RAVI_TOTAB,    /* A R(A) := to_table(R(A)) */
+OP_RAVI_TOSTRING, /* A R(A) := assert_string(R(A)) */
+OP_RAVI_TOCLOSURE, /* A R(A) := assert_closure(R(A)) */
+OP_RAVI_TOTYPE,  /* A R(A) := assert_usertype(R(A)), where usertype has metatable in Lua registry */
 
-OP_RAVI_MOVEI, /*	A B	R(A) := R(B), check R(B) is int	*/
-OP_RAVI_MOVEF, /*	A B	R(A) := R(B), check R(B) is float */
-OP_RAVI_MOVEAI, /* A B R(A) := R(B), check R(B) is array of int */
-OP_RAVI_MOVEAF, /* A B R(A) := R(B), check R(B) is array of floats */
+OP_RAVI_MOVEI,       /*	A B	R(A) := R(B), check R(B) is int	*/
+OP_RAVI_MOVEF,       /*	A B	R(A) := R(B), check R(B) is float */
+OP_RAVI_MOVEIARRAY,  /* A B R(A) := R(B), check R(B) is array of int */
+OP_RAVI_MOVEFARRAY,  /* A B R(A) := R(B), check R(B) is array of floats */
+OP_RAVI_MOVETAB,     /* A B R(A) := R(B), check R(B) is a table */
 
-OP_RAVI_GETTABLE_AI,/*	A B C	R(A) := R(B)[RK(C)] where R(B) is array of integers and RK(C) is int */
-OP_RAVI_GETTABLE_AF,/*	A B C	R(A) := R(B)[RK(C)] where R(B) is array of floats and RK(C) is int */
+OP_RAVI_IARRAY_GET,  /*	A B C	R(A) := R(B)[RK(C)] where R(B) is array of integers and RK(C) is int */
+OP_RAVI_FARRAY_GET,  /*	A B C	R(A) := R(B)[RK(C)] where R(B) is array of floats and RK(C) is int */
 
-OP_RAVI_SETTABLE_AI,/*	A B C	R(A)[RK(B)] := RK(C) where RK(B) is an int, R(A) is array of ints, and RK(C) is an int */
-OP_RAVI_SETTABLE_AF,/*	A B C	R(A)[RK(B)] := RK(C) where RK(B) is an int, R(A) is array of floats, and RK(C) is an float */
+OP_RAVI_IARRAY_SET,  /*	A B C	R(A)[RK(B)] := RK(C) where RK(B) is an int, R(A) is array of ints */
+OP_RAVI_FARRAY_SET,  /*	A B C	R(A)[RK(B)] := RK(C) where RK(B) is an int, R(A) is array of floats */
+OP_RAVI_IARRAY_SETI, /*	A B C	R(A)[RK(B)] := RK(C) where RK(B) is an int, R(A) is array of ints, and RK(C) is an int */
+OP_RAVI_FARRAY_SETF, /*	A B C	R(A)[RK(B)] := RK(C) where RK(B) is an int, R(A) is array of floats, and RK(C) is an float */
 
-OP_RAVI_FORLOOP_IP,
-OP_RAVI_FORLOOP_I1,
-OP_RAVI_FORPREP_IP,
-OP_RAVI_FORPREP_I1,
+OP_RAVI_FORLOOP_IP,  /* As FORLOOP, but with integer index and positive integer step */
+OP_RAVI_FORLOOP_I1,  /* As FORLOOP, but with integer index 1 and step 1 */
+OP_RAVI_FORPREP_IP,  /* As FORPREP, but with integer index and positive integer step */
+OP_RAVI_FORPREP_I1,  /* As FORPREP, but with integer index 1 and step 1 */
 
 OP_RAVI_SETUPVALI,  /*	A B	UpValue[B] := tointeger(R(A))			*/
 OP_RAVI_SETUPVALF,  /*	A B	UpValue[B] := tonumber(R(A))			*/
-OP_RAVI_SETUPVALAI,  /*	A B	UpValue[B] := toarrayint(R(A))			*/
-OP_RAVI_SETUPVALAF,  /*	A B	UpValue[B] := toarrayflt(R(A))			*/
-
-OP_RAVI_SETTABLE_AII,/*	A B C	R(A)[RK(B)] := RK(C) where RK(B) is an int, R(A) is array of ints, and RK(C) is an int */
-OP_RAVI_SETTABLE_AFF,/*	A B C	R(A)[RK(B)] := RK(C) where RK(B) is an int, R(A) is array of floats, and RK(C) is an float */
+OP_RAVI_SETUPVAL_IARRAY,  /*	A B	UpValue[B] := toarrayint(R(A))			*/
+OP_RAVI_SETUPVAL_FARRAY,  /*	A B	UpValue[B] := toarrayflt(R(A))			*/
+OP_RAVI_SETUPVALT,/*	A B	UpValue[B] := to_table(R(A))			*/
 
 OP_RAVI_BAND_II,/*	A B C	R(A) := RK(B) & RK(C)				*/
 OP_RAVI_BOR_II, /*	A B C	R(A) := RK(B) | RK(C)				*/
@@ -302,22 +265,21 @@ OP_RAVI_LT_FF,/*	A B C	if ((RK(B) <  RK(C)) ~= A) then pc++		*/
 OP_RAVI_LE_II,/*	A B C	if ((RK(B) <= RK(C)) ~= A) then pc++		*/
 OP_RAVI_LE_FF,/*	A B C	if ((RK(B) <= RK(C)) ~= A) then pc++		*/
   
-OP_RAVI_GETTABLE_I,/*	A B C	R(A) := R(B)[RK(C)], integer key	*/
-OP_RAVI_GETTABLE_S,/*	A B C	R(A) := R(B)[RK(C)], string key   */
-OP_RAVI_SETTABLE_I,/*	A B C	R(A)[RK(B)] := RK(C), integer key	*/
-OP_RAVI_SETTABLE_S,/*	A B C	R(A)[RK(B)] := RK(C), string key  */
-OP_RAVI_TOTAB,    /* A R(A) := to_table(R(A)) */
-OP_RAVI_MOVETAB,  /* A B R(A) := R(B), check R(B) is a table */
-OP_RAVI_SETUPVALT,/*	A B	UpValue[B] := to_table(R(A))			*/
-OP_RAVI_SELF_S,/*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)]		*/
+/* Following op codes are specialised when it is known that indexing is being
+   done on a table and the key is known type */
+OP_RAVI_TABLE_GETFIELD,/*	A B C	R(A) := R(B)[RK(C)], string key, R(B) references a table */
+OP_RAVI_TABLE_SETFIELD,/*	A B C	R(A)[RK(B)] := RK(C), string key, R(A) references a table  */
+OP_RAVI_TABLE_SELF_SK, /*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)], string key, R(B) references a table */
 
-/* Following opcodes are specialized for access where the
-   key is known to be string but the variable may or may not be 
+/* Following opcodes are specialized for indexing where the
+   key is known to be string or integer but the variable may or may not be 
    a table */
-OP_RAVI_GETTABLE_SK, /*	A B C	R(A) := R(B)[RK(C)], string key   */
-OP_RAVI_SELF_SK,     /*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)]		*/
-OP_RAVI_SETTABLE_SK, /*	A B C	R(A)[RK(B)] := RK(C), string key  */
-OP_RAVI_GETTABUP_SK, /*	A B C	R(A) := UpValue[B][RK(C)]			*/
+OP_RAVI_GETI,         /*	A B C	R(A) := R(B)[RK(C)], integer key */
+OP_RAVI_SETI,         /*	A B C	R(A)[RK(B)] := RK(C), integer key */
+OP_RAVI_GETFIELD,     /*	A B C	R(A) := R(B)[RK(C)], string key  */
+OP_RAVI_SELF_SK,      /*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)], string key */
+OP_RAVI_SETFIELD,     /*	A B C	R(A)[RK(B)] := RK(C), string key */
+OP_RAVI_GETTABUP_SK,  /*	A B C	R(A) := UpValue[B][RK(C)], string key */
 
 } OpCode;
 

@@ -1,5 +1,5 @@
 /*
-** $Id: lvm.h,v 2.41 2016/12/22 13:08:50 roberto Exp $
+** $Id: lvm.h,v 2.41.1.1 2017/04/19 17:20:42 roberto Exp $
 ** Lua virtual machine
 ** See Copyright Notice in lua.h
 */
@@ -37,11 +37,27 @@
 #endif
 
 
+/* convert an object to a float (including string coercion) */
 #define tonumber(o,n) \
   (RAVI_LIKELY(ttisfloat(o)) ? (*(n) = fltvalue(o), 1) : luaV_tonumber_(o,n))
 
+
+/* convert an object to a float (without string coercion) */
+#define tonumberns(o,n) \
+	(ttisfloat(o) ? ((n) = fltvalue(o), 1) : \
+	(ttisinteger(o) ? ((n) = cast_num(ivalue(o)), 1) : 0))
+
+
+/* convert an object to an integer (including string coercion) */
 #define tointeger(o,i) \
   (RAVI_LIKELY(ttisinteger(o)) ? (*(i) = ivalue(o), 1) : luaV_tointeger(o,i,LUA_FLOORN2I))
+
+
+/* convert an object to an integer (without string coercion) */
+#define tointegerns(o,i) \
+    (ttisinteger(o) ? (*(i) = ivalue(o), 1) \
+                    : luaV_flttointeger(o,i,LUA_FLOORN2I))
+
 
 #define intop(op,v1,v2) l_castU2S(l_castS2U(v1) op l_castS2U(v2))
 
@@ -50,10 +66,10 @@
 
 /*
 ** fast track for 'gettable': if 't' is a table and 't[k]' is not nil,
-** return 1 with 'slot' pointing to 't[k]' (final result).  Otherwise,
-** return 0 (meaning it will have to check metamethod) with 'slot'
-** pointing to a nil 't[k]' (if 't' is a table) or NULL (otherwise).
-** 'f' is the raw get function to use.
+** return 1 with 'slot' pointing to 't[k]' (position of final result).
+** Otherwise, return 0 (meaning it will have to check metamethod)
+** with 'slot' pointing to a nil 't[k]' (if 't' is a table) or NULL
+** (otherwise). 'f' is the raw get function to use.
 */
 #define luaV_fastget(L,t,k,slot,f) \
   (!ttistable(t)  \
@@ -61,41 +77,28 @@
    : (slot = f(hvalue(t), k),  /* else, do raw access */  \
       !ttisnil(slot)))  /* result not nil? */
 
+
 /*
-** standard implementation for 'gettable'
-** RAVI change - renamed as we need luaV_gettable to be 
-** an exported function
+** Special case of 'luaV_fastget' for integers, inlining the fast case
+** of 'luaH_getint'.
 */
-#define luaV_fastgettable(L,t,k,v) { const TValue *slot; \
-  if (luaV_fastget(L,t,k,slot,luaH_get)) { setobj2s(L, v, slot); } \
-  else luaV_finishget(L,t,k,v,slot); }
+#define luaV_fastgeti(L,t,k,slot) \
+  (!ttistable(t)  \
+   ? (slot = NULL, 0)  /* not a table; 'slot' is NULL and result is 0 */  \
+   : (slot = (l_castS2U(k) - 1u < hvalue(t)->sizearray) \
+              ? &hvalue(t)->array[k - 1] : luaH_getint(hvalue(t), k), \
+      !ttisnil(slot)))  /* result not nil? */
 
 
 /*
-** Fast track for set table. If 't' is a table and 't[k]' is not nil,
-** call GC barrier, do a raw 't[k]=v', and return true; otherwise,
-** return false with 'slot' equal to NULL (if 't' is not a table) or
-** 'nil'. (This is needed by 'luaV_finishget'.) Note that, if the macro
-** returns true, there is no need to 'invalidateTMcache', because the
-** call is not creating a new entry.
+** Finish a fast set operation (when fast get succeeds). In that case,
+** 'slot' points to the place to put the value.
 */
-#define luaV_fastset(L,t,k,slot,f,v) \
-  (!ttistable(t) \
-   ? (slot = NULL, 0) \
-   : (slot = f(hvalue(t), k), \
-     ttisnil(slot) ? 0 \
-     : (luaC_barrierback(L, hvalue(t), v), \
-        setobj2t(L, cast(TValue *,slot), v), \
-        1)))
+#define luaV_finishfastset(L,t,slot,v) \
+    { setobj2t(L, cast(TValue *,slot), v); \
+      luaC_barrierback(L, hvalue(t), v); }
 
-/*
-** RAVI change - renamed as we need luaV_settable to be 
-** an exported function
-*/
-#define luaV_fastsettable(L,t,k,v) { const TValue *slot; \
-  if (!luaV_fastset(L,t,k,slot,luaH_get,v)) \
-    luaV_finishset(L,t,k,v,slot); }
-  
+
 
 
 LUAI_FUNC int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2);
@@ -104,6 +107,7 @@ LUAI_FUNC int luaV_lessequal (lua_State *L, const TValue *l, const TValue *r);
 LUAI_FUNC int luaV_tonumber_ (const TValue *obj, lua_Number *n);
 LUAI_FUNC int luaV_tointeger (const TValue *obj, lua_Integer *p, int mode);
 /** RAVI changes start **/
+LUAI_FUNC int luaV_flttointeger (const TValue *obj, lua_Integer *p, int mode);
 LUAI_FUNC int luaV_tointeger_(const TValue *obj, lua_Integer *p);
 LUAI_FUNC void luaV_gettable (lua_State *L, const TValue *t, TValue *key,
                                             StkId val);
@@ -153,5 +157,9 @@ LUAI_FUNC void raviV_op_band(lua_State *L, TValue *ra, TValue *rb, TValue *rc);
 LUAI_FUNC void raviV_op_bnot(lua_State *L, TValue *ra, TValue *rb);
 LUAI_FUNC void raviV_gettable_sskey(lua_State *L, const TValue *t, TValue *key, StkId val);
 LUAI_FUNC void raviV_settable_sskey(lua_State *L, const TValue *t, TValue *key, StkId val);
+LUAI_FUNC void raviV_gettable_i(lua_State *L, const TValue *t, TValue *key, StkId val);
+LUAI_FUNC void raviV_settable_i(lua_State *L, const TValue *t, TValue *key, StkId val);
+LUAI_FUNC void raviV_op_totype(lua_State *L, TValue *ra, TValue *rb);
+LUAI_FUNC int raviV_check_usertype(lua_State *L, TString *name, const TValue *o);
 
 #endif

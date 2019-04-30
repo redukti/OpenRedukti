@@ -27,7 +27,7 @@ namespace redukti
 
 class ValuationContextImpl : public ValuationContext
 {
-      private:
+	private:
 	// Business date
 	Date evaluation_date_;
 	// required derivative order
@@ -44,7 +44,7 @@ class ValuationContextImpl : public ValuationContext
 	// the default value to false
 	bool include_todays_fixing_;
 
-      public:
+	public:
 	ValuationContextImpl(Date edate, int order = 0, FixingDataService *fixing_service = nullptr,
 			     Date payment_cutoff = 0, bool include_todays_fixing = false)
 	    : evaluation_date_(edate), derivative_order_(order),
@@ -62,10 +62,10 @@ class ValuationContextImpl : public ValuationContext
 
 class SimpleCurveMapper : public CurveMapper
 {
-      private:
+	private:
 	std::map<PricingCurve, PricingCurve> mappings_;
 
-      public:
+	public:
 	PricingCurve map_index_tenor(PricingCurveType curve_type, Currency currency, IndexFamily family,
 				     Tenor tenor) const override final;
 	void add_mapping(PricingCurveType curve_type, Currency currency, IndexFamily family, Tenor tenor,
@@ -81,7 +81,7 @@ struct VariableIterator {
 	int32_t pos_;
 	Date date_;
 
-      public:
+	public:
 	VariableIterator(VariableResolvers *parent, int32_t curve, int32_t pos, Date d)
 	    : resolvers_(parent), curve_(curve), pos_(pos), date_(d)
 	{
@@ -99,13 +99,13 @@ inline bool operator==(const VariableIterator &a, const VariableIterator &b)
 inline bool operator!=(const VariableIterator &a, const VariableIterator &b) { return !(a == b); }
 
 struct VariableResolver {
-      private:
+	private:
 	VariableResolvers *resolvers_;
 	// Position of curve in the VariableResolvers.curves_
 	// If -1 then not valid
 	int32_t curve_;
 
-      public:
+	public:
 	VariableResolver(VariableResolvers *owner, int32_t id) : resolvers_(owner), curve_(id) {}
 	PricingCurve curve() const;
 	// Add or get the variable assignment for date
@@ -127,7 +127,7 @@ struct DateVar {
 struct VariableResolvers {
 	enum { MAX_CURVES_PER_RESOLVER = 3 };
 
-      private:
+	private:
 	// Maximum of 3 pricing curves per resolver
 	PricingCurve curves_[MAX_CURVES_PER_RESOLVER];
 	// Size of the data array below
@@ -138,7 +138,7 @@ struct VariableResolvers {
 	// date value - 32 bits
 	DateVar *data_;
 
-      public:
+	public:
 	VariableResolvers(Allocator *A, uint32_t datasize) : datasize_(datasize)
 	{
 		data_ = new (*A) DateVar[datasize_];
@@ -200,7 +200,7 @@ struct VariableResolvers {
 
 	int capacity() const { return datasize_; }
 
-      private:
+	private:
 	VariableResolvers(const VariableResolvers &) = delete;
 	VariableResolvers &operator=(const VariableResolvers &) = delete;
 };
@@ -225,7 +225,7 @@ struct NSimpleCashflow {
 	// Is the party paying or receiving
 	bool pay;
 
-      private:
+	private:
 	NSimpleCashflow(const NSimpleCashflow &) = delete;
 	NSimpleCashflow &operator=(const NSimpleCashflow &) = delete;
 };
@@ -248,7 +248,7 @@ struct FloatingCalculation {
 
 	FloatingCalculation();
 
-      private:
+	private:
 	FloatingCalculation(const FloatingCalculation &) = delete;
 	FloatingCalculation &operator=(const FloatingCalculation &) = delete;
 };
@@ -273,7 +273,7 @@ struct FloatingPeriod {
 
 	FloatingPeriod();
 
-      private:
+	private:
 	FloatingPeriod(const FloatingPeriod &) = delete;
 	FloatingPeriod &operator=(const FloatingPeriod &) = delete;
 };
@@ -293,7 +293,7 @@ struct NFloatingCashflow {
 	void push_back(FloatingPeriod *fp);
 	void set_paydate(Date dt, int variable);
 
-      private:
+	private:
 	NFloatingCashflow(const NFloatingCashflow &) = delete;
 	NFloatingCashflow &operator=(const NFloatingCashflow &) = delete;
 };
@@ -381,7 +381,7 @@ struct Cashflow {
 		type = CashflowType::CF_FRA;
 	}
 
-      private:
+	private:
 	Cashflow(const Cashflow &) = delete;
 	Cashflow &operator=(const Cashflow &) = delete;
 };
@@ -396,7 +396,7 @@ struct CashflowStream {
 	CashflowStream() : factor(1.0), first(nullptr), last(nullptr), next(nullptr) {}
 	void add(Cashflow *flow);
 
-      private:
+	private:
 	CashflowStream(const CashflowStream &) = delete;
 	CashflowStream &operator=(const CashflowStream &) = delete;
 };
@@ -404,7 +404,7 @@ struct CashflowStream {
 // Cashflows is a collection of 2 legs
 class Cashflows
 {
-      public:
+	public:
 	int n_streams_;
 	CashflowStream *first_;
 	CashflowStream *last_;
@@ -413,7 +413,7 @@ class Cashflows
 	void add(CashflowStream *stream);
 	int n_streams() const { return n_streams_; }
 
-      private:
+	private:
 	Cashflows(const Cashflows &) = delete;
 	Cashflows &operator=(const Cashflows &) = delete;
 };

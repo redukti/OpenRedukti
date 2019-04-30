@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -23,7 +23,7 @@ namespace redukti
 
 class ValuationService
 {
-      public:
+	public:
 	virtual ~ValuationService() {}
 	virtual CurveInterpolationReply *
 	handle_curve_interpolation_request(google::protobuf::Arena *arena,
@@ -40,6 +40,6 @@ class ValuationService
 	virtual ValuationReply *handle_valuation_request(google::protobuf::Arena *arena,
 							 const ValuationRequest *request) = 0;
 };
-}
+} // namespace redukti
 
 #endif

@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -56,23 +56,9 @@ extern "C" {
 
 #include <assert.h>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <ctime>
-
-// TODO
-// ValuationContext - partial
-// Wrap curves in CurveWrapper?
-// CurveProvider
-// CurveMapper
-// Construct Cashflows
-// Compute NPV
-// IRCurveSensitivities (for returning sens)
-// CurveDefinitions
-// ParCurveSet
-// BootstrapRequest
-// Bootstrap
-// ZeroCurves
-// ZeroCurveParSens
 
 extern "C" {
 
@@ -94,34 +80,34 @@ static const char *Type_PricingResult = "Redukti_PricingResult";
 static const char *Type_ZeroCurveSet = "Redukti_ZeroCurveSet";
 static const char *Type_FixingService = "Redukti_FixingService";
 
-#define test_Type_CFCollection(L, idx) ((CFCollectionHolder *)raviL_testudata(L, idx, Type_CFCollection))
-#define check_Type_CFCollection(L, idx) ((CFCollectionHolder *)raviL_checkudata(L, idx, Type_CFCollection))
-#define test_Type_Index(L, idx) ((IndexHolder *)raviL_testudata(L, idx, Type_Index))
-#define check_Type_Index(L, idx) ((IndexHolder *)raviL_checkudata(L, idx, Type_Index))
-#define test_Type_DayFraction(L, idx) ((DayFractionHolder *)raviL_testudata(L, idx, Type_DayFraction))
-#define check_Type_DayFraction(L, idx) ((DayFractionHolder *)raviL_checkudata(L, idx, Type_DayFraction))
-#define test_Type_Calendar(L, idx) ((CalendarHolder *)raviL_testudata(L, idx, Type_Calendar))
-#define check_Type_Calendar(L, idx) ((CalendarHolder *)raviL_checkudata(L, idx, Type_Calendar))
-#define test_Type_ADouble(L, idx) ((struct redukti_adouble_t *)raviL_testudata(L, idx, Type_ADouble))
-#define check_Type_ADouble(L, idx) ((struct redukti_adouble_t *)raviL_checkudata(L, idx, Type_ADouble))
-#define test_Type_Interpolator(L, idx) ((InterpolatorHolder *)raviL_testudata(L, idx, Type_Interpolator))
-#define check_Type_Interpolator(L, idx) ((InterpolatorHolder *)raviL_checkudata(L, idx, Type_Interpolator))
-#define test_Type_IRCurve(L, idx) ((IRCurveHolder *)raviL_testudata(L, idx, Type_IRCurve))
-#define check_Type_IRCurve(L, idx) ((IRCurveHolder *)raviL_checkudata(L, idx, Type_IRCurve))
-#define test_Type_CurveMapper(L, idx) ((CurveMapperHolder *)raviL_testudata(L, idx, Type_CurveMapper))
-#define check_Type_CurveMapper(L, idx) ((CurveMapperHolder *)raviL_checkudata(L, idx, Type_CurveMapper))
-#define test_Type_ValuationContext(L, idx) ((ValuationContextHolder *)raviL_testudata(L, idx, Type_ValuationContext))
-#define check_Type_ValuationContext(L, idx) ((ValuationContextHolder *)raviL_checkudata(L, idx, Type_ValuationContext))
-#define test_Type_PricingCashflows(L, idx) ((PricingCashflowsHolder *)raviL_testudata(L, idx, Type_PricingCashflows))
-#define check_Type_PricingCashflows(L, idx) ((PricingCashflowsHolder *)raviL_checkudata(L, idx, Type_PricingCashflows))
-#define test_Type_CurveProvider(L, idx) ((CurveProviderHolder *)raviL_testudata(L, idx, Type_CurveProvider))
-#define check_Type_CurveProvider(L, idx) ((CurveProviderHolder *)raviL_checkudata(L, idx, Type_CurveProvider))
-#define test_Type_PricingResult(L, idx) ((PricingResult *)raviL_testudata(L, idx, Type_PricingResult))
-#define check_Type_PricingResult(L, idx) ((PricingResult *)raviL_checkudata(L, idx, Type_PricingResult))
-#define test_Type_ZeroCurveSet(L, idx) ((ZeroCurveSetHolder *)raviL_testudata(L, idx, Type_ZeroCurveSet))
-#define check_Type_ZeroCurveSet(L, idx) ((ZeroCurveSetHolder *)raviL_checkudata(L, idx, Type_ZeroCurveSet))
-#define test_Type_FixingService(L, idx) ((FixingServiceHolder *)raviL_testudata(L, idx, Type_FixingService))
-#define check_Type_FixingService(L, idx) ((FixingServiceHolder *)raviL_checkudata(L, idx, Type_FixingService))
+#define test_Type_CFCollection(L, idx) ((CFCollectionHolder *)luaL_testudata(L, idx, Type_CFCollection))
+#define check_Type_CFCollection(L, idx) ((CFCollectionHolder *)luaL_checkudata(L, idx, Type_CFCollection))
+#define test_Type_Index(L, idx) ((IndexHolder *)luaL_testudata(L, idx, Type_Index))
+#define check_Type_Index(L, idx) ((IndexHolder *)luaL_checkudata(L, idx, Type_Index))
+#define test_Type_DayFraction(L, idx) ((DayFractionHolder *)luaL_testudata(L, idx, Type_DayFraction))
+#define check_Type_DayFraction(L, idx) ((DayFractionHolder *)luaL_checkudata(L, idx, Type_DayFraction))
+#define test_Type_Calendar(L, idx) ((CalendarHolder *)luaL_testudata(L, idx, Type_Calendar))
+#define check_Type_Calendar(L, idx) ((CalendarHolder *)luaL_checkudata(L, idx, Type_Calendar))
+#define test_Type_ADouble(L, idx) ((struct redukti_adouble_t *)luaL_testudata(L, idx, Type_ADouble))
+#define check_Type_ADouble(L, idx) ((struct redukti_adouble_t *)luaL_checkudata(L, idx, Type_ADouble))
+#define test_Type_Interpolator(L, idx) ((InterpolatorHolder *)luaL_testudata(L, idx, Type_Interpolator))
+#define check_Type_Interpolator(L, idx) ((InterpolatorHolder *)luaL_checkudata(L, idx, Type_Interpolator))
+#define test_Type_IRCurve(L, idx) ((IRCurveHolder *)luaL_testudata(L, idx, Type_IRCurve))
+#define check_Type_IRCurve(L, idx) ((IRCurveHolder *)luaL_checkudata(L, idx, Type_IRCurve))
+#define test_Type_CurveMapper(L, idx) ((CurveMapperHolder *)luaL_testudata(L, idx, Type_CurveMapper))
+#define check_Type_CurveMapper(L, idx) ((CurveMapperHolder *)luaL_checkudata(L, idx, Type_CurveMapper))
+#define test_Type_ValuationContext(L, idx) ((ValuationContextHolder *)luaL_testudata(L, idx, Type_ValuationContext))
+#define check_Type_ValuationContext(L, idx) ((ValuationContextHolder *)luaL_checkudata(L, idx, Type_ValuationContext))
+#define test_Type_PricingCashflows(L, idx) ((PricingCashflowsHolder *)luaL_testudata(L, idx, Type_PricingCashflows))
+#define check_Type_PricingCashflows(L, idx) ((PricingCashflowsHolder *)luaL_checkudata(L, idx, Type_PricingCashflows))
+#define test_Type_CurveProvider(L, idx) ((CurveProviderHolder *)luaL_testudata(L, idx, Type_CurveProvider))
+#define check_Type_CurveProvider(L, idx) ((CurveProviderHolder *)luaL_checkudata(L, idx, Type_CurveProvider))
+#define test_Type_PricingResult(L, idx) ((PricingResult *)luaL_testudata(L, idx, Type_PricingResult))
+#define check_Type_PricingResult(L, idx) ((PricingResult *)luaL_checkudata(L, idx, Type_PricingResult))
+#define test_Type_ZeroCurveSet(L, idx) ((ZeroCurveSetHolder *)luaL_testudata(L, idx, Type_ZeroCurveSet))
+#define check_Type_ZeroCurveSet(L, idx) ((ZeroCurveSetHolder *)luaL_checkudata(L, idx, Type_ZeroCurveSet))
+#define test_Type_FixingService(L, idx) ((FixingServiceHolder *)luaL_testudata(L, idx, Type_FixingService))
+#define check_Type_FixingService(L, idx) ((FixingServiceHolder *)luaL_checkudata(L, idx, Type_FixingService))
 
 /* garbage collected */
 struct CFCollectionHolder {
@@ -914,7 +900,7 @@ static int build_cfcollection(lua_State *L)
 	std::unique_ptr<CFCollection> cashflows = std::unique_ptr<CFCollection>(new CFCollection());
 	if (build_cashflow_streams(L, cashflows.get())) {
 		CFCollectionHolder *holder = (CFCollectionHolder *)lua_newuserdata(L, sizeof(CFCollectionHolder));
-		raviL_getmetatable(L, Type_CFCollection);
+		luaL_getmetatable(L, Type_CFCollection);
 		lua_setmetatable(L, -2);
 		holder->cashflows = cashflows.release();
 		return 1;
@@ -988,7 +974,7 @@ static int get_index(lua_State *L)
 	if (index == nullptr)
 		luaL_error(L, "Index not found");
 	IndexHolder *holder = (IndexHolder *)lua_newuserdata(L, sizeof(IndexHolder));
-	raviL_getmetatable(L, Type_Index);
+	luaL_getmetatable(L, Type_Index);
 	lua_setmetatable(L, -2);
 	holder->index = index;
 	return 1;
@@ -1011,7 +997,7 @@ static int get_day_count_fraction(lua_State *L)
 	DayCountFraction fraction = get_default_converter()->day_count_fraction_from_string(fraction_str);
 	luaL_argcheck(L, fraction != DayCountFraction::DAY_COUNT_FRACTION_UNSPECIFIED, 2, "Invalid day count fraction");
 	DayFractionHolder *holder = (DayFractionHolder *)lua_newuserdata(L, sizeof(DayFractionHolder));
-	raviL_getmetatable(L, Type_DayFraction);
+	luaL_getmetatable(L, Type_DayFraction);
 	lua_setmetatable(L, -2);
 	holder->fraction = get_day_fraction(fraction);
 	return 1;
@@ -1032,7 +1018,7 @@ static int get_calendar(lua_State *L)
 		joint_calendar_rule = get_default_converter()->joint_calendar_rule_from_string(joinmethod);
 	}
 	CalendarHolder *holder = (CalendarHolder *)lua_newuserdata(L, sizeof(CalendarHolder));
-	raviL_getmetatable(L, Type_Calendar);
+	luaL_getmetatable(L, Type_Calendar);
 	lua_setmetatable(L, -2);
 	holder->calendar = build_calendar(get_calendar_factory(), centers, joint_calendar_rule);
 	return 1;
@@ -1104,7 +1090,6 @@ static int day_fraction_tostring(lua_State *L)
 	lua_pushstring(L, name);
 	return 1;
 }
-
 
 static int calendar_advance(lua_State *L)
 {
@@ -1498,7 +1483,7 @@ static struct redukti_adouble_t *alloc_adouble(lua_State *L, int nvars, int orde
 	auto adsize = redukti_adouble_alloc_size(nvars, order);
 	redukti_adouble_t *adnum = (redukti_adouble_t *)lua_newuserdata(L, adsize);
 	redukti_adouble_init(adnum, nvars, order, var, v);
-	raviL_getmetatable(L, Type_ADouble);
+	luaL_getmetatable(L, Type_ADouble);
 	lua_setmetatable(L, -2);
 	return adnum;
 }
@@ -1539,7 +1524,7 @@ static int create_adouble_order2(lua_State *L) { return create_adouble_internal(
 
 static int adouble_tostring(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 1, Type_ADouble);
 	luaL_Buffer b;
 	luaL_buffinit(L, &b);
 	luaL_addstring(&b, "{\n");
@@ -1607,7 +1592,7 @@ static int adouble_get(lua_State *L)
 	if (nargs == 0) {
 		return 0;
 	}
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 1, Type_ADouble);
 	switch (nargs) {
 	case 1: {
 		lua_pushnumber(L, redukti_adouble_get_value(ad));
@@ -1642,7 +1627,7 @@ static int adouble_get_gradient(lua_State *L)
 	if (nargs == 0) {
 		return 0;
 	}
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 1, Type_ADouble);
 	if (ad->order_ < 1) {
 		return 0;
 	}
@@ -1660,7 +1645,7 @@ static int adouble_get_hessian(lua_State *L)
 	if (nargs == 0) {
 		return 0;
 	}
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 1, Type_ADouble);
 	if (ad->order_ < 2) {
 		return 0;
 	}
@@ -1680,19 +1665,19 @@ static int adouble_add(lua_State *L)
 {
 	if (lua_isnumber(L, 1)) {
 		lua_Number x = lua_tonumber(L, 1);
-		redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+		redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, x);
 		redukti_adouble_add(result, ad, 1.0);
 		return 1;
 	}
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 1, Type_ADouble);
 	if (lua_isnumber(L, 2)) {
 		lua_Number x = lua_tonumber(L, 2);
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, x);
 		redukti_adouble_add(result, ad, 1.0);
 		return 1;
 	}
-	redukti_adouble_t *ad2 = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+	redukti_adouble_t *ad2 = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 	luaL_argcheck(L, ad->vars_ == ad2->vars_, 2, "vars mismatch");
 	luaL_argcheck(L, ad->order_ == ad2->order_, 2, "order mismatch");
 	redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
@@ -1703,7 +1688,7 @@ static int adouble_add(lua_State *L)
 
 static int adouble_sub(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 1, Type_ADouble);
 	if (lua_isnumber(L, 2)) {
 		lua_Number x = lua_tonumber(L, 2);
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
@@ -1711,7 +1696,7 @@ static int adouble_sub(lua_State *L)
 		result->data_[0] -= x;
 		return 1;
 	}
-	redukti_adouble_t *ad2 = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+	redukti_adouble_t *ad2 = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 	luaL_argcheck(L, ad->vars_ == ad2->vars_, 2, "vars mismatch");
 	luaL_argcheck(L, ad->order_ == ad2->order_, 2, "order mismatch");
 	redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
@@ -1725,13 +1710,13 @@ static int adouble_mul(lua_State *L)
 	if (lua_isnumber(L, 1)) {
 		// number * adouble
 		lua_Number x = lua_tonumber(L, 1);
-		redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+		redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
 		redukti_adouble_scalar_multiply(result, x);
 		return 1;
 	}
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 1, Type_ADouble);
 	if (lua_isnumber(L, 2)) {
 		// adouble * number
 		lua_Number x = lua_tonumber(L, 2);
@@ -1741,7 +1726,7 @@ static int adouble_mul(lua_State *L)
 		return 1;
 	}
 	// adouble * adouble
-	redukti_adouble_t *ad2 = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+	redukti_adouble_t *ad2 = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 	luaL_argcheck(L, ad->vars_ == ad2->vars_, 2, "vars mismatch");
 	luaL_argcheck(L, ad->order_ == ad2->order_, 2, "order mismatch");
 	redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
@@ -1754,7 +1739,7 @@ static int adouble_mul(lua_State *L)
 
 static int adouble_div(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad) {
 		if (lua_isnumber(L, 2)) {
 			// adouble * 1.0 / n
@@ -1766,7 +1751,7 @@ static int adouble_div(lua_State *L)
 			return 1;
 		}
 		// adouble / adouble
-		redukti_adouble_t *ad2 = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+		redukti_adouble_t *ad2 = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 		luaL_argcheck(L, ad->vars_ == ad2->vars_, 2, "vars mismatch");
 		luaL_argcheck(L, ad->order_ == ad2->order_, 2, "order mismatch");
 		luaL_argcheck(L, ad2->data_[0] != 0.0, 2, "divide by zero");
@@ -1780,7 +1765,7 @@ static int adouble_div(lua_State *L)
 	} else {
 		// n * 1.0 / adouble
 		lua_Number x = luaL_checknumber(L, 1);
-		ad = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+		ad = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
 		auto adsize = redukti_adouble_alloc_size(ad->vars_, ad->order_);
@@ -1793,7 +1778,7 @@ static int adouble_div(lua_State *L)
 
 static int adouble_exp(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad) {
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
@@ -1808,7 +1793,7 @@ static int adouble_exp(lua_State *L)
 
 static int adouble_power(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	lua_Number n = luaL_checknumber(L, 2);
 	if (ad) {
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
@@ -1824,7 +1809,7 @@ static int adouble_power(lua_State *L)
 
 static int adouble_sqrt(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad) {
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
@@ -1839,7 +1824,7 @@ static int adouble_sqrt(lua_State *L)
 
 static int adouble_log(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad) {
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
@@ -1854,7 +1839,7 @@ static int adouble_log(lua_State *L)
 
 static int adouble_sin(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad) {
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
@@ -1869,7 +1854,7 @@ static int adouble_sin(lua_State *L)
 
 static int adouble_cos(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad) {
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
@@ -1884,7 +1869,7 @@ static int adouble_cos(lua_State *L)
 
 static int adouble_tan(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad) {
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
@@ -1900,7 +1885,7 @@ static int adouble_tan(lua_State *L)
 // absolute
 static int adouble_abs(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad) {
 		redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 		redukti_adouble_assign(result, ad);
@@ -1916,7 +1901,7 @@ static int adouble_abs(lua_State *L)
 // unary minus
 static int adouble_unm(lua_State *L)
 {
-	redukti_adouble_t *ad = (redukti_adouble_t *)raviL_checkudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad = (redukti_adouble_t *)luaL_checkudata(L, 1, Type_ADouble);
 	redukti_adouble_t *result = alloc_adouble(L, ad->vars_, ad->order_, -1, 0.0);
 	redukti_adouble_assign(result, ad);
 	redukti_adouble_scalar_multiply(result, -1.0);
@@ -1929,20 +1914,20 @@ static int adouble_unm(lua_State *L)
 // > 0.0 if a > b
 static double adouble_compare(lua_State *L)
 {
-	redukti_adouble_t *ad1 = (redukti_adouble_t *)raviL_testudata(L, 1, Type_ADouble);
+	redukti_adouble_t *ad1 = (redukti_adouble_t *)luaL_testudata(L, 1, Type_ADouble);
 	if (ad1) {
 		if (lua_isnumber(L, 2)) {
 			lua_Number x = lua_tonumber(L, 2);
 			return ad1->data_[0] - x;
 		} else {
-			redukti_adouble_t *ad2 = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+			redukti_adouble_t *ad2 = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 			luaL_argcheck(L, ad1->vars_ == ad2->vars_, 2, "vars mismatch");
 			luaL_argcheck(L, ad1->order_ == ad2->order_, 2, "order mismatch");
 			return ad1->data_[0] - ad2->data_[0];
 		}
 	} else if (lua_isnumber(L, 1)) {
 		lua_Number x = lua_tonumber(L, 2);
-		redukti_adouble_t *ad2 = (redukti_adouble_t *)raviL_checkudata(L, 2, Type_ADouble);
+		redukti_adouble_t *ad2 = (redukti_adouble_t *)luaL_checkudata(L, 2, Type_ADouble);
 		return x - ad2->data_[0];
 	} else {
 		luaL_argerror(L, 1, "wrong type");
@@ -2035,7 +2020,7 @@ static int create_interpolator(lua_State *L)
 		    make_interpolator(it, xvalues.get(), yvalues.get(), xlen, &GlobalAllocator, options);
 		InterpolatorHolder *iptr = (InterpolatorHolder *)lua_newuserdata(L, sizeof(InterpolatorHolder));
 		new (iptr) InterpolatorHolder(std::move(xvalues), std::move(yvalues), std::move(interp));
-		raviL_getmetatable(L, Type_Interpolator);
+		luaL_getmetatable(L, Type_Interpolator);
 		lua_setmetatable(L, -2);
 		break;
 	}
@@ -2105,7 +2090,7 @@ static int make_valuation_context(lua_State *L)
 	new (iptr)
 	    ValuationContextHolder(as_of_date, order, fixing_service ? &fixing_service->fixing_service : nullptr);
 	iptr->context.set_derivative_order(order);
-	raviL_getmetatable(L, Type_ValuationContext);
+	luaL_getmetatable(L, Type_ValuationContext);
 	lua_setmetatable(L, -2);
 	if (fixing_service) {
 		// We need to keep a reference to the fixing service in our uservalue
@@ -2133,7 +2118,7 @@ static int make_curve_mapper(lua_State *L)
 {
 	CurveMapperHolder *iptr = (CurveMapperHolder *)lua_newuserdata(L, sizeof(CurveMapperHolder));
 	new (iptr) CurveMapperHolder();
-	raviL_getmetatable(L, Type_CurveMapper);
+	luaL_getmetatable(L, Type_CurveMapper);
 	lua_setmetatable(L, -2);
 	return 1;
 }
@@ -2181,7 +2166,7 @@ static int make_curve_provider(lua_State *L)
 {
 	CurveProviderHolder *iptr = (CurveProviderHolder *)lua_newuserdata(L, sizeof(CurveProviderHolder));
 	new (iptr) CurveProviderHolder();
-	raviL_getmetatable(L, Type_CurveProvider);
+	luaL_getmetatable(L, Type_CurveProvider);
 	lua_setmetatable(L, -2);
 	// All curves associated with the provider
 	// are referenced by a table that we hold as uservalue.
@@ -2345,7 +2330,7 @@ static int create_ircurve(lua_State *L)
 		if (curve) {
 			IRCurveHolder *iptr = (IRCurveHolder *)lua_newuserdata(L, sizeof(IRCurveHolder));
 			new (iptr) IRCurveHolder(std::move(curve));
-			raviL_getmetatable(L, Type_IRCurve);
+			luaL_getmetatable(L, Type_IRCurve);
 			lua_setmetatable(L, -2);
 		} else {
 			errmsg = "failed to construct the curve requested";
@@ -2519,7 +2504,7 @@ static int make_pricing_cashflows(lua_State *L)
 
 	PricingCashflowsHolder *iptr = (PricingCashflowsHolder *)lua_newuserdata(L, sizeof(PricingCashflowsHolder));
 	new (iptr) PricingCashflowsHolder();
-	raviL_getmetatable(L, Type_PricingCashflows);
+	luaL_getmetatable(L, Type_PricingCashflows);
 	lua_setmetatable(L, -2);
 
 	// Following does not retain references to the mapper or valuation context so we don't have to
@@ -2558,7 +2543,7 @@ static int calculate_present_value(lua_State *L)
 	CurveProviderHolder *provider = check_Type_CurveProvider(L, 3);
 	PricingResult *result = (PricingResult *)lua_newuserdata(L, sizeof(PricingResult));
 	new (result) PricingResult();
-	raviL_getmetatable(L, Type_PricingResult);
+	luaL_getmetatable(L, Type_PricingResult);
 	lua_setmetatable(L, -2);
 	compute_present_value(&result->pricing_allocator, context->context, cashflows->cashflows, &provider->provider,
 			      result->sensitivities, result->status);
@@ -2797,7 +2782,7 @@ static int build_curves(lua_State *L)
 
 	ZeroCurveSetHolder *ptr = (ZeroCurveSetHolder *)lua_newuserdata(L, sizeof(ZeroCurveSetHolder));
 	new (ptr) ZeroCurveSetHolder();
-	raviL_getmetatable(L, Type_ZeroCurveSet);
+	luaL_getmetatable(L, Type_ZeroCurveSet);
 	lua_setmetatable(L, -2);
 
 	auto bootstrap_request = Arena::CreateMessage<BootstrapCurvesRequest>(&ptr->arena);
@@ -2821,7 +2806,7 @@ static int build_curves(lua_State *L)
 		    get_curve_builder_service(std::string(pricing_script));
 		auto reply = bootstrapper->handle_bootstrap_request(&ptr->arena, bootstrap_request);
 		assert(reply->has_header());
-		if (reply->header().response_code() != StatusCode::kOk) {
+		if (reply->header().response_code() != StandardResponseCode::SRC_OK) {
 			string_copy(temp, reply->header().response_message().c_str(), sizeof temp);
 			errmsg = temp;
 		} else {
@@ -2871,7 +2856,7 @@ static int zerocurveset_getcurves(lua_State *L)
 		if (curve) {
 			IRCurveHolder *iptr = (IRCurveHolder *)lua_newuserdata(L, sizeof(IRCurveHolder));
 			new (iptr) IRCurveHolder(std::move(curve));
-			raviL_getmetatable(L, Type_IRCurve);
+			luaL_getmetatable(L, Type_IRCurve);
 			lua_setmetatable(L, -2);
 			lua_seti(L, -2, id);
 		} else {
@@ -2894,7 +2879,7 @@ static int make_fixingservice(lua_State *L)
 
 	FixingServiceHolder *iptr = (FixingServiceHolder *)lua_newuserdata(L, sizeof(FixingServiceHolder));
 	new (iptr) FixingServiceHolder();
-	raviL_getmetatable(L, Type_FixingService);
+	luaL_getmetatable(L, Type_FixingService);
 	lua_setmetatable(L, -2);
 
 	int pos = lua_gettop(L);
@@ -3150,19 +3135,19 @@ static const luaL_Reg adouble_methods[] = {{"gradient", adouble_get_gradient},
 
 LUAMOD_API int raviopen_redukti(lua_State *L)
 {
-	raviL_newmetatable(L, Type_CFCollection, Type_CFCollection);
+	luaL_newmetatable(L, Type_CFCollection);
 	lua_pushcfunction(L, collect_Type_CFCollection);
 	lua_setfield(L, -2, "__gc");
 	lua_pushcfunction(L, cfcollection_tostring);
 	lua_setfield(L, -2, "__tostring");
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_ValuationContext, Type_ValuationContext);
+	luaL_newmetatable(L, Type_ValuationContext);
 	lua_pushcfunction(L, collect_Type_ValuationContext);
 	lua_setfield(L, -2, "__gc");
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_FixingService, Type_FixingService);
+	luaL_newmetatable(L, Type_FixingService);
 	lua_pushcfunction(L, collect_Type_FixingService);
 	lua_setfield(L, -2, "__gc");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3170,7 +3155,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, fixing_service_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_Interpolator, Type_Interpolator);
+	luaL_newmetatable(L, Type_Interpolator);
 	lua_pushcfunction(L, collect_Type_Interpolator);
 	lua_setfield(L, -2, "__gc");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3178,7 +3163,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, interpolator_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_PricingCashflows, Type_PricingCashflows);
+	luaL_newmetatable(L, Type_PricingCashflows);
 	lua_pushcfunction(L, collect_Type_PricingCashflows);
 	lua_setfield(L, -2, "__gc");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3186,7 +3171,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, pricing_cashflows_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_CurveMapper, Type_CurveMapper);
+	luaL_newmetatable(L, Type_CurveMapper);
 	lua_pushcfunction(L, collect_Type_CurveMapper);
 	lua_setfield(L, -2, "__gc");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3194,7 +3179,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, curve_mapper_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_CurveProvider, Type_CurveProvider);
+	luaL_newmetatable(L, Type_CurveProvider);
 	lua_pushcfunction(L, collect_Type_CurveProvider);
 	lua_setfield(L, -2, "__gc");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3202,7 +3187,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, curve_provider_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_PricingResult, Type_PricingResult);
+	luaL_newmetatable(L, Type_PricingResult);
 	lua_pushcfunction(L, collect_Type_PricingResult);
 	lua_setfield(L, -2, "__gc");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3210,7 +3195,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, pricing_result_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_IRCurve, Type_IRCurve);
+	luaL_newmetatable(L, Type_IRCurve);
 	lua_pushcfunction(L, collect_Type_IRCurve);
 	lua_setfield(L, -2, "__gc");
 	lua_pushcfunction(L, curve_tostring);
@@ -3220,7 +3205,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, ircurve_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_ZeroCurveSet, Type_ZeroCurveSet);
+	luaL_newmetatable(L, Type_ZeroCurveSet);
 	lua_pushcfunction(L, collect_Type_ZeroCurveSet);
 	lua_setfield(L, -2, "__gc");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3228,7 +3213,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, zerocurveset_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_Index, Type_Index);
+	luaL_newmetatable(L, Type_Index);
 	lua_pushcfunction(L, index_tostring);
 	lua_setfield(L, -2, "__tostring");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3236,7 +3221,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, index_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_DayFraction, Type_DayFraction);
+	luaL_newmetatable(L, Type_DayFraction);
 	lua_pushcfunction(L, day_fraction_tostring);
 	lua_setfield(L, -2, "__tostring");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3244,7 +3229,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, dayfraction_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_Calendar, Type_Calendar);
+	luaL_newmetatable(L, Type_Calendar);
 	lua_pushcfunction(L, calendar_tostring);
 	lua_setfield(L, -2, "__tostring");
 	lua_pushvalue(L, -1);		/* push metatable */
@@ -3252,7 +3237,7 @@ LUAMOD_API int raviopen_redukti(lua_State *L)
 	luaL_setfuncs(L, calendar_methods, 0);
 	lua_pop(L, 1);
 
-	raviL_newmetatable(L, Type_ADouble, Type_ADouble);
+	luaL_newmetatable(L, Type_ADouble);
 	lua_pushcfunction(L, adouble_tostring);
 	lua_setfield(L, -2, "__tostring");
 	lua_pushcfunction(L, adouble_add);

@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -724,10 +724,10 @@ inline bool is_zero(double v)
 
 class SimpleCurveReference : public CurveReference
 {
-      private:
+	private:
 	std::unique_ptr<YieldCurve, Deleter<YieldCurve>> curve_;
 
-      public:
+	public:
 	SimpleCurveReference(std::unique_ptr<YieldCurve, Deleter<YieldCurve>> curve) noexcept : curve_(std::move(curve))
 	{
 	}

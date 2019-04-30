@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -51,7 +51,9 @@ struct Matrix {
 		std::fill_n(data, m * n, 0.0);
 		// debug("Matrix created\n");
 	}
-	~Matrix() { /* debug("Matrix destroyed\n");*/}
+	~Matrix()
+	{ /* debug("Matrix destroyed\n");*/
+	}
 };
 
 class PricingEnv
@@ -69,10 +71,10 @@ class PricingEnv
 
 class YieldCurveReference : public CurveReference
 {
-      private:
+	private:
 	std::unique_ptr<YieldCurve, Deleter<YieldCurve>> yield_curve_;
 
-      public:
+	public:
 	YieldCurveReference(std::unique_ptr<YieldCurve, Deleter<YieldCurve>> yield_curve)
 	    : yield_curve_(std::move(yield_curve))
 	{
@@ -82,7 +84,7 @@ class YieldCurveReference : public CurveReference
 
 class CurvesByGroup
 {
-      private:
+	private:
 	CurveGroup curve_group_;
 	std::map<CurveId, std::unique_ptr<YieldCurveReference>> curves_;
 	// A mapping from curve ID to the original definition id,
@@ -93,7 +95,7 @@ class CurvesByGroup
 	std::map<int, CurveId> definition_id_to_curve_;
 	std::map<CurveId, std::unique_ptr<Matrix, Deleter<Matrix>>> par_sensitivities_;
 
-      public:
+	public:
 	CurvesByGroup(CurveGroup group) : curve_group_(group) {}
 	// Add a curve - this replaces any existing curve of the same id.
 	// Also any par sensititivies associated with the curve will be erased.
@@ -174,14 +176,14 @@ class CurvesByGroup
 
 class CurveProviderImpl : public CurveProvider
 {
-      private:
+	private:
 	Date as_of_date_;
 	MarketDataQualifier qual_;
 	short int cycle_;
 	CurvesByGroup *curves_by_group_;
 	short int scenario_;
 
-      public:
+	public:
 	CurveProviderImpl(Date as_of_date, MarketDataQualifier qual, short int cycle, CurvesByGroup *curves_by_group,
 			  short int scenario = 0)
 	    : as_of_date_(as_of_date), qual_(qual), cycle_(cycle), curves_by_group_(curves_by_group),
@@ -221,7 +223,7 @@ class CurveProviderImpl : public CurveProvider
 
 class ValuationServiceImpl : public ValuationService
 {
-      private:
+	private:
 	std::map<CurveGroup, std::unique_ptr<SimpleCurveMapper>> curve_mappers_;
 	std::map<int, std::unique_ptr<IRCurveDefinition>> curve_definitions_;
 	std::map<CurveGroup, std::unique_ptr<CurvesByGroup>> curves_by_group_;
@@ -231,7 +233,7 @@ class ValuationServiceImpl : public ValuationService
 	// Global read/write lock for valuation service
 	std::shared_mutex lock_;
 
-      private:
+	private:
 	const IRCurveDefinition *find_curve_definition(int id)
 	{
 		auto &&iter = curve_definitions_.find(id);
@@ -432,10 +434,10 @@ class ValuationServiceImpl : public ValuationService
 				std::fill_n(par_sens, curve_par_sensitivities->m, 0.0);
 				// PAR deltas will be a column matrix too but different size
 				redukti_matrix_t par_delta_vector{curve_par_sensitivities->m, 1, par_sens};
-				debug("Multiplying par matrix with zero vector\n");
+				trace("Multiplying par matrix with zero vector\n");
 				redukti_matrix_multiply(&par_matrix, &zero_delta_vector, &par_delta_vector, false,
 							false, 1.0, 1.0);
-				debug("Obtained Par Sensitivities for curve %s as follows\n",
+				trace("Obtained Par Sensitivities for curve %s as follows\n",
 				      curve_id_to_string(curveid).c_str());
 				risktype = curve_type == PRICING_CURVE_TYPE_DISCOUNT ? SRC_DISCOUNT : SRC_FORWARD;
 				irsens = result->add_sensitivities();
@@ -447,7 +449,7 @@ class ValuationServiceImpl : public ValuationService
 				irsens->set_sensitivity_type(SensitivityTypeCode::STC_PAR);
 				for (int i = 0; i < par_delta_vector.m; i++) {
 					if (par_delta_vector.data[i] != 0.0) {
-						debug("[%d] = zero %f, par %f\n", i, zero_delta_vector.data[i],
+						trace("[%d] = zero %f, par %f\n", i, zero_delta_vector.data[i],
 						      par_delta_vector.data[i]);
 						irsens->mutable_values()->insert(
 						    google::protobuf::MapPair<google::protobuf::uint32, double>(
@@ -518,7 +520,7 @@ class ValuationServiceImpl : public ValuationService
 		return StatusCode::kOk;
 	}
 
-      public:
+	public:
 	ValuationServiceImpl(IndexService *index_service, CalendarService *calendar_service)
 	    : fixings_data_service_(new FixingDataService()), index_service_(index_service),
 	      calendar_service_(calendar_service)
@@ -945,4 +947,4 @@ std::unique_ptr<ValuationService> get_valuation_service(IndexService *index_serv
 {
 	return std::unique_ptr<ValuationServiceImpl>(new ValuationServiceImpl(index_service, calendar_service));
 }
-}
+} // namespace redukti

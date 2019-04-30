@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -34,13 +34,12 @@
 
 namespace redukti
 {
+// The protobuf definition for a Cashflow Collection
+class CFCollection;
 
 // We separate out the concept of a Cashflow
 // definition (covered here) versus the valuation of
 // cashflows covered in cashflow_pricing.h.
-
-// The protobuf definition for a Cashflow Collection
-class CFCollection;
 
 // We need a way to refer to logical curve types
 // without having to reference real curves - the PricingCurve
@@ -49,10 +48,10 @@ class CFCollection;
 // pricing via a CurveProvider implementation.
 class PricingCurve
 {
-      private:
+	private:
 	uint32_t id_;
 
-      public:
+	public:
 	// Default of 0 is okay as it maps to unspecified
 	// values component wise
 	PricingCurve() : id_(0) {}
@@ -126,7 +125,7 @@ extern PricingCurve make_pricing_curve(PricingCurveType type, CurveId id);
 // an instance of the real curve.
 class CurveMapper
 {
-      public:
+	public:
 	virtual ~CurveMapper() {}
 	virtual PricingCurve map_index_tenor(PricingCurveType curve_type, Currency currency,
 					     IndexFamily family = IndexFamily::INDEX_FAMILY_UNSPECIFIED,
@@ -135,7 +134,7 @@ class CurveMapper
 
 class ValuationContext
 {
-      public:
+	public:
 	virtual ~ValuationContext() {}
 	virtual Date evaluation_date() const = 0;
 	virtual Date payment_cutoff_date() const = 0;

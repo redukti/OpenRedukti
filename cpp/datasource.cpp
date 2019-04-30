@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -118,21 +118,21 @@ bool parse_delimited(const char *input_start, const char *input_end, std::vector
 
 class CSVDataSourceImpl
 {
-      private:
+	private:
 	FILE *fp;
 	std::string _name;
 	bool _hasHeadings;
 	bool _headingsRead;
 	buffer_ptr<char> _line_buf;
 
-      public:
+	public:
 	CSVDataSourceImpl(const std::string &name, bool hasHeadings) noexcept;
 	~CSVDataSourceImpl() noexcept;
 	bool next(Line *line) noexcept;
 	bool read_next_line() noexcept;
 	bool is_valid() const noexcept { return fp != nullptr; }
 
-      private:
+	private:
 	CSVDataSourceImpl(const CSVDataSourceImpl &) = delete;
 	CSVDataSourceImpl &operator=(const CSVDataSourceImpl &) = delete;
 };

@@ -1,5 +1,5 @@
 /*
-** $Id: lobject.h,v 2.117 2016/08/01 19:51:24 roberto Exp $
+** $Id: lobject.h,v 2.117.1.1 2017/04/19 17:39:34 roberto Exp $
 ** Type definitions for Lua objects
 ** See Copyright Notice in lua.h
 */
@@ -10,7 +10,7 @@
 
 
 #include <stdarg.h>
-
+#include <stdint.h>
 
 #include "llimits.h"
 #include "lua.h"
@@ -41,12 +41,14 @@
 ** 0 - Lua function
 ** 1 - light C function
 ** 2 - regular C function (closure)
+** 4 - fast light C dunction (Ravi extension)
 */
 
 /* Variant tags for functions */
 #define LUA_TLCL	(LUA_TFUNCTION | (0 << 4))  /* Lua closure */
 #define LUA_TLCF	(LUA_TFUNCTION | (1 << 4))  /* light C function */
 #define LUA_TCCL	(LUA_TFUNCTION | (2 << 4))  /* C closure */
+#define RAVI_TFCF	(LUA_TFUNCTION | (4 << 4))  /* fast light C function */
 
 
 /* Variant tags for strings */
@@ -57,13 +59,13 @@
 /* Variant tags for numbers */
 #define LUA_TNUMFLT	(LUA_TNUMBER | (0 << 4))  /* float numbers */
 #define LUA_TNUMINT	(LUA_TNUMBER | (1 << 4))  /* integer numbers */
-/** RAVI table sunbtypes **/
+/** RAVI table subtypes **/
 #define RAVI_TIARRAY (LUA_TTABLE | (1 << 4))  /* Ravi int array */
 #define RAVI_TFARRAY (LUA_TTABLE | (2 << 4))  /* Ravi float array */
 
 
 /* Bit mark for collectable types */
-#define BIT_ISCOLLECTABLE	(1 << 6)
+#define BIT_ISCOLLECTABLE	(1 << 15)
 
 /* mark a tag as collectable */
 #define ctb(t)			((t) | BIT_ISCOLLECTABLE)
@@ -74,10 +76,21 @@
 */
 typedef struct GCObject GCObject;
 
+/* 
+** Value type extended to 16-bits so that we can hold more info.
+** The actual type code is still 1 byte (least significant byte)
+** and in particular all GC-able type codes must fit into 1 byte because
+** the GC CommonHeader only allows 1 byte for the type code.
+** The extra byte is for use by the type FCF (fast C function) to 
+** encode the C function's parameter and return types.
+*/
+typedef uint16_t LuaType;
 
 /*
 ** Common Header for all collectable objects (in macro form, to be
 ** included in other objects)
+** Note that tt field is a byte - this means that a GC object's
+** type must have all information in the first byte
 */
 #define CommonHeader	GCObject *next; lu_byte tt; lu_byte marked
 
@@ -110,7 +123,7 @@ typedef union Value {
 } Value;
 
 
-#define TValuefields	Value value_; int tt_
+#define TValuefields	Value value_; LuaType tt_
 
 
 typedef struct lua_TValue {
@@ -132,8 +145,9 @@ typedef struct lua_TValue {
 /* tag with no variants (bits 0-3) */
 #define novariant(x)	((x) & 0x0F)
 
-/* type tag of a TValue (bits 0-3 for tags + variant bits 4-5) */
-#define ttype(o)	(rttype(o) & 0x3F)
+/* type tag of a TValue (bits 0-3 for tags + variant bits 4-6) */
+/* 7F is 0111 1111 */
+#define ttype(o)	(rttype(o) & 0x7F)
 
 /* type tag of a TValue with no variants (bits 0-3) */
 #define ttnov(o)	(novariant(rttype(o)))
@@ -167,6 +181,7 @@ typedef struct lua_TValue {
 #define ttisCclosure(o)		checktag((o), ctb(LUA_TCCL))
 #define ttisLclosure(o)		checktag((o), ctb(LUA_TLCL))
 #define ttislcf(o)		checktag((o), LUA_TLCF)
+#define ttisfcf(o)      (ttype(o) == RAVI_TFCF)
 #define ttisfulluserdata(o)	checktag((o), ctb(LUA_TUSERDATA))
 #define ttisthread(o)		checktag((o), ctb(LUA_TTHREAD))
 #define ttisdeadkey(o)		checktag((o), LUA_TDEADKEY)
@@ -185,6 +200,7 @@ typedef struct lua_TValue {
 #define clLvalue(o)	check_exp(ttisLclosure(o), gco2lcl(val_(o).gc))
 #define clCvalue(o)	check_exp(ttisCclosure(o), gco2ccl(val_(o).gc))
 #define fvalue(o)	check_exp(ttislcf(o), val_(o).f)
+#define fcfvalue(o) check_exp(ttisfcf(o), val_(o).p)
 #define hvalue(o)	check_exp(ttistable(o), gco2t(val_(o).gc))
 #define bvalue(o)	check_exp(ttisboolean(o), val_(o).b)
 #define thvalue(o)	check_exp(ttisthread(o), gco2th(val_(o).gc))
@@ -224,6 +240,18 @@ typedef struct lua_TValue {
 
 #define setfvalue(obj,x) \
   { TValue *io=(obj); val_(io).f=(x); settt_(io, LUA_TLCF); }
+
+/* The Fast C function call type is encoded as two
+   bytes. The Hi Byte holds a function tag. The Lo Byte
+   holds the Lua typecode */
+#define setfvalue_fastcall(obj, x, tag) \
+  {                       \
+    TValue *io = (obj);   \
+    lua_assert(tag >= 1 && tag < 0x80); \
+    val_(io).p = (x);     \
+    settt_(io, ((tag << 8) | RAVI_TFCF)); \
+  }
+#define getfcf_tag(typecode) (typecode >> 8)
 
 #define setpvalue(obj,x) \
   { TValue *io=(obj); val_(io).p=(x); settt_(io, LUA_TLIGHTUSERDATA); }
@@ -282,7 +310,8 @@ typedef struct lua_TValue {
 
 
 #define setobj(L,obj1,obj2) \
-	{ TValue *io1=(obj1); *io1 = *(obj2); \
+	{ TValue *io1=(obj1); const TValue *io2=(obj2); \
+          io1->value_ = io2->value_; io1->tt_ = io2->tt_; \
 	  (void)L; checkliveness(L,io1); }
 
 
@@ -302,9 +331,8 @@ typedef struct lua_TValue {
 /* to new object */
 #define setobj2n	setobj
 #define setsvalue2n	setsvalue
-
-/* to table (define it as an expression to be used in macros) */
-#define setobj2t(L,o1,o2)  ((void)L, *(o1)=*(o2), checkliveness(L,(o1)))
+/* to table */
+#define setobj2t	setobj
 
 
 
@@ -370,7 +398,7 @@ typedef union UTString {
 */
 typedef struct Udata {
   CommonHeader;
-  lu_byte ttuv_;  /* user value's tag */
+  LuaType ttuv_;  /* user value's tag */
   struct Table *metatable;
   size_t len;  /* number of bytes */
   union Value user_;  /* user value */
@@ -411,8 +439,8 @@ typedef union UUdata {
 ** other types appear then they are all treated as ANY
 **/
 typedef enum {
-  RAVI_TANY = -1,      /* Lua dynamic type */
-  RAVI_TNUMINT = 1,        /* integer number */
+  RAVI_TANY = 0,      /* Lua dynamic type */
+  RAVI_TNUMINT = 1,    /* integer number */
   RAVI_TNUMFLT,        /* floating point number */
   RAVI_TARRAYINT,      /* array of ints */
   RAVI_TARRAYFLT,      /* array of doubles */
@@ -429,7 +457,8 @@ typedef enum {
 */
 typedef struct Upvaldesc {
   TString *name;  /* upvalue name (for debug information) */
-  ravitype_t type; /* RAVI type of upvalue */
+  TString *usertype; /* RAVI extension: name of user type */
+  lu_byte ravi_type; /* RAVI type of upvalue */
   lu_byte instack;  /* whether it is in stack (register) */
   lu_byte idx;  /* index of upvalue (in stack or in outer function's list) */
 } Upvaldesc;
@@ -441,9 +470,10 @@ typedef struct Upvaldesc {
 */
 typedef struct LocVar {
   TString *varname;
+  TString *usertype; /* RAVI extension: name of user type */
   int startpc;  /* first point where variable is active */
   int endpc;    /* first point where variable is dead */
-  ravitype_t ravi_type; /* RAVI type of the variable - RAVI_TANY if unknown */
+  lu_byte ravi_type; /* RAVI type of the variable - RAVI_TANY if unknown */
 } LocVar;
 
 /** RAVI changes start */
@@ -588,7 +618,10 @@ typedef struct Table {
   GCObject *gclist;
   /** RAVI extension */
   RaviArray ravi_array;
+#if RAVI_USE_NEWHASH
+  // TODO we should reorganize this structure
   unsigned int hmask; /* Hash part mask (size of hash part - 1) - borrowed from LuaJIT */
+#endif
 } Table;
 
 
@@ -608,6 +641,11 @@ typedef struct Table {
 ** (address of) a fixed nil value
 */
 #define luaO_nilobject		(&luaO_nilobject_)
+
+/* Internal assembler functions. Never call these directly from C.
+   Note that such functions do not follow calling conventions and 
+   are only used by ASM VM to implement bytecodes */
+typedef void(*ASMFunction)(void);
 
 
 LUAI_DDEC const TValue luaO_nilobject_;

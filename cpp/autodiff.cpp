@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -79,6 +79,8 @@ void redukti_adouble_init(redukti_adouble_t *x, int n_vars, int order, int var, 
 
 void redukti_adouble_assign(redukti_adouble_t *A, const redukti_adouble_t *B)
 {
+	if (A == B)
+		return;
 	size_t mysize = redukti_adouble_alloc_size(B->vars_, B->order_);
 	memcpy(A, B, mysize);
 }
@@ -138,26 +140,83 @@ void redukti_adouble_multiply(redukti_adouble_t *A, redukti_adouble_t *B, redukt
 		double *B_grad = &B->data_[1];
 		double *A_hessian = &A->data_[1 + m];
 		double *B_hessian = &B->data_[1 + m];
-#if 0
-		// 
-		for (int i = 0; i < m; i++) {
-			for (int j = 0; j < m; j++) {
-				auto pos = i * m + j;
-				buf[pos] = A_scalar * B_hessian[pos] + B_scalar * A_hessian[pos] +
-					   A_grad[i] * B_grad[j] + A_grad[j] * B_grad[i];
+		switch (m) {
+		case 1:
+			// i == 0, j == 0, pos == 0
+			buf[0] = A_scalar * B_hessian[0] + B_scalar * A_hessian[0] + A_grad[0] * B_grad[0] +
+				 A_grad[0] * B_grad[0];
+			memcpy(A_hessian, buf, sizeof(double));
+			break;
+		case 2:
+			// i == 0, j == 0, pos == 0
+			buf[0] = A_scalar * B_hessian[0] + B_scalar * A_hessian[0] + A_grad[0] * B_grad[0] +
+				 A_grad[0] * B_grad[0];
+			// i == 0, j == 1, pos == 1
+			buf[1] = A_scalar * B_hessian[1] + B_scalar * A_hessian[1] + A_grad[0] * B_grad[1] +
+				 A_grad[1] * B_grad[0];
+			// i == 1, j == 0, pos == 2
+			buf[2] = A_scalar * B_hessian[2] + B_scalar * A_hessian[2] + A_grad[1] * B_grad[0] +
+				 A_grad[0] * B_grad[1];
+			// i == 1, j == 1, pos == 3
+			buf[3] = A_scalar * B_hessian[3] + B_scalar * A_hessian[3] + A_grad[1] * B_grad[1] +
+				 A_grad[1] * B_grad[1];
+			memcpy(A_hessian, buf, 4 * sizeof(double));
+			break;
+		case 3:
+			// i == 0, j == 0, pos == 0
+			buf[0] = A_scalar * B_hessian[0] + B_scalar * A_hessian[0] + A_grad[0] * B_grad[0] +
+				 A_grad[0] * B_grad[0];
+			// i == 0, j == 1, pos == 1
+			buf[1] = A_scalar * B_hessian[1] + B_scalar * A_hessian[1] + A_grad[0] * B_grad[1] +
+				 A_grad[1] * B_grad[0];
+			// i == 0, j == 2, pos == 2
+			buf[2] = A_scalar * B_hessian[2] + B_scalar * A_hessian[2] + A_grad[0] * B_grad[2] +
+				 A_grad[2] * B_grad[0];
+			// i == 1, j == 0, pos == 3
+			buf[3] = A_scalar * B_hessian[3] + B_scalar * A_hessian[3] + A_grad[1] * B_grad[0] +
+				 A_grad[0] * B_grad[1];
+			// i == 1, j == 1, pos == 4
+			buf[4] = A_scalar * B_hessian[4] + B_scalar * A_hessian[4] + A_grad[1] * B_grad[1] +
+				 A_grad[1] * B_grad[1];
+			// i == 1, j == 2, pos == 5
+			buf[5] = A_scalar * B_hessian[5] + B_scalar * A_hessian[5] + A_grad[1] * B_grad[2] +
+				 A_grad[2] * B_grad[1];
+			// i == 2, j == 0, pos == 6
+			buf[6] = A_scalar * B_hessian[6] + B_scalar * A_hessian[6] + A_grad[2] * B_grad[0] +
+				 A_grad[0] * B_grad[2];
+			// i == 2, j == 1, pos == 7
+			buf[7] = A_scalar * B_hessian[7] + B_scalar * A_hessian[7] + A_grad[2] * B_grad[1] +
+				 A_grad[1] * B_grad[2];
+			// i == 2, j == 2, pos == 8
+			buf[8] = A_scalar * B_hessian[8] + B_scalar * A_hessian[8] + A_grad[2] * B_grad[2] +
+				 A_grad[2] * B_grad[2];
+			memcpy(A_hessian, buf, 9 * sizeof(double));
+			break;
+		case 4:
+		case 5:
+			for (int i = 0; i < m; i++) {
+				for (int j = 0; j < m; j++) {
+					auto pos = i * m + j;
+					buf[pos] = A_scalar * B_hessian[pos] + B_scalar * A_hessian[pos] +
+						   A_grad[i] * B_grad[j] + A_grad[j] * B_grad[i];
+					// printf("// i == %d, j == %d, pos == %d\n", i, j, pos);
+					// printf("buf[%d] = A_scalar * B_hessian[%d] + B_scalar * A_hessian[%d] +\n",
+					// pos, pos, pos); printf("A_grad[%d] * B_grad[%d] + A_grad[%d] *
+					// B_grad[%d];\n", i, j, j, i);
+				}
 			}
+			memcpy(A_hessian, buf, mn * sizeof(double));
+			break;
+		default:
+			size_t size = mn * sizeof(double);
+			memset(buf, 0, size);
+			cblas_daxpby(mn, A_scalar, B_hessian, 1, B_scalar, A_hessian, 1);
+			cblas_dger(CblasColMajor, m, n, 1.0, A_grad, 1, B_grad, 1, buf, m);
+			cblas_daxpy(mn, 1.0, buf, 1, A_hessian, 1);
+			memset(buf, 0, size);
+			cblas_dger(CblasColMajor, m, n, 1.0, B_grad, 1, A_grad, 1, buf, m);
+			cblas_daxpy(mn, 1.0, buf, 1, A_hessian, 1);
 		}
-		memcpy(A_hessian, buf, mn * sizeof(double));
-#else
-		size_t size = mn * sizeof(double);
-		memset(buf, 0, size);
-		cblas_daxpby(mn, A_scalar, B_hessian, 1, B_scalar, A_hessian, 1);
-		cblas_dger(CblasColMajor, m, n, 1.0, A_grad, 1, B_grad, 1, buf, m);
-		cblas_daxpy(mn, 1.0, buf, 1, A_hessian, 1);
-		memset(buf, 0, size);
-		cblas_dger(CblasColMajor, m, n, 1.0, B_grad, 1, A_grad, 1, buf, m);
-		cblas_daxpy(mn, 1.0, buf, 1, A_hessian, 1);
-#endif
 	}
 	case 1: {
 		double *A_grad = &A->data_[1];
@@ -167,7 +226,36 @@ void redukti_adouble_multiply(redukti_adouble_t *A, redukti_adouble_t *B, redukt
 			A_grad[i] = A_scalar * B_grad[i] + B_scalar * A_grad[i];
 		}
 #else
-		cblas_daxpby(m, A_scalar, B_grad, 1, B_scalar, A_grad, 1);
+		switch (m) {
+		case 1:
+			A_grad[0] = A_scalar * B_grad[0] + B_scalar * A_grad[0];
+			break;
+		case 2:
+			A_grad[0] = A_scalar * B_grad[0] + B_scalar * A_grad[0];
+			A_grad[1] = A_scalar * B_grad[1] + B_scalar * A_grad[1];
+			break;
+		case 3:
+			A_grad[0] = A_scalar * B_grad[0] + B_scalar * A_grad[0];
+			A_grad[1] = A_scalar * B_grad[1] + B_scalar * A_grad[1];
+			A_grad[2] = A_scalar * B_grad[2] + B_scalar * A_grad[2];
+			break;
+		case 4:
+			A_grad[0] = A_scalar * B_grad[0] + B_scalar * A_grad[0];
+			A_grad[1] = A_scalar * B_grad[1] + B_scalar * A_grad[1];
+			A_grad[2] = A_scalar * B_grad[2] + B_scalar * A_grad[2];
+			A_grad[3] = A_scalar * B_grad[3] + B_scalar * A_grad[3];
+			break;
+		case 5:
+			A_grad[0] = A_scalar * B_grad[0] + B_scalar * A_grad[0];
+			A_grad[1] = A_scalar * B_grad[1] + B_scalar * A_grad[1];
+			A_grad[2] = A_scalar * B_grad[2] + B_scalar * A_grad[2];
+			A_grad[3] = A_scalar * B_grad[3] + B_scalar * A_grad[3];
+			A_grad[4] = A_scalar * B_grad[4] + B_scalar * A_grad[4];
+			break;
+		default:
+			cblas_daxpby(m, A_scalar, B_grad, 1, B_scalar, A_grad, 1);
+			break;
+		}
 #endif
 	}
 	case 0:

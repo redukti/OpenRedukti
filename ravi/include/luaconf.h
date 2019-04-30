@@ -1,5 +1,5 @@
 /*
-** $Id: luaconf.h,v 1.259 2016/12/22 13:08:50 roberto Exp $
+** $Id: luaconf.h,v 1.259.1.1 2017/04/19 17:29:57 roberto Exp $
 ** Configuration file for Lua
 ** See Copyright Notice in lua.h
 */
@@ -401,7 +401,7 @@
 ** This macro is not on by default even in compatibility mode,
 ** because this is not really an incompatibility.
 */
-/* #define LUA_COMPAT_FLOATSTRING */
+#define LUA_COMPAT_FLOATSTRING
 
 /* }================================================================== */
 
@@ -622,6 +622,13 @@
 
 
 /*
+@@ lua_pointer2str converts a pointer to a readable string in a
+** non-specified way.
+*/
+#define lua_pointer2str(buff,sz,p)	l_sprintf(buff,sz,"%p",p)
+
+
+/*
 @@ lua_number2strx converts a float to an hexadecimal numeric string.
 ** In C99, 'sprintf' (with format specifiers '%a'/'%A') does that.
 ** Otherwise, you can leave 'lua_number2strx' undefined and Lua will
@@ -815,6 +822,12 @@
 
 #endif
 
+
+#define RAVI_USE_NEWHASH    1
+#define RAVI_USE_LLVM_BRANCH_WEIGHTS 1
+/* If following is defined as true then LLVM instructions emitted for arithmetic ops 
+   priority floating point ops, else default is to prioritise integer ops */
+#define RAVI_USE_LLVM_ARITH_FLOATPRIORITY 1
 
 #endif
 

@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -57,7 +57,7 @@ namespace redukti
 // Given the CurveDefinitionId locate the definition
 class CurveDefinitionProvider
 {
-      public:
+	public:
 	virtual ~CurveDefinitionProvider() {}
 	virtual const IRCurveDefinition *get_definition_by_id(int id) const = 0;
 };
@@ -65,10 +65,10 @@ class CurveDefinitionProvider
 // Simple implementation of id to definition mapping
 class CurveDefinitionProviderImpl : public CurveDefinitionProvider
 {
-      private:
+	private:
 	std::map<int, const IRCurveDefinition *> mapping;
 
-      public:
+	public:
 	~CurveDefinitionProviderImpl() {}
 	void add(const IRCurveDefinition *def) { mapping.insert({(int)def->id(), def}); }
 	const IRCurveDefinition *get_definition_by_id(int id) const override final
@@ -86,14 +86,14 @@ class CurveDefinitionProviderImpl : public CurveDefinitionProvider
 // Note objects of this class are copyable
 class BootstrapCurveMapper : public CurveMapper
 {
-      private:
+	private:
 	PricingCurve forward_curve_;
 	PricingCurve discount_curve_;
 	// The following reference the curves by position
 	int forward_curve_index_;
 	int discount_curve_index_;
 
-      public:
+	public:
 	BootstrapCurveMapper() : forward_curve_index_(-1), discount_curve_index_(-1) {}
 	BootstrapCurveMapper(PricingCurve fc, int fc_idx, PricingCurve dc, int dc_idx)
 	    : forward_curve_(fc), discount_curve_(dc), forward_curve_index_(fc_idx), discount_curve_index_(dc_idx)
@@ -123,11 +123,11 @@ class BootstrapCurveMapper : public CurveMapper
 // vanilla and do not have stubs etc. we only need two curves
 class BootstrapCurveProvider : public CurveProvider
 {
-      private:
+	private:
 	CurveReference *discount_curve_;
 	CurveReference *forward_curve_;
 
-      public:
+	public:
 	BootstrapCurveProvider(CurveReference *dc, CurveReference *fc) : discount_curve_(dc), forward_curve_(fc) {}
 	const CurveReference *get_curve(PricingCurve curve) const
 	{
@@ -272,7 +272,7 @@ CurveHolder::~CurveHolder()
 // Holds the cashflow structure obtained from Lua script
 // as well as the processed one
 struct CashflowInstrument {
-      private:
+	private:
 	std::unique_ptr<CFCollection> cfcollection_;
 	Cashflows *cashflows_;
 	Date maturity_;
@@ -291,7 +291,7 @@ struct CashflowInstrument {
 	std::unique_ptr<CFCollection> cfcollection_backup_;
 	Cashflows *cashflows_backup_;
 
-      public:
+	public:
 	CashflowInstrument() : maturity_(0), original_instrument_position_(-1), is_constraint_(false), business_date_(0)
 	{
 	}
@@ -355,10 +355,10 @@ struct CashflowInstrumentByCurve {
 
 class LuaWrapper
 {
-      private:
+	private:
 	lua_State *L_;
 
-      public:
+	public:
 	LuaWrapper()
 	{
 		L_ = luaL_newstate(); /* create Lua state */
@@ -392,12 +392,12 @@ class LuaWrapper
 
 class CurveBuilderOptions
 {
-      public:
+	public:
 	bool use_levenberg_marquardt_solver;
 	int max_iterations;
 	bool generate_par_sensitivities;
 
-      public:
+	public:
 	CurveBuilderOptions()
 	    : use_levenberg_marquardt_solver(true), max_iterations(10), generate_par_sensitivities(false)
 	{
@@ -406,12 +406,12 @@ class CurveBuilderOptions
 
 class ParSensitivities
 {
-      private:
+	private:
 	int m_; // rows
 	int n_; // columns
 	std::vector<double> values_;
 
-      public:
+	public:
 	ParSensitivities(int m, int n) : m_(m), n_(n), values_(m * n) {}
 	void set(int row, int col, double v)
 	{
@@ -442,7 +442,7 @@ class ParSensitivities
 
 class CurveBuilder
 {
-      private:
+	private:
 	const CurveDefinitionProvider *definition_provider_;
 	// The input curves containing raw instruments data
 	const ParCurveSet *input_curves_;
@@ -466,7 +466,7 @@ class CurveBuilder
 	char last_error_message_[1024];
 	DynamicRegionAllocator cashflow_allocator_;
 
-      public:
+	public:
 	CurveBuilder(LuaWrapper &lua, Date business_date, const CurveDefinitionProvider *definition_provider);
 	~CurveBuilder();
 	bool add_input_curves(const ParCurveSet *curves);
@@ -617,7 +617,7 @@ std::unique_ptr<CashflowInstrument> CurveBuilder::build_instrument(const ParCurv
 		}
 		if (docall(L_, nargs, 2) == LUA_OK) {
 			if (lua_type(L_, -2) == LUA_TNUMBER && lua_type(L_, -1) == LUA_TUSERDATA) {
-				Date maturity_date = lua_tointeger(L_, -2);
+				Date maturity_date = (Date)lua_tointeger(L_, -2);
 				auto cfcollection = raviapi_get_CFCollection(L_, -1);
 				if (is_valid_date(maturity_date) && cfcollection) {
 					cfinst = std::unique_ptr<CashflowInstrument>(new CashflowInstrument());
@@ -850,7 +850,7 @@ int minpack_lmder_function(void *p, int m, int n, const double *x, double *fvec,
 
 class SolverFunction
 {
-      private:
+	private:
 	CurveBuilder *curve_builder_;
 	std::map<std::string, std::shared_ptr<YieldCurve>> output_curves_;
 	int max_iterations_;
@@ -864,7 +864,7 @@ class SolverFunction
 	Sensitivities dummy_sens;
 	FixedRegionAllocator *pricing_allocator;
 
-      public:
+	public:
 	SolverFunction(CurveBuilder *builder, int max_iterations, Allocator *alloc, FILE *debug_output)
 	    : curve_builder_(builder), max_iterations_(max_iterations), alloc_(alloc), debug_output_(debug_output),
 	      InitialA(curve_builder_->num_instruments() * curve_builder_->num_pillars(), false), savings(0), iter(0),
@@ -1321,11 +1321,11 @@ StatusCode CurveBuilder::build_curves(const CurveBuilderOptions &options)
 
 class BootstrapperImpl : public CurveBuilderService
 {
-      private:
+	private:
 	std::unique_ptr<LuaWrapper> lua_;
 	bool luaok_;
 
-      public:
+	public:
 	BootstrapperImpl(std::string script);
 	~BootstrapperImpl() {}
 	BootstrapCurvesReply *handle_bootstrap_request(Arena *arena,
@@ -1419,6 +1419,7 @@ BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(Arena *arena, c
 						? curve_builder.get_sensitivities_by_curve_definition_id(def.id())
 						: nullptr;
 		if (curveholder == nullptr || (options.generate_par_sensitivities && parsens == nullptr)) {
+			error("Par sensitivities requested but failed to generate those");
 			return reply;
 		}
 		ZeroCurve *zc = reply->add_curves();

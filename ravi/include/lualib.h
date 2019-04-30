@@ -1,5 +1,5 @@
 /*
-** $Id: lualib.h,v 1.45 2017/01/12 17:14:26 roberto Exp $
+** $Id: lualib.h,v 1.45.1.1 2017/04/19 17:20:42 roberto Exp $
 ** Lua standard libraries
 ** See Copyright Notice in lua.h
 */
@@ -38,6 +38,9 @@ LUAMOD_API int (luaopen_utf8) (lua_State *L);
 #define LUA_BITLIBNAME	"bit32"
 LUAMOD_API int (luaopen_bit32) (lua_State *L);
 
+#define LUAJIT_BITLIBNAME	"bit"
+LUAMOD_API int (luaopen_bit)(lua_State *L);
+
 #define LUA_MATHLIBNAME	"math"
 LUAMOD_API int (luaopen_math) (lua_State *L);
 
@@ -50,6 +53,9 @@ LUAMOD_API int (luaopen_package) (lua_State *L);
 /** RAVI change start **/
 #define LUA_RAVILIBNAME	"ravi"
 LUAMOD_API int (raviopen_llvmjit)(lua_State *L);
+
+#define LUA_ASTLIBNAME	"ast"
+LUAMOD_API int (raviopen_ast_library)(lua_State *L);
 
 #ifdef USE_LLVM
 #define LUA_LLVMLIBNAME	"llvm"

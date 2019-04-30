@@ -7,12 +7,13 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
  */
 
+#include <logger.h>
 #include <matrix.h>
 
 #include <assert.h>
@@ -53,21 +54,21 @@ bool redukti_matrix_svd(const redukti_matrix_t *input, redukti_matrix_t *S, redu
 	int ss = m < n ? m : n;
 	int s_size = 1 < ss ? ss : 1;
 	if (S->m != s_size || S->n != 1) {
-		fprintf(stderr, "The vector S must be a column vector of size %d\n", s_size);
+		error("The vector S must be a column vector of size %d\n", s_size);
 		goto done;
 	}
 	if (U->m != m || U->n != m) {
-		fprintf(stderr, "The matrix U must be of size %dx%d\n", m, m);
+		error("The matrix U must be of size %dx%d\n", m, m);
 		goto done;
 	}
 	ldu = U->m;
 	if (V->m != n || V->n != n) {
-		fprintf(stderr, "The matrix V must be of size %dx%d\n", n, n);
+		error("The matrix V must be of size %dx%d\n", n, n);
 		goto done;
 	}
 	A = matrix_dup(input);
 	if (!A) {
-		fprintf(stderr, "Failed to allocate memory\n");
+		error("Failed to allocate memory\n");
 		goto done;
 	}
 	a = &A->data[0];
@@ -80,7 +81,7 @@ bool redukti_matrix_svd(const redukti_matrix_t *input, redukti_matrix_t *S, redu
 	int works = 1 < min_sz ? min_sz : 1; // max
 	iwork = (int *)calloc(works, sizeof(int));
 	if (iwork == NULL) {
-		fprintf(stderr, "Failed to allocate memory\n");
+		error("Failed to allocate memory\n");
 		goto done;
 	}
 	dgesdd_(&job, &m, &n, a, &lda, &S->data[0], &U->data[0], &ldu, &V->data[0], &ldvt, work, &lwork, iwork, &info);
@@ -91,14 +92,14 @@ bool redukti_matrix_svd(const redukti_matrix_t *input, redukti_matrix_t *S, redu
 			dgesdd_(&job, &m, &n, a, &lda, &S->data[0], &U->data[0], &ldu, &V->data[0], &ldvt, work, &lwork,
 				iwork, &info);
 		} else {
-			fprintf(stderr, "Failed to allocate memory\n");
+			error("Failed to allocate memory\n");
 			info = -1;
 		}
 	} else {
-		fprintf(stderr, "Failed to estimate work size for SVD: info=%d\n", info);
+		error("Failed to estimate work size for SVD: info=%d\n", info);
 	}
 	if (info != 0) {
-		fprintf(stderr, "Failed to compute SVD: info=%d\n", info);
+		error("Failed to compute SVD: info=%d\n", info);
 	}
 done:
 	if (A)
@@ -119,7 +120,7 @@ bool redukti_matrix_estimate_rcond(const redukti_matrix_t *A, double *rcond)
 	int *ipiv = (int *)alloca(sizeof(int) * ipsize);
 	int info = redukti_matrix_lufactor(copy_of_A, ipsize, ipiv);
 	if (info != 0) {
-		fprintf(stderr, "failed to estimate rcond (LU factor failed)\n");
+		error("failed to estimate rcond (LU factor failed)\n");
 		goto done;
 	}
 	char norm[] = {'1'};
@@ -127,14 +128,14 @@ bool redukti_matrix_estimate_rcond(const redukti_matrix_t *A, double *rcond)
 	double *a = &copy_of_A->data[0];
 	int lda = A->m;
 	if (lda < n) {
-		fprintf(stderr, "failed to estimate rcond (LDA < n)\n");
+		error("failed to estimate rcond (LDA < n)\n");
 		goto done;
 	}
 	double *work = (double *)alloca(sizeof(double) * n * 4);
 	int *iwork = (int *)alloca(sizeof(int) * n);
 	dgecon_(&norm[0], &n, a, &lda, &anorm, rcond, work, iwork, &info);
 	if (info != 0) {
-		fprintf(stderr, "failed to estimate rcond (DGECON failed)\n");
+		error("failed to estimate rcond (DGECON failed)\n");
 		goto done;
 	}
 	ok = true;
@@ -147,12 +148,12 @@ done:
 bool redukti_matrix_solve(redukti_matrix_t *m, redukti_matrix_t *v)
 {
 	if (m->m == 0 || m->n == 0 || v->m == 0 || v->n != 1) {
-		fprintf(stderr, "The matrix A and vector y must have rows > 0\n");
+		error("The matrix A and vector y must have rows > 0\n");
 		assert(false);
 		return false;
 	}
 	if (m->m != m->n || m->m != v->m) {
-		fprintf(stderr, "The default solver only accepts n x n matrix\n");
+		error("The default solver only accepts n x n matrix\n");
 		assert(false);
 		return false;
 	}
@@ -176,17 +177,17 @@ bool redukti_matrix_solve(redukti_matrix_t *m, redukti_matrix_t *v)
 bool redukti_matrix_lsq_solve(redukti_matrix_t *A, redukti_matrix_t *y, double rcond, bool svd)
 {
 	if (A->m == 0 || A->n == 0 || y->m == 0 || y->n != 1) {
-		fprintf(stderr, "The matrix A and vector y must have rows > 0\n");
+		error("The matrix A and vector y must have rows > 0\n");
 		assert(false);
 		return false;
 	}
 	if (A->m < A->n) {
-		fprintf(stderr, "The matrix A must have rows >= cols\n");
+		error("The matrix A must have rows >= cols\n");
 		assert(false);
 		return false;
 	}
 	if (y->m != A->m) {
-		fprintf(stderr, "The vector y must have rows = A.rows\n");
+		error("The vector y must have rows = A.rows\n");
 		assert(false);
 		return false;
 	}
@@ -216,7 +217,7 @@ bool redukti_matrix_lsq_solve(redukti_matrix_t *A, redukti_matrix_t *y, double r
 		dgelsy_(&m, &n, &nrhs, a, &lda, b, &ldb, jpvt, &rcond, &rank, &temp, &lwork, &info);
 	}
 	if (info != 0) {
-		fprintf(stderr, "failed to estimate work space requirement\n");
+		error("failed to estimate work space requirement\n");
 		return false;
 	}
 	// allocate work space
@@ -247,7 +248,7 @@ bool redukti_matrix_lsq_solve(redukti_matrix_t *A, redukti_matrix_t *y, double r
 	}
 	free(ptr);
 	if (info != 0) {
-		fprintf(stderr, "failed to solve linear least squares problem\n");
+		error("failed to solve linear least squares problem\n");
 		return false;
 	}
 	return true;
@@ -258,7 +259,7 @@ bool redukti_matrix_inverse(redukti_matrix_t *a)
 	int m = a->m;
 	int n = a->n;
 	if (m != n) {
-		fprintf(stderr, "matrix is not square");
+		error("matrix is not square");
 		return false;
 	}
 	int info = 0;
@@ -268,7 +269,7 @@ bool redukti_matrix_inverse(redukti_matrix_t *a)
 	int lda = (1 < m ? m : 1);
 	dgetrf_(&m, &n, &a->data[0], &lda, ipiv, &info);
 	if (info != 0) {
-		fprintf(stderr, "failed LU factorization of input matrix");
+		error("failed LU factorization of input matrix");
 		return false;
 	}
 	n = a->n;
@@ -278,7 +279,7 @@ bool redukti_matrix_inverse(redukti_matrix_t *a)
 	info = 0;
 	dgetri_(&n, &a->data[0], &lda, ipiv, work, &lwork, &info);
 	if (info != 0) {
-		fprintf(stderr, "failed to compute inverse of matrix");
+		error("failed to compute inverse of matrix");
 		return false;
 	}
 	return true;

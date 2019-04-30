@@ -28,7 +28,7 @@ namespace redukti
 // that makes it easy to handle an array of adouble values
 class ADoubleArray
 {
-      public:
+	public:
 	ADoubleArray(int vars, int order, int n, Allocator *A) : A_(A), n_(n)
 	{
 		assert(n > 0);
@@ -58,7 +58,7 @@ class ADoubleArray
 		return *element;
 	}
 
-      private:
+	private:
 	Allocator *A_;
 	// Memory allocated for the array
 	char *array_;
@@ -72,7 +72,7 @@ class ADoubleArray
 // doubles.
 class DoubleArray
 {
-      public:
+	public:
 	DoubleArray(int vars, int order, int n, Allocator *A) : A_(A), n_(n)
 	{
 		//    assert(vars >= 1 && order == 0);
@@ -96,7 +96,7 @@ class DoubleArray
 		return array_[i];
 	}
 
-      private:
+	private:
 	Allocator *A_;
 	double *array_;
 	int n_;

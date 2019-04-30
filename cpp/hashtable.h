@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -64,7 +64,7 @@ template <typename K, typename KNH> class TKey
 	int32_t next_; // index of next node in the hash chain, -1 == null
 	K tvk_;
 
-      public:
+	public:
 	TKey() : next_(-1) { setnil(); }
 	bool isnil() const { return KNH::is_nil(&tvk_); }
 	void setnil() { KNH::set_nil(&tvk_); }
@@ -82,7 +82,7 @@ template <typename V, typename VNH> class TValue
 {
 	V value_;
 
-      public:
+	public:
 	TValue() { setnil(); }
 	bool isnil() const { return VNH::is_nil(&value_); }
 	void setnil() { VNH::set_nil(&value_); }
@@ -106,7 +106,7 @@ template <typename node_type> class NodeIterator : public std::iterator<std::inp
 	node_type *p_;
 	node_type *last_;
 
-      public:
+	public:
 	NodeIterator(node_type *p, node_type *last) : p_(p), last_(last) {}
 	NodeIterator(const NodeIterator &other) : p_(other.p_), last_(other.last_) {}
 	NodeIterator &operator++()
@@ -145,7 +145,7 @@ struct Table {
 	typedef typename node_type::value_type value_type;
 	typedef NodeIterator<node_type> iterator;
 
-      private:
+	private:
 	node_type *node;    // start of the node vector
 	int32_t lastfree;   // points to one past last available free node
 	uint32_t lsizenode; // size of the node vector stored as power of 2
@@ -287,7 +287,7 @@ struct Table {
 		resize(totaluse);
 	}
 
-      public:
+	public:
 	/*
 	** main search function - if key is not found
 	** nullptr is returned

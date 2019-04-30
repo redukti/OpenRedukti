@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -223,7 +223,7 @@ static std::pair<const char *, DayCountFraction> day_count_fractions[] = {
 
 class ValueConverter : public Converter
 {
-      public:
+	public:
 	BusinessCenter business_center_from_string(const char *value) const override final
 	{
 		auto iter = std::find_if(
@@ -337,7 +337,7 @@ class ValueConverter : public Converter
 			return iter->second;
 	}
 
-	const char *day_count_fraction_to_string(DayCountFraction value) const final
+	const char *day_count_fraction_to_string(DayCountFraction value) const override final
 	{
 		auto iter = std::find_if(
 		    std::begin(day_count_fractions), std::end(day_count_fractions),
@@ -618,7 +618,7 @@ class ValueConverter : public Converter
 		return map_tenor_to_days[t - 1];
 	}
 
-	InterpolatorType interpolator_type_from_string(const char *value) const
+	InterpolatorType interpolator_type_from_string(const char *value) const override final
 	{
 		// mappings must be in alphabetic order
 		auto iter = std::find_if(std::begin(interpolators), std::end(interpolators),
@@ -634,7 +634,7 @@ class ValueConverter : public Converter
 		return iter->second;
 	}
 
-	PricingCurveType pricing_curve_type_from_string(const char *s) const
+	PricingCurveType pricing_curve_type_from_string(const char *s) const override final
 	{
 		if (s) {
 			if (*s == 'F' || *s == 'f')
@@ -645,7 +645,7 @@ class ValueConverter : public Converter
 		return PRICING_CURVE_TYPE_FORWARD;
 	}
 
-	IRRateType rate_type_from_string(const char *s) const
+	IRRateType rate_type_from_string(const char *s) const override final
 	{
 		switch (*s) {
 		case 'Z':
@@ -662,7 +662,8 @@ class ValueConverter : public Converter
 		}
 	}
 
-	JointCalendarRule joint_calendar_rule_from_string(const char *value) const {
+	JointCalendarRule joint_calendar_rule_from_string(const char *value) const override final
+	{
 		if (strcmp(value, "JOIN_BUSINESS_DAYS") == 0)
 			return JointCalendarRule::JOIN_BUSINESS_DAYS;
 		return JointCalendarRule::JOIN_HOLIDAYS;
@@ -693,7 +694,7 @@ int test_conversions()
 	    p.length() != 12)
 		failure_count++;
 	if (!get_default_converter()->period_from_string("-12M", &p) || p.units() != PeriodUnit::MONTHS ||
-		p.length() != -12)
+	    p.length() != -12)
 		failure_count++;
 	for (int i = TENOR_1D; i <= TENOR_1T /* Max value */; i++) {
 		Tenor t1 = (Tenor)i;

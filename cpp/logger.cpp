@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -23,15 +23,15 @@
 #include <sstream>
 #include <thread>
 
-namespace redukti
-{
+unsigned volatile Redukti_log_mask = LOG_INFO | LOG_WARN | LOG_ERROR | LOG_FATAL_ERROR;
 
-unsigned log_mask = LOG_DEBUG;
-
-void log_message(int log_level, const char *filename, int line_number, const char *function, FILE *file,
-		 const char *format, ...)
+void redukti_log_message(int log_level, const char *filename, int line_number, const char *function, FILE *file,
+			 const char *format, ...)
 {
 	assert(file);
+
+	if (!(log_level & Redukti_log_mask))
+		return;
 
 	switch (log_level) {
 	case LOG_DEBUG:
@@ -67,5 +67,3 @@ void log_message(int log_level, const char *filename, int line_number, const cha
 	if (log_level == LOG_FATAL_ERROR)
 		exit(1);
 }
-
-} // namespace redukti

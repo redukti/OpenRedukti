@@ -1,5 +1,5 @@
 /*
-** $Id: llex.h,v 1.79 2016/05/02 14:02:12 roberto Exp $
+** $Id: llex.h,v 1.79.1.1 2017/04/19 17:20:42 roberto Exp $
 ** Lexical Analyzer
 ** See Copyright Notice in lua.h
 */
@@ -36,7 +36,7 @@ enum RESERVED {
   TK_FLT, TK_INT, TK_NAME, TK_STRING,
   /** RAVI extensions */
   TK_TO_INTEGER, TK_TO_NUMBER, TK_TO_INTARRAY, TK_TO_NUMARRAY,
-  TK_TO_TABLE
+  TK_TO_TABLE, TK_TO_STRING, TK_TO_CLOSURE
 };
 
 /* number of reserved words */

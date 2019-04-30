@@ -1,5 +1,5 @@
 /*
-** $Id: ldump.c,v 2.37 2015/10/08 15:53:49 roberto Exp $
+** $Id: ldump.c,v 2.37.1.1 2017/04/19 17:20:42 roberto Exp $
 ** save precompiled Lua chunks
 ** See Copyright Notice in lua.h
 */
@@ -106,7 +106,9 @@ static void DumpConstants (const Proto *f, DumpState *D) {
   DumpInt(n, D);
   for (i = 0; i < n; i++) {
     const TValue *o = &f->k[i];
-    DumpByte(ttype(o), D);
+    int tt = ttype(o);
+    lua_assert(tt <= 127); /* Must fit 1 byte */
+    DumpByte(tt, D);
     switch (ttype(o)) {
     case LUA_TNIL:
       break;
@@ -162,13 +164,15 @@ static void DumpDebug (const Proto *f, DumpState *D) {
     DumpInt(f->locvars[i].startpc, D);
     DumpInt(f->locvars[i].endpc, D);
     DumpByte(f->locvars[i].ravi_type, D);
+    DumpString(f->locvars[i].usertype, D);
   }
   /* n = (D->strip) ? 0 : f->sizeupvalues; */
   n = f->sizeupvalues;
   DumpInt(n, D);
   for (i = 0; i < n; i++) {
     DumpString((D->strip) ? NULL : f->upvalues[i].name, D);
-    DumpByte(f->upvalues[i].type, D);
+    DumpByte(f->upvalues[i].ravi_type, D);
+    DumpString(f->upvalues[i].usertype, D);
   }
 }
 

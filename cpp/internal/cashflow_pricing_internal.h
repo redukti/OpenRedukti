@@ -30,10 +30,10 @@ namespace redukti
 
 class SimpleCurveProvider : public CurveProvider
 {
-      private:
+	private:
 	std::map<PricingCurve, const CurveReference *> mappings_;
 
-      public:
+	public:
 	void add_mapping(PricingCurve curveid, const CurveReference *ref) { mappings_.insert({curveid, ref}); }
 	const CurveReference *get_curve(PricingCurve curve) const override final
 	{

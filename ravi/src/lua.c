@@ -1,8 +1,12 @@
 /*
-** $Id: lua.c,v 1.230 2017/01/12 17:14:26 roberto Exp $
+** $Id: lua.c,v 1.230.1.1 2017/04/19 17:29:57 roberto Exp $
 ** Lua stand-alone interpreter
 ** See Copyright Notice in lua.h
 */
+
+#if USE_LLVM
+#include <ravi_llvm.h>
+#endif
 
 #define lua_c
 
@@ -41,9 +45,11 @@
 #define LUA_INITVARVERSION	LUA_INIT_VAR LUA_VERSUFFIX
 
 #ifdef USE_LLVM
-#define RAVI_OPTION_STRING3 " LLVM"
-#elif USE_GCCJIT
-#define RAVI_OPTION_STRING3 " gccjit"
+#define ravi_xstringify(s) ravi_stringify(s)
+#define ravi_stringify(s) #s
+#define RAVI_OPTION_STRING3 " LLVM-" LLVM_VERSION_STRING " ORC=" ravi_xstringify(USE_ORC_JIT)
+#elif USE_OMRJIT
+#define RAVI_OPTION_STRING3 " omrjit"
 #else
 #define RAVI_OPTION_STRING3 " nojit"
 #endif
@@ -147,7 +153,7 @@ static void print_usage (lua_State *L, const char *badoption) {
   "Available options are:\n"
   "  -e stat  execute string 'stat'\n"
   "  -i       enter interactive mode after executing 'script'\n"
-  "  -l name  require library 'name'\n"
+  "  -l name  require library 'name' into global 'name'\n"
   "  -v       show version information\n"
   "  -E       ignore environment variables\n"
   "  --       stop handling options\n"

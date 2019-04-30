@@ -8,8 +8,9 @@ AllowShortIfStatementsOnASingleLine: false
 UseTab: Always
 BreakBeforeBraces: Linux
 IndentWidth: 8
-#AccessModifierOffset: 0
+AccessModifierOffset: 0
 ColumnLimit: 120
 IndentCaseLabels: false
+CompactNamespaces: true
 ...
 

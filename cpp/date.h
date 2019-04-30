@@ -1,17 +1,17 @@
 /**
-* DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
-*
-* Contributor(s):
-*
-* The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
-* The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
-* Authors: Dibyendu Majumdar
-*
-* Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
-*
-* The contents of this file are subject to the the GNU General Public License
-* Version 3 (https://www.gnu.org/licenses/gpl.txt).
-*/
+ * DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ *
+ * Contributor(s):
+ *
+ * The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
+ * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
+ * Authors: Dibyendu Majumdar
+ *
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
+ *
+ * The contents of this file are subject to the the GNU General Public License
+ * Version 3 (https://www.gnu.org/licenses/gpl.txt).
+ */
 /**
  * Portions derived from:
  * http://howardhinnant.github.io/date_algorithms.html
@@ -58,7 +58,7 @@ namespace redukti
 // Must be standard layout for C compatibility
 class Period
 {
-      public:
+	public:
 	// Construct a period from length and unit
 	Period(int n, PeriodUnit unit) noexcept : length_(n), unit_(unit) {}
 	// Default constructor : 0D period
@@ -85,7 +85,7 @@ class Period
 	// Must be updated if definition of Tenor changes.
 	static Period tenor_to_period(Tenor tenor);
 
-      private:
+	private:
 	int32_t length_;
 	PeriodUnit unit_;
 };

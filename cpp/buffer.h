@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -26,7 +26,7 @@ namespace redukti
 {
 
 // Similar to vector<T> but
-// do not grow dynamically
+// does not grow dynamically
 // and has a reference count
 template <typename _T> struct buffer {
 	typedef _T value_type;
@@ -77,7 +77,7 @@ template <typename _T> struct buffer {
 	pointer _buf;
 	size_type _size;
 
-      private:
+	private:
 	buffer(const buffer &) = delete;
 	buffer &operator=(const buffer &) = delete;
 };
@@ -86,7 +86,7 @@ template <typename _T> struct buffer {
 // does not grow dynamically
 template <typename _T> class buffer_ptr
 {
-      public:
+	public:
 	typedef _T value_type;
 	typedef _T *pointer;
 	typedef const _T *const_pointer;
@@ -134,7 +134,7 @@ template <typename _T> class buffer_ptr
 	size_type size() const noexcept { return _ref->size(); }
 	int ref_count() const noexcept { return _ref->_count; }
 
-      private:
+	private:
 	buffer<_T> *_ref;
 };
 

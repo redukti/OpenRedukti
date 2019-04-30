@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
  * Authors: Dibyendu Majumdar
  *
- * Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
  *
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
@@ -63,10 +63,10 @@ struct Line {
 class CSVDataSourceImpl;
 class CSVDataSource
 {
-      private:
+	private:
 	std::unique_ptr<CSVDataSourceImpl> impl;
 
-      public:
+	public:
 	/**
 	 * Constructor takes a file name and boolean flag to indicate
 	 * that a heading line is expected to be the first line.

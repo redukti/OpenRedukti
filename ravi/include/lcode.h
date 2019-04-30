@@ -1,5 +1,5 @@
 /*
-** $Id: lcode.h,v 1.64 2016/01/05 16:22:37 roberto Exp $
+** $Id: lcode.h,v 1.64.1.1 2017/04/19 17:20:42 roberto Exp $
 ** Code generator for Lua
 ** See Copyright Notice in lua.h
 */
@@ -38,7 +38,8 @@ typedef enum BinOpr {
 
 /** RAVI change */
 typedef enum UnOpr { OPR_MINUS, OPR_BNOT, OPR_NOT, OPR_LEN, OPR_TO_INTEGER,
-  OPR_TO_NUMBER, OPR_TO_INTARRAY, OPR_TO_NUMARRAY, OPR_TO_TABLE, OPR_NOUNOPR } UnOpr;
+  OPR_TO_NUMBER, OPR_TO_INTARRAY, OPR_TO_NUMARRAY, OPR_TO_TABLE, OPR_TO_STRING, 
+  OPR_TO_CLOSURE, OPR_TO_TYPE, OPR_NOUNOPR } UnOpr;
 
 /* get (pointer to) instruction of given 'expdesc' */
 #define getinstruction(fs,e)	((fs)->f->code[(e)->u.info])
@@ -78,7 +79,7 @@ LUAI_FUNC void luaK_patchtohere (FuncState *fs, int list);
 LUAI_FUNC void luaK_patchclose (FuncState *fs, int list, int level);
 LUAI_FUNC void luaK_concat (FuncState *fs, int *l1, int l2);
 LUAI_FUNC int luaK_getlabel (FuncState *fs);
-LUAI_FUNC void luaK_prefix (FuncState *fs, UnOpr op, expdesc *v, int line);
+LUAI_FUNC void luaK_prefix (FuncState *fs, UnOpr op, expdesc *v, int line, TString *);
 LUAI_FUNC void luaK_infix (FuncState *fs, BinOpr op, expdesc *v);
 LUAI_FUNC void luaK_posfix (FuncState *fs, BinOpr op, expdesc *v1,
                             expdesc *v2, int line);
