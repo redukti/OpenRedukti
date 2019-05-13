@@ -18,6 +18,7 @@
 
 #include <date.h>
 #include <enums.pb.h>
+#include <status.h>
 
 namespace redukti
 {
@@ -34,7 +35,7 @@ class Schedule;
 // 3. payment_frequency
 //
 // Uses calendar service to obtain relevant calendars
-extern bool build_schedule(ScheduleParameters &params, Schedule &schedule) noexcept;
+extern StatusCode build_schedule(ScheduleParameters &params, Schedule &schedule) noexcept;
 
 // Adjusts a date as per roll convention specified
 extern Date adjust_date(Date d, RollConvention rc) noexcept;

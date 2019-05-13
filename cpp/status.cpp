@@ -131,7 +131,7 @@ const char *error_message(StatusCode code)
 		return "VAL1251: PAR sensitivities do not have same maturities range as "
 		       "zero curve";
 	case StatusCode::kVAL_ParSensitivitiesForCurveInstrumentsOutOfRange:
-		return "VAL1250: PAR sensitivities has too many or too few instruments";
+		return "VAL1252: PAR sensitivities has too many or too few instruments";
 
 	case StatusCode::kCFG_ScheduleGenerationFailed:
 		return "CFG1260: Schedule generation failed";
@@ -147,6 +147,26 @@ const char *error_message(StatusCode code)
 		return "CFG1265: Stepped cashflows not implemented yet";
 	case StatusCode::kCFG_IndexConfigurationMissing:
 		return "CFG1266: Index configuration not found";
+
+	case StatusCode::kSCH_FirstRegularStartDateInconsistent:
+		return "SCH1300: First regular start date is not consistent with the Roll Convention";
+	case StatusCode::kSCH_LastRegularEndDateInconsistent:
+		return "SCH1301: Last regular period end date is not consistent with the Roll Convention";
+	case StatusCode::kSCH_EffectiveDateRequired:
+		return "SCH1302: Effective date is required";
+	case StatusCode::kSCH_TerminateDateOrTermRequired:
+		return "SCH1303: One of termination date or term is required";
+	case StatusCode::kSCH_TerminationDateRequired:
+		return "SCH1304: Termination date is required";
+	case StatusCode::kSCH_CalculationFrequencyRequired:
+		return "SCH1305: Calculation frequency is required";
+	case StatusCode::kSCH_IncompatiblePaymentAndCalculationFrequencies:
+		return "SCH1306: Incompatible payment and calculation frequencies";
+	case StatusCode::kSCH_PaymentFrequencyLessThanCalculationFrequency:
+		return "SCH1307: Payment frequency must be greater than calculaton frequency";
+	case StatusCode::kSCH_PaymentFrequencyNotMultipleOfCalculationFrequency:
+		return "SCH1308: Payment frequency must be a multiple of the calculation frequency";
+
 	default:
 		return "ERR0000: unexpected error";
 	}

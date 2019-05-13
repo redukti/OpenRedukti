@@ -111,10 +111,10 @@ class CalculationPeriod
 class ScheduleHelper
 {
 	public:
-	bool build_zero_coupon(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
+	StatusCode build_zero_coupon(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
 	{
 		periods.push_back(CalculationPeriod(params.effective_date(), params.termination_date(), false));
-		return true;
+		return StatusCode::kOk;
 	}
 
 	/**
@@ -156,13 +156,14 @@ class ScheduleHelper
 		return false;
 	}
 
-	bool build(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
+	StatusCode build(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
 	{
 		periods.clear();
-		if (!validate(params)) {
-			return false;
+		auto code = validate(params);
+		if (code != StatusCode::kOk) {
+			return code;
 		}
-		bool result = false;
+		StatusCode result = StatusCode::kOk;
 		if (is_zero_coupon(params)) {
 			result = build_zero_coupon(params, periods);
 		} else if (has_front_stub(params)) {
@@ -180,7 +181,7 @@ class ScheduleHelper
 	 * Generate schedule from front to back - useful when
 	 * front stub is present
 	 */
-	bool generate_forward(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
+	StatusCode generate_forward(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
 	{
 		Date regStart = params.effective_date();
 		if (is_valid_date(params.first_regular_period_start_date()) &&
@@ -194,9 +195,7 @@ class ScheduleHelper
 		if (params.roll_convention() != RollConvention::ROLL_CONVENTION_NONE &&
 		    params.roll_convention() != RollConvention::ROLL_CONVENTION_DEFAULT) {
 			if (regStart != adjust_date(regStart, params.roll_convention())) {
-				error("Regular start date is not consistent "
-				      "with Roll Convention\n");
-				return false;
+				return StatusCode::kSCH_FirstRegularStartDateInconsistent;
 			}
 		}
 		Date regEnd = params.termination_date();
@@ -219,14 +218,14 @@ class ScheduleHelper
 		if (regStart < params.termination_date()) {
 			periods.push_back(CalculationPeriod(regStart, params.termination_date(), true));
 		}
-		return true;
+		return StatusCode::kOk;
 	}
 
 	/**
 	 * Generate schedule from back to front - useful when
 	 * back stub is present
 	 */
-	bool generate_backward(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
+	StatusCode generate_backward(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
 	{
 		Date regEnd = params.termination_date();
 		if (is_valid_date(params.last_regular_period_end_date()) &&
@@ -239,9 +238,7 @@ class ScheduleHelper
 		if (params.roll_convention() != RollConvention::ROLL_CONVENTION_NONE &&
 		    params.roll_convention() != RollConvention::ROLL_CONVENTION_DEFAULT) {
 			if (regEnd != adjust_date(regEnd, params.roll_convention())) {
-				error("Last regular end date is not "
-				      "consistent with Roll Convention\n");
-				return false;
+				return StatusCode::kSCH_LastRegularEndDateInconsistent;
 			}
 		}
 		Date regStart = params.effective_date();
@@ -265,22 +262,19 @@ class ScheduleHelper
 			periods.push_back(CalculationPeriod(params.effective_date(), regEnd, true));
 		}
 		std::reverse(periods.begin(), periods.end());
-		return true;
+		return StatusCode::kOk;
 	}
 
-	bool validate(ScheduleParameters &params) noexcept
+	StatusCode validate(ScheduleParameters &params) noexcept
 	{
 		if (!is_valid_date(params.effective_date())) {
-			error("Effective date is required\n");
-			return false;
+			return StatusCode::kSCH_EffectiveDateRequired;
 		}
 		if (!is_valid_date(params.termination_date()) && params.term() == TENOR_UNSPECIFIED) {
-			error("One of termination date or term is required\n");
-			return false;
+			return StatusCode::kSCH_TerminateDateOrTermRequired;
 		}
 		if (params.term() == TENOR_1T && !is_valid_date(params.termination_date())) {
-			error("Termination date required\n");
-			return false;
+			return StatusCode::kSCH_TerminationDateRequired;
 		}
 		if (!is_valid_date(params.termination_date()) && params.term() != TENOR_UNSPECIFIED &&
 		    params.term() != TENOR_1T) {
@@ -289,12 +283,11 @@ class ScheduleHelper
 		}
 		if (params.calculation_frequency() == TENOR_UNSPECIFIED) {
 			if (!is_zero_coupon(params) && params.payment_frequency() == TENOR_UNSPECIFIED) {
-				error("Calculation Frequency is required\n");
-				return false;
+				return kSCH_CalculationFrequencyRequired;
 			}
 			params.set_calculation_frequency(params.payment_frequency());
 		}
-		return true;
+		return StatusCode::kOk;
 	}
 
 	static const Calendar *build_calendar(const google::protobuf::RepeatedField<google::protobuf::int32> &values)
@@ -349,11 +342,11 @@ class ScheduleHelper
 		}
 	}
 
-	bool generate_payment_schedule(ScheduleParameters &params, std::vector<CalculationPeriod> &periods)
+	StatusCode generate_payment_schedule(ScheduleParameters &params, std::vector<CalculationPeriod> &periods)
 	{
 		if (params.payment_frequency() == TENOR_1T) {
 			periods.back().payment(periods.back().unadjusted_end());
-			return true;
+			return StatusCode::kOk;
 		}
 
 		Period payFreq = Period::tenor_to_period(params.payment_frequency()).normalised();
@@ -362,25 +355,16 @@ class ScheduleHelper
 				      : payFreq;
 
 		if (payFreq.units() != calcFreq.units()) {
-			error("incompatible payment and calculation "
-			      "frequencies\n");
-			return false;
+			return StatusCode::kSCH_IncompatiblePaymentAndCalculationFrequencies;
 		}
 		if (payFreq.length() < calcFreq.length()) {
-			error("payment frequency less than calculation "
-			      "frequency\n");
-			return false;
+			return StatusCode::kSCH_PaymentFrequencyLessThanCalculationFrequency;
 		}
 		if (payFreq.length() % calcFreq.length()) {
-			error("payment frequency is not a multiple of "
-			      "calculation frequency\n");
-			return false;
+			return StatusCode::kSCH_PaymentFrequencyNotMultipleOfCalculationFrequency;
 		}
 		int calPeriods = payFreq.length() / calcFreq.length();
-		if (calPeriods == 0) {
-			error("unexpected state\n");
-			return false;
-		}
+		assert(calPeriods > 0);
 		if (is_valid_date(params.first_payment_date())) {
 			unsigned int i = 0;
 			for (; i < periods.size(); i++) {
@@ -417,28 +401,31 @@ class ScheduleHelper
 				p.payment(p.unadjusted_end());
 			}
 		}
-		return true;
+		return StatusCode::kOk;
 	}
 };
 
-bool build_schedule(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
+StatusCode build_schedule(ScheduleParameters &params, std::vector<CalculationPeriod> &periods) noexcept
 {
 	ScheduleHelper sh;
-	if (!sh.build(params, periods))
-		return false;
+	auto code = sh.build(params, periods);
+	if (code != StatusCode::kOk)
+		return code;
 	if (params.payment_frequency() != TENOR_UNSPECIFIED) {
-		if (!sh.generate_payment_schedule(params, periods))
-			return false;
+		code = sh.generate_payment_schedule(params, periods);
+		if (code != StatusCode::kOk)
+			return code;
 	}
 	sh.adjust_periods(params, periods);
-	return true;
+	return StatusCode::kOk;
 }
 
-bool build_schedule(ScheduleParameters &params, Schedule &schedule) noexcept
+StatusCode build_schedule(ScheduleParameters &params, Schedule &schedule) noexcept
 {
 	std::vector<CalculationPeriod> periods;
-	if (!build_schedule(params, periods))
-		return false;
+	auto code = build_schedule(params, periods);
+	if (code != StatusCode::kOk)
+		return code;
 	for (int i = 0; i < periods.size(); i++) {
 		if (i == 0 && periods.size() > 1 && periods[i].is_stub()) {
 			schedule.set_has_front_stub(true);
@@ -449,7 +436,7 @@ bool build_schedule(ScheduleParameters &params, Schedule &schedule) noexcept
 		schedule.add_adjusted_end_dates(periods[i].adjusted_end());
 		schedule.add_adjusted_payment_dates(periods[i].is_payment() ? periods[i].adjusted_payment() : 0);
 	}
-	return true;
+	return StatusCode::kOk;
 }
 
 //////////////////////////////////// Tests

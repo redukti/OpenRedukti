@@ -201,3 +201,10 @@ message CurveInterpolationReply {
 	ReplyHeader header = 1;	
 	repeated double values = 2;
 }
+
+message ResetValuationServiceRequest {
+}
+
+message ResetValuationServiceReply {
+	ReplyHeader header = 1;	
+}

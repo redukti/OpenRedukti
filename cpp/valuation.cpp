@@ -289,38 +289,6 @@ class ValuationServiceImpl : public ValuationService
 		return StatusCode::kOk;
 	}
 
-	// std::unique_ptr<YieldCurve, Deleter<YieldCurve>>
-	// make_curve(Date as_of_date, const IRCurveDefinition *defn, const ZeroCurve &curve, int deriv_order,
-	//		   PricingCurveType type = PRICING_CURVE_TYPE_UNSPECIFIED, MarketDataQualifier mdq = MDQ_NORMAL,
-	//		   short int cycle = 0, short int scenario = 0)
-	//{
-	//	auto n = curve.maturities_size();
-	//	int reqsize = n * sizeof(double) * 2;
-	//	FixedRegionAllocator *tempalloc = get_threadspecific_allocators()->tempspace_allocator;
-	//	FixedRegionAllocatorGuard guard(tempalloc);
-	//	StackRegionWithFallbackAllocator<1024> buf(tempalloc);
-	//	Date *maturities = (Date *)buf.safe_allocate(sizeof(Date) * n);
-	//	double *values = (double *)buf.safe_allocate(sizeof(double) * n);
-	//	for (int i = 0; i < n; i++) {
-	//		maturities[i] = curve.maturities(i);
-	//		values[i] = curve.values(i);
-	//	}
-	//	if (defn->interpolated_on() == IRRateType::DISCOUNT_FACTOR) {
-	//		// Convert the values to discount factors as we need to
-	//		// interpolate on discount factors
-	//		// FIXME the day count fraction ought to be a parameter in curve
-	//		// definition
-	//		auto fraction = get_day_fraction(DayCountFraction::ACT_365_FIXED);
-	//		for (int i = 0; i < n; i++) {
-	//			double t = fraction->year_fraction(as_of_date, maturities[i]);
-	//			values[i] = std::exp(-values[i] * t);
-	//		}
-	//	}
-	//	CurveId curveId = make_curve_id(type, defn->currency(), defn->index_family(), defn->tenor(), as_of_date,
-	//					cycle, mdq, scenario);
-	//	return make_curve(&GlobalAllocator, curveId, as_of_date, maturities, values, n,
-	//			  defn->interpolator_type(), defn->interpolated_on(), deriv_order);
-	//}
 	CurvesByGroup *get_group(CurveGroup group_id)
 	{
 		auto &&iter = curves_by_group_.find(group_id);
@@ -526,6 +494,23 @@ class ValuationServiceImpl : public ValuationService
 	      calendar_service_(calendar_service)
 	{
 	}
+
+	ResetValuationServiceReply *
+	handle_reset_valuation_service_request(Arena *arena, const ResetValuationServiceRequest *request) final
+	{
+		std::unique_lock<std::shared_mutex> locked(lock_);
+		this->curves_by_group_.clear();
+		this->curve_definitions_.clear();
+		this->curve_mappers_.clear();
+		this->fixings_data_service_->reset();
+		auto reply = Arena::CreateMessage<ResetValuationServiceReply>(arena);
+		ReplyHeader *header = Arena::CreateMessage<ReplyHeader>(arena);
+		reply->set_allocated_header(header);
+		header->set_response_code(StandardResponseCode::SRC_OK);
+		inform("Valuation service has been reset");
+		return reply;
+	}
+
 	~ValuationServiceImpl() {}
 	CurveInterpolationReply *handle_curve_interpolation_request(Arena *arena,
 								    const CurveInterpolationRequest *request)

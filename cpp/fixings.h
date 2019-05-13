@@ -42,6 +42,8 @@ class FixingDataService
 			return nullptr;
 		return fixing->second.get();
 	}
+
+	void reset() { fixings_.clear(); }
 };
 
 int test_fixings();

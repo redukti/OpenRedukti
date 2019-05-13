@@ -39,6 +39,9 @@ class ValuationService
 							    const SetFixingsRequest *request) = 0;
 	virtual ValuationReply *handle_valuation_request(google::protobuf::Arena *arena,
 							 const ValuationRequest *request) = 0;
+	virtual ResetValuationServiceReply *
+	handle_reset_valuation_service_request(google::protobuf::Arena *arena,
+					       const ResetValuationServiceRequest *request) = 0;
 };
 } // namespace redukti
 

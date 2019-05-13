@@ -533,6 +533,7 @@ static int build_schedule(lua_State *L)
 	luaL_argcheck(L, get_default_converter()->period_from_string(pay_freq, &payFreq), 1,
 		      "payment frequency invalid");
 
+	StatusCode status_code = StatusCode::kOk;
 	for (;;) {
 		ScheduleParameters parms;
 
@@ -601,7 +602,8 @@ static int build_schedule(lua_State *L)
 		}
 		size_t len = 0;
 		Schedule schedule;
-		if (!build_schedule(parms, schedule))
+		status_code = build_schedule(parms, schedule);
+		if (status_code != ResponseSubCode::kOk)
 			break;
 		ravi_create_integer_array(L, schedule.adjusted_start_dates_size(), 0);
 		lua_Integer *startarray = ravi_get_integer_array_rawdata(L, lua_gettop(L), &len);
@@ -617,7 +619,7 @@ static int build_schedule(lua_State *L)
 		}
 		return 3;
 	}
-	luaL_error(L, "failed to build schedule");
+	luaL_error(L, "failed to build schedule: %s", error_message(status_code));
 	return 0;
 }
 
