@@ -236,7 +236,7 @@ static bool array_get_integer(lua_State *L, int table_stack_index, int index, lu
 		*val = lua_tointeger(L, -1);
 		rc = true;
 	} else {
-		fprintf(stderr, "Error: expected integer at %d\n", index);
+		debug("Error: expected integer at %d\n", index);
 		*val = 0;
 	}
 	lua_pop(L, 1);
@@ -1201,7 +1201,7 @@ static bool parse_future_expiry(lua_State *L, const char *future_expiry, Date *d
 			month = 12;
 			break;
 		default:
-			fprintf(stderr, "bad month\n");
+			ravi_writestringerror(L, "bad month in future expiry '%s'\n", future_expiry);
 			return false;
 		}
 		*d = make_date(1, month, year);
@@ -2552,7 +2552,9 @@ static int calculate_present_value(lua_State *L)
 	if (result->status != StatusCode::kOk) {
 		error("Pricing failed because %s\n", error_message(result->status));
 	} else {
-		result->sensitivities.dump(stdout);
+		if (is_debug_enabled()) {
+			result->sensitivities.dump(stdout);
+		}
 	}
 	int top = lua_gettop(L);
 	// Since the senitivities retain references to curves we need to ensure that
