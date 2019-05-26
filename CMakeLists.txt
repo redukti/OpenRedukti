@@ -15,6 +15,8 @@ endif(WIN32)
 ## On Windows
 ## If using vcpkg, put protoc on the path as follows
 ## set PATH=C:\work\vcpkg\installed\x64-windows\tools\protobuf;%PATH%
+## If using custom build, pass this to Cmake:
+## -DPROTOBUF_SRC_ROOT_FOLDER=c:\Software\protobuf371d
 
 find_package(Protobuf REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIRS})

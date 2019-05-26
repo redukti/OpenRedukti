@@ -34,6 +34,9 @@ void redukti_log_message(int log_level, const char *filename, int line_number, c
 		return;
 
 	switch (log_level) {
+	case LOG_TRACE:
+		fputs("TRACE ", file);
+		break;
 	case LOG_DEBUG:
 		fputs("DEBUG ", file);
 		break;

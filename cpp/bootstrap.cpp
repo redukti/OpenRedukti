@@ -179,6 +179,16 @@ struct CurveHolder : public CurveReference {
 	~CurveHolder();
 	YieldCurve *get() const noexcept final { return pricing_curve_; }
 
+	void dump(const char *heading)
+	{
+		if (!is_trace_enabled())
+			return;
+		trace("%s\n", heading);
+		for (int i = 0; i < n_maturities_; i++) {
+			trace("Curve[%d] = { %d, %.12f }\n", i, maturities_[i], values_[i]);
+		}
+	}
+
 	void init(Date asOfDate, Allocator *alloc, CurveId curveId, InterpolatorType interp, IRRateType interpolated_on)
 	{
 		assert(!base_curve_);
@@ -347,6 +357,12 @@ struct CashflowInstrument {
 	}
 	int forward_curve() { return mapper_.forward_curve(); }
 	int discount_curve() { return mapper_.discount_curve(); }
+
+	void get_name(char *buffer, size_t n)
+	{
+		snprintf(buffer, n, "CashflowInstrument{pos=%d,maturity=%d,constraint=%d}",
+			 original_instrument_position_, maturity_, (int)is_constraint_);
+	}
 };
 
 struct CashflowInstrumentByCurve {
@@ -418,8 +434,11 @@ class ParSensitivities
 		int pos = row * n_ + col;
 		values_[pos] = v;
 	}
-	void dump_to(FILE *fp)
+	void dump(FILE *fp)
 	{
+		if (!is_trace_enabled())
+			return;
+		fprintf(fp, "Par Sensitivities dump\n");
 		for (int row = 0; row < m_; row++) {
 			fprintf(fp, "row[%d]", row);
 			for (int col = 0; col < n_; col++) {
@@ -711,6 +730,15 @@ bool CurveBuilder::create_bootstrap_curve(const ParCurve &input_curve,
 		for (auto &&iter = std::begin(instruments_by_curve->instruments_by_maturity);
 		     iter != std::end(instruments_by_curve->instruments_by_maturity); iter++) {
 			auto par_rate = input_curve.par_rates().values(iter->second->original_instrument_position());
+			if (par_rate < -0.1 || par_rate > 0.3) {
+				// Hmmm bad input
+				last_error_code_ = StatusCode::kBTS_BadInputCurves;
+				snprintf(last_error_message_, sizeof last_error_message_,
+					 "%s: index %d par rate %.12f, expected range (-0.1,0.3)",
+					 error_message(last_error_code_), i, par_rate);
+				error("%s\n", last_error_message_);
+				return false;
+			}
 			ycurve->maturities_[i] = iter->first;
 			ycurve->rates_[i] = par_rate;
 			if (ycurve->maturities_[i] <= business_date_ ||
@@ -728,7 +756,9 @@ bool CurveBuilder::create_bootstrap_curve(const ParCurve &input_curve,
 		     make_curve_id(PricingCurveType::PRICING_CURVE_TYPE_UNSPECIFIED, defn->currency(),
 				   defn->index_family(), defn->tenor(), business_date_),
 		     defn->interpolator_type(), defn->interpolated_on());
-
+	if (is_trace_enabled()) {
+		ycurve->dump("Initial Curve Values");
+	}
 	this->bootstrap_curves_.push_back(std::move(ycurve));
 	return true;
 }
@@ -910,6 +940,19 @@ class SolverFunction
 		//                        discount_curve, dummy_sens, status);
 	}
 
+	void dump_solution_vector(const char *description)
+	{
+		if (!is_trace_enabled())
+			return;
+		unsigned int instrument_num = 0;
+		char instrument_name[128];
+		for (auto &item : curve_builder_->sorted_instruments()) {
+			item.second->get_name(instrument_name, sizeof instrument_name);
+			trace("bx[%d] = %f, %s\n", instrument_num, bx[instrument_num], instrument_name);
+			instrument_num++;
+		}
+	}
+
 	// Evaluate the system of equations and populate the vector bx
 	bool evaluate()
 	{
@@ -920,13 +963,15 @@ class SolverFunction
 		unsigned int instrument_num = 0;
 		for (auto &item : curve_builder_->sorted_instruments()) {
 			bx[instrument_num] = evaluate_instrument(item.second, status);
-			// printf("bx[%d] = %f\n", instrument_num,
-			// bx[instrument_num]);
-			instrument_num++;
-			if (status != StatusCode::kOk)
+			if (status != StatusCode::kOk) {
+				char instrument_name[128];
+				item.second->get_name(instrument_name, sizeof instrument_name);
+				error("Failed to evaluate instrument %s\n", instrument_name);
 				return false;
+			}
+			instrument_num++;
 		}
-		//  dump("Computed PV", bx);
+		dump_solution_vector("Computed Solution Vector");
 		return true;
 	}
 
@@ -1022,11 +1067,13 @@ class SolverFunction
 		double rcond = -1.0;
 
 		if (!redukti_matrix_estimate_rcond(&X, &rcond)) {
-			redukti_matrix_dump_to(&X, "Failed matrix", stderr);
+			redukti_matrix_dump_to(&X, "Failed to estimate rcond for Matrix", stderr);
 			error("Failed to solve the system of equations\n");
 			return false;
 		}
 		if (!redukti_matrix_lsq_solve(&X, &c, rcond /* 0.0000001*/, true)) {
+			redukti_matrix_dump_to(&X, "Failed to solve equation: Matrix", stderr);
+			redukti_matrix_dump_to(&c, "Failed to solve equation: vector", stderr);
 			error("Failed to solve the system of equations\n");
 			return false;
 		}
@@ -1058,6 +1105,7 @@ class SolverFunction
 				//        ch->rates_[pillar]);
 				rate_num++;
 			}
+			ch->dump("Curve values after correction");
 			ch->base_curve_->update_rates(ch->values_, ch->n_maturities_);
 		}
 	}
@@ -1084,6 +1132,7 @@ class SolverFunction
 				//        ch->rates_[pillar]);
 				rate_num++;
 			}
+			ch->dump("Updated curve values");
 			ch->base_curve_->update_rates(ch->values_, ch->n_maturities_);
 		}
 	}
@@ -1314,7 +1363,7 @@ StatusCode CurveBuilder::build_curves(const CurveBuilderOptions &options)
 
 			temp_allocator.release();
 		}
-		// par_sens_ptr->dump_to(stdout);
+		par_sens_ptr->dump(stdout);
 	}
 	return StatusCode::kOk;
 }
@@ -1404,7 +1453,8 @@ BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(Arena *arena, c
 	options.generate_par_sensitivities = request->generate_par_sensitivities();
 	options.use_levenberg_marquardt_solver = request->solver_type() == SolverType::SOLVER_TYPE_LEVENBERG_MARQUARDT;
 	options.max_iterations = request->max_solver_iterations() != 0 ? request->max_solver_iterations() : 20;
-	debug("Starting curve build\n");
+	debug("Starting curve build: Levenberg_marquardt solver: %d, max_iterations: %d\n",
+	      (int)options.use_levenberg_marquardt_solver, options.max_iterations);
 	auto status = curve_builder.build_curves(options);
 	debug("Curve build completed %s\n", status != StatusCode::kOk ? "with ERROR" : "successfully");
 	if (status != StatusCode::kOk) {

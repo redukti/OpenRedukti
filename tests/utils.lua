@@ -161,10 +161,10 @@ local function filter_definitions(defs, keeplist)
 	return newdefs
 end
 
-local function build_curves(business_date, defs_file, par_rates_file)
+local function build_curves(business_date, defs_file, par_rates_file, curveid_list)
 	local defs = redukti.loadcsv { file=defs_file, conversion='sisssssss', heading=true, fields=true }
 	local par_rates = redukti.loadcsv { file=par_rates_file, conversion='isssnii', heading=true, fields=true }
-	local result, msg = redukti.build_curves( business_date, filter_definitions(defs, {7,8,9,10}), par_rates) -- , '/OpenRedukti/scripts/pricing.lua' )
+	local result, msg = redukti.build_curves( business_date, filter_definitions(defs, curveid_list), par_rates) -- , '/OpenRedukti/scripts/pricing.lua' )
 	if not result:ok() then
 		print(msg)
 	end

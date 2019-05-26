@@ -126,8 +126,9 @@ static inline int redukti_matrix_lufactor(redukti_matrix_t *A, int32_t ipsize, i
 		ipiv[i] = 0;
 	lda = (1 < A->m ? A->m : 1);
 	dgetrf_(&A->m, &A->n, A->data, &lda, ipiv, &info);
+	if (info != 0)
+		trace("Error ocurred during LU factorization: %d\n", info);
 Lerror:
-	trace("Error ocurred during LU factorization: %d\n", info);
 	return info;
 }
 

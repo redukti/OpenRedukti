@@ -504,6 +504,7 @@ static int build_schedule(lua_State *L)
 	char roll_convention[80] = {0}, term[80] = {0}, pay_freq[80] = {0}, calc_freq[80] = {0};
 	char calc_conv[80] = {0}, pay_conv[80] = {0};
 	char calc_calendars[80] = {0}, pay_calendars[80] = {0};
+	char stub_type[80] = {0};
 
 	table_get_integer(L, 1, "effective_date", &start);
 	table_get_integer(L, 1, "termination_date", &end);
@@ -519,6 +520,7 @@ static int build_schedule(lua_State *L)
 	table_get_string(L, 1, "payment_day_convention", pay_conv, sizeof pay_conv);
 	table_get_string(L, 1, "calculation_business_centers", calc_calendars, sizeof calc_calendars);
 	table_get_string(L, 1, "payment_business_centers", pay_calendars, sizeof pay_calendars);
+	table_get_string(L, 1, "stub_type", stub_type, sizeof stub_type);
 
 	luaL_argcheck(L, is_valid_date(start), 1, "invalid effective date");
 
@@ -599,6 +601,12 @@ static int build_schedule(lua_State *L)
 			BusinessDayConvention bdc =
 			    get_default_converter()->business_day_convention_from_string(calc_conv);
 			parms.set_period_convention(bdc);
+		}
+		if (stub_type[0]) {
+			if (stub_type[0] == 'f' || stub_type[0] == 'F')
+				parms.set_stub_location(StubLocation::SHORT_FRONT_STUB);
+			else if (stub_type[0] == 'b' || stub_type[0] == 'B')
+				parms.set_stub_location(StubLocation::SHORT_BACK_STUB);
 		}
 		size_t len = 0;
 		Schedule schedule;
@@ -2804,7 +2812,7 @@ static int build_curves(lua_State *L)
 		// FIXME these should be obtained from parameters (options?)
 		bootstrap_request->set_generate_par_sensitivities(false);
 		bootstrap_request->set_max_solver_iterations(30);
-		// bootstrap_request->set_solver_type(SolverType::SOLVER_TYPE_LINEAR_LEAST_SQUARE);
+		bootstrap_request->set_solver_type(SolverType::SOLVER_TYPE_LEVENBERG_MARQUARDT);
 
 		std::unique_ptr<CurveBuilderService> bootstrapper =
 		    get_curve_builder_service(std::string(pricing_script));

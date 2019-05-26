@@ -14,6 +14,16 @@
 local date, date_parts = redukti.date, redukti.date_parts
 local index = redukti.index
 
+local bond_templates = {
+	USD_6M = {
+		payment_calendar = "USNY",
+		start_delay = 2,
+		fixed_day_fraction = "ACT/ACT.ISDA",
+		payment_day_convention = "MODFOLLOWING",
+		fixed_payment_frequency = "6M"
+	}
+}
+
 local deposit_templates = {
   USD_FEDFUND = {
     payment_calendar = "USNY",
@@ -532,9 +542,116 @@ function test_deposit_rate()
 	print(flows)
 end
 
+-- price a bond with par value of 100, and tenor 6M
+-- instrument_id must be made up of issue_date:maturity_date:clean_price
+-- par_rate must the coupon rate
+-- TODO make par value, frequency a parameter
+-- TODO and refactor this to a wrapper function
+function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, tenor, inst_id: string, coupon_rate: number)
+
+	local issue_date, maturity_date, clean_price_str = string.match(inst_id, "([%d-]+):([%d-]+):([%d.]+)")
+	if not issue_date or
+		not maturity_date or
+		not clean_price_str then
+		error("Instrument id is not in correct format")
+		return nil
+	end
+
+	-- retrieve a template
+	-- if tenor specifi template is not found then
+	-- look for a generic template for the given index and currency
+
+	local tenor = '6M'
+	local template = bond_templates[ccy .. '_' .. tenor]
+	if not template then
+		error("template for not found for " .. ccy .. '_' .. tenor)
+		return nil
+	end
+  
+  local units = 10000 -- to make the notional = 1m
+  local notional: number = 100.0
+  local clean_price: number = tonumber(clean_price_str)
+  local fixed_rate: number = coupon_rate
+	local calendar = redukti.calendar(template.payment_calendar)
+	if not calendar then
+		return nil
+	end
+
+  -- bond effective date - may be in the past
+	local start_date: integer = redukti.date(issue_date)
+
+	-- bond maturity date
+	local maturity_date: integer = redukti.date(maturity_date)
+
+	local roll_day, roll_month, roll_year = redukti.date_parts(maturity_date)
+
+	local S = {}
+	S.effective_date = start_date
+	S.termination_date = maturity_date
+	S.payment_business_centers = template.payment_calendar
+	S.payment_day_convention = template.payment_day_convention
+	S.payment_frequency = template.fixed_payment_frequency
+	S.stub_type = 'f'
+	S.roll_convention = roll_day >= 30 and 'EOM' or roll_day
+
+	local cutoff_date: integer = calendar:advance(today, template.start_delay)
+	local fixstarts: integer[], fixends: integer[], fixpays: integer[] = redukti.schedule(S)
+	assert(fixstarts ~= nil)
+  
+	--for i = 1,#fixstarts do
+	-- print("Start " .. fixstarts[i] .. " end " .. fixends[i] .. " pay on " .. fixpays[i] .. ' Cutoff? ' .. (fixpays[i] > cutoff_date and 'N' or 'Y'))
+	--end
+
+	local daycount = redukti.dayfraction(template.fixed_day_fraction)
+	if not daycount then
+		return nil
+	end
+
+	local fixscalars: number[] = {}
+	local i
+	for i = 1,#fixstarts do
+    	fixscalars[i] = notional * units * fixed_rate * 
+       		@number daycount:fraction(fixstarts[i], fixends[i])
+	end
+
+	local cfstream = {}	
+	local cfcollection = { cfstream }
+
+	cfstream[1] = {
+		type = 'simple',
+		currency = ccy,
+		amount = -clean_price * units,
+		payment_date = today
+	}
+	cfstream[2] = {
+		type = 'simple',
+		currency = ccy,
+		amount = notional * units,
+		payment_date = maturity_date		
+	}
+	local j = 3
+	for i = 1,#fixscalars do
+		if fixpays[i] >= cutoff_date then
+			cfstream[j] = {
+				type = 'simple',
+				currency = ccy,
+				amount = fixscalars[i],
+				payment_date = fixpays[i]		
+			}
+			j = j + 1
+		end
+	end
+
+	local flows = redukti.cashflows(cfcollection)
+    -- print(flows)
+	return maturity_date, flows
+end
+
 --test_swap_rate_sc()
 --test_swap_rate()
 --test_imm_future()
 --test_fra()
 --test_deposit_rate()
 print 'Bootstrapper Pricing Script Loaded Ok'
+
+--fixed_bond_100_6M(39706, 'USD', 'FEDFUND', nil, '15-03-2005:31-08-2010:100.390625', 0.02375)
