@@ -52,7 +52,7 @@ class DayFraction
 	// 	minus calculation period frequency (roll convention NONE),
 	// 	else adjusted start date
 	// refEnd - If regular period or front stub then adjusted end date,
-	// 	else adjusted start date minus calculation period
+	// 	else adjusted start date plus calculation period
 	// 	frequency (roll convention NONE)
 	virtual double year_fraction(Date d1, Date d2, Date refStart, Date refEnd) const = 0;
 

@@ -625,7 +625,15 @@ static int build_schedule(lua_State *L)
 			endarray[i + 1] = schedule.adjusted_end_dates(i);
 			payarray[i + 1] = schedule.adjusted_payment_dates(i);
 		}
-		return 3;
+		const char *has_stubs = "n";
+		if (schedule.has_front_stub() && schedule.has_back_stub())
+			has_stubs = "a";
+		else if (schedule.has_front_stub())
+			has_stubs = "f";
+		else if (schedule.has_back_stub())
+			has_stubs = "b";
+		lua_pushstring(L, has_stubs);
+		return 4;
 	}
 	luaL_error(L, "failed to build schedule: %s", error_message(status_code));
 	return 0;
@@ -1085,8 +1093,26 @@ static int day_fraction_evaluate(lua_State *L)
 	luaL_argcheck(L, is_valid_date(start), 2, "invalid date");
 	lua_Integer end = luaL_checkinteger(L, 3);
 	luaL_argcheck(L, is_valid_date(end), 3, "invalid date");
-	// TODO check for errors
-	lua_pushnumber(L, fraction->fraction->year_fraction(start, end));
+	if (fraction->fraction->id() == DayCountFraction::THIRTYE_360_ISDA) {
+		int isfinal = (int)luaL_checkinteger(L, 4);
+		// TODO check for errors
+		lua_pushnumber(L, fraction->fraction->year_fraction(start, end, isfinal != 0));
+	} else if (fraction->fraction->id() == DayCountFraction::ACT_ACT_ISMA) {
+		lua_Integer refStart = start;
+		lua_Integer refEnd = end;
+		if (lua_gettop(L) == 4) {
+			refStart = luaL_checkinteger(L, 4);
+			luaL_argcheck(L, is_valid_date(refStart), 4, "invalid date");
+		}
+		if (lua_gettop(L) == 5) {
+			refEnd = luaL_checkinteger(L, 5);
+			luaL_argcheck(L, is_valid_date(refEnd), 5, "invalid date");
+		}
+		lua_pushnumber(L, fraction->fraction->year_fraction(start, end, refStart, refEnd));
+	} else {
+		// TODO check for errors
+		lua_pushnumber(L, fraction->fraction->year_fraction(start, end));
+	}
 	return 1;
 }
 
@@ -1243,8 +1269,8 @@ static int future_imm_dates(lua_State *L)
 			   future_expiry);
 	else {
 		Date start = sub(expiry, Period(3, PeriodUnit::MONTHS));
-		expiry = adjust_date(expiry, rc);
-		start = adjust_date(start, rc);
+		expiry = adjust_date(expiry, rc, 0);
+		start = adjust_date(start, rc, 0);
 
 		lua_pushinteger(L, start);
 		lua_pushinteger(L, expiry);

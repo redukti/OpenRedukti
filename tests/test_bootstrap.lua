@@ -14,7 +14,8 @@
 
 local business_date = redukti.date('2012/12/11')
 local utils = assert(require('utils'))
-local result, errmsg = utils.build_curves(business_date, '../testdata/20121211/curve_definitions.csv', '../testdata/20121211/par_rates.csv')
+local result, errmsg = utils.build_curves(business_date, '../testdata/20121211/curve_definitions.csv', 
+	'../testdata/20121211/par_rates.csv', {7,8,9,10})
 if not result:ok() then print(v) end
 assert(result:ok())
 

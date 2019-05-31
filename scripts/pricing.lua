@@ -18,7 +18,7 @@ local bond_templates = {
 	USD_6M = {
 		payment_calendar = "USNY",
 		start_delay = 2,
-		fixed_day_fraction = "ACT/ACT.ISDA",
+		fixed_day_fraction = "ACT/ACT.ISMA",
 		payment_day_convention = "MODFOLLOWING",
 		fixed_payment_frequency = "6M"
 	}
@@ -591,11 +591,12 @@ function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, te
 	S.payment_business_centers = template.payment_calendar
 	S.payment_day_convention = template.payment_day_convention
 	S.payment_frequency = template.fixed_payment_frequency
+	S.calculation_day_convention = 'N'
 	S.stub_type = 'f'
-	S.roll_convention = roll_day >= 30 and 'EOM' or roll_day
+	--S.roll_convention = roll_day >= 30 and 'EOM' or roll_day
 
 	local cutoff_date: integer = calendar:advance(today, template.start_delay)
-	local fixstarts: integer[], fixends: integer[], fixpays: integer[] = redukti.schedule(S)
+	local fixstarts: integer[], fixends: integer[], fixpays: integer[], stubtype: string = redukti.schedule(S)
 	assert(fixstarts ~= nil)
   
 	--for i = 1,#fixstarts do
@@ -610,8 +611,23 @@ function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, te
 	local fixscalars: number[] = {}
 	local i
 	for i = 1,#fixstarts do
-    	fixscalars[i] = notional * units * fixed_rate * 
-       		@number daycount:fraction(fixstarts[i], fixends[i])
+		if (template.fixed_day_fraction == 'ACT/ACT.ISMA') then
+			local refstart: integer
+			local refend: integer
+			if i < #fixstarts then
+				refstart = redukti.addperiod(fixends[i], '-' .. template.fixed_payment_frequency)
+				refend = fixends[i]
+			else
+				refstart = fixstarts[i]
+				refend = redukti.addperiod(fixstarts[i], template.fixed_payment_frequency)
+			end
+	    	fixscalars[i] = notional * units * fixed_rate * 
+    	   		@number daycount:fraction(fixstarts[i], fixends[i], refstart, refend)
+			print("Start " .. fixstarts[i] .. " end " .. fixends[i] .. " refstart " .. refstart .. ' refend ' .. refend)
+		else
+	    	fixscalars[i] = notional * units * fixed_rate * 
+    	   		@number daycount:fraction(fixstarts[i], fixends[i])
+    	end
 	end
 
 	local cfstream = {}	

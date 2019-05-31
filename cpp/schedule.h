@@ -38,7 +38,7 @@ class Schedule;
 extern StatusCode build_schedule(ScheduleParameters &params, Schedule &schedule) noexcept;
 
 // Adjusts a date as per roll convention specified
-extern Date adjust_date(Date d, RollConvention rc) noexcept;
+extern Date adjust_date(Date d, RollConvention rc, int roll_date) noexcept;
 
 extern int test_schedule_generation();
 } // namespace redukti

@@ -26,7 +26,7 @@
 namespace redukti
 {
 
-Date adjust_date(Date d, RollConvention rc) noexcept
+Date adjust_date(Date d, RollConvention rc, int roll_date) noexcept
 {
 	auto ymd = date_components(d);
 	switch (rc) {
@@ -47,7 +47,15 @@ Date adjust_date(Date d, RollConvention rc) noexcept
 		// (http://www.sfe.com.au/content/sfe/trading/con_specs.pdf)
 		return next_weekday(make_date(10, ymd.m, ymd.y), Wednesday);
 	default:
-		return d;
+		if (roll_date == 31)
+			return end_of_month(ymd.y, ymd.m);
+		int temp = last_day_of_month(ymd.y, ymd.m);
+		if (roll_date > temp)
+			roll_date = temp;
+		if (roll_date == ymd.d)
+			return d;
+		else
+			return make_date(roll_date, ymd.m, ymd.y);
 	}
 }
 
@@ -147,6 +155,17 @@ class ScheduleHelper
 		return false;
 	}
 
+	bool has_back_stub(ScheduleParameters &params) noexcept
+	{
+		if (is_valid_date(params.last_regular_period_end_date())) {
+			return true;
+		}
+		if (params.stub_location() == SHORT_BACK_STUB || params.stub_location() == LONG_BACK_STUB) {
+			return true;
+		}
+		return false;
+	}
+
 	bool has_no_stubs(ScheduleParameters &params) noexcept
 	{
 		if (!is_valid_date(params.first_regular_period_start_date()) &&
@@ -168,12 +187,12 @@ class ScheduleHelper
 			result = build_zero_coupon(params, periods);
 		} else if (has_front_stub(params)) {
 			result = generate_backward(params, periods);
-		} else {
+		} else if (has_back_stub(params)) {
 			result = generate_forward(params, periods);
+		} else {
+			result = generate_backward(params, periods);
 		}
 		// Fix up stub period - i.e. make long stub if requested
-		// Set PaymentPeriods()
-		// Adjust dates
 		return result;
 	}
 
@@ -194,10 +213,11 @@ class ScheduleHelper
 		}
 		if (params.roll_convention() != RollConvention::ROLL_CONVENTION_NONE &&
 		    params.roll_convention() != RollConvention::ROLL_CONVENTION_DEFAULT) {
-			if (regStart != adjust_date(regStart, params.roll_convention())) {
+			if (regStart != adjust_date(regStart, params.roll_convention(), 0)) {
 				return StatusCode::kSCH_FirstRegularStartDateInconsistent;
 			}
 		}
+		int roll_date = date_components(regStart).d;
 		Date regEnd = params.termination_date();
 		if (is_valid_date(params.last_regular_period_end_date()) &&
 		    params.last_regular_period_end_date() < regEnd) {
@@ -205,10 +225,7 @@ class ScheduleHelper
 		}
 		while (regStart < regEnd) {
 			Date periodEnd = add(regStart, Period::tenor_to_period(params.calculation_frequency()));
-			if (params.roll_convention() != RollConvention::ROLL_CONVENTION_NONE &&
-			    params.roll_convention() != RollConvention::ROLL_CONVENTION_DEFAULT) {
-				periodEnd = adjust_date(periodEnd, params.roll_convention());
-			}
+			periodEnd = adjust_date(periodEnd, params.roll_convention(), roll_date);
 			if (periodEnd > regEnd) {
 				break;
 			}
@@ -237,10 +254,11 @@ class ScheduleHelper
 		}
 		if (params.roll_convention() != RollConvention::ROLL_CONVENTION_NONE &&
 		    params.roll_convention() != RollConvention::ROLL_CONVENTION_DEFAULT) {
-			if (regEnd != adjust_date(regEnd, params.roll_convention())) {
+			if (regEnd != adjust_date(regEnd, params.roll_convention(), 0)) {
 				return StatusCode::kSCH_LastRegularEndDateInconsistent;
 			}
 		}
+		int roll_date = date_components(regEnd).d;
 		Date regStart = params.effective_date();
 		if (is_valid_date(params.first_regular_period_start_date()) &&
 		    params.first_regular_period_start_date() > regStart) {
@@ -248,10 +266,7 @@ class ScheduleHelper
 		}
 		while (regEnd > regStart) {
 			Date periodStart = sub(regEnd, Period::tenor_to_period(params.calculation_frequency()));
-			if (params.roll_convention() != RollConvention::ROLL_CONVENTION_NONE &&
-			    params.roll_convention() != RollConvention::ROLL_CONVENTION_DEFAULT) {
-				periodStart = adjust_date(periodStart, params.roll_convention());
-			}
+			periodStart = adjust_date(periodStart, params.roll_convention(), roll_date);
 			if (periodStart < regStart) {
 				break;
 			}
@@ -327,10 +342,13 @@ class ScheduleHelper
 				p.adjusted_start(
 				    period_calendar->adjust(p.unadjusted_start(), params.period_convention()));
 				p.adjusted_end(period_calendar->adjust(p.unadjusted_end(), params.period_convention()));
-				if (p.is_payment() && payment_calendar != nullptr &&
-				    params.payment_convention() != BusinessDayConvention::UNADJUSTED &&
-				    params.payment_convention() !=
-					BusinessDayConvention::BUSINESS_DAY_CONVENTION_UNSPECIFIED) {
+			}
+		}
+
+		if (payment_calendar != nullptr && params.payment_convention() != BusinessDayConvention::UNADJUSTED &&
+		    params.payment_convention() != BusinessDayConvention::BUSINESS_DAY_CONVENTION_UNSPECIFIED) {
+			for (CalculationPeriod &p : periods) {
+				if (p.is_payment()) {
 					auto paydate =
 					    payment_calendar->adjust(p.adjusted_end(), params.payment_convention());
 					if (params.payment_lag() != 0)
