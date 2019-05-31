@@ -15,7 +15,7 @@ local date, date_parts = redukti.date, redukti.date_parts
 local index = redukti.index
 
 local bond_templates = {
-	USD_6M = {
+	USD_GOVT_BOND_6M = {
 		payment_calendar = "USNY",
 		start_delay = 2,
 		fixed_day_fraction = "ACT/ACT.ISMA",
@@ -48,6 +48,11 @@ local deposit_templates = {
   },
   EUR_EURIBOR_6M = {
     payment_calendar = "EUTA",
+  },
+  USD_GOVT_BOND = {
+    payment_calendar = "USNY",
+	start_delay = 0,
+	fixed_day_fraction = 'ACT/365.FIXED',
   }
 }
 
@@ -199,15 +204,25 @@ function deposit_rate(business_date: integer, ccy, index_family, tenor, inst_id,
 	end
 	local day_count = 'ACT/365.FIXED' 
 	local start_delay = 0
-	if (ccy ~= 'GBP') then
-		if (inst_id == '1D') then
-			start_delay = 0
-		elseif (inst_id == '2D') then
-			start_delay = 1
-		else
-			start_delay = 2
+	if template.start_delay then
+		start_delay = template.start_delay
+	else
+		if (ccy ~= 'GBP') then
+			if (inst_id == '1D') then
+				start_delay = 0
+			elseif (inst_id == '2D') then
+				start_delay = 1
+			else
+				start_delay = 2
+			end
 		end
-		day_count = 'ACT/360'
+	end
+	if template.fixed_day_fraction then
+		day_count = template.fixed_day_fraction
+	else
+		if (ccy ~= 'GBP') then
+			day_count = 'ACT/360'
+		end
 	end
 	local calendar = redukti.calendar(template.payment_calendar)
 	if not calendar then
@@ -215,7 +230,7 @@ function deposit_rate(business_date: integer, ccy, index_family, tenor, inst_id,
 		return nil
 	end
 
-	local index = redukti.index(ccy, index_family, inst_id)
+	--local index = redukti.index(ccy, index_family, inst_id)
 	
 	local notional: number = 1000000.0
 	local start_date: integer = calendar:advance(business_date, start_delay)
@@ -562,22 +577,22 @@ function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, te
 	-- look for a generic template for the given index and currency
 
 	local tenor = '6M'
-	local template = bond_templates[ccy .. '_' .. tenor]
+	local template = bond_templates[ccy .. '_' .. index_family .. '_' .. tenor]
 	if not template then
-		error("template for not found for " .. ccy .. '_' .. tenor)
+		error("template for not found for " .. ccy .. '_' .. index_family .. '_' .. tenor)
 		return nil
 	end
   
-  local units = 10000 -- to make the notional = 1m
-  local notional: number = 100.0
-  local clean_price: number = tonumber(clean_price_str)
-  local fixed_rate: number = coupon_rate
+	local units = 10000 -- to make the notional = 1m
+	local notional: number = 100.0
+	local clean_price: number = tonumber(clean_price_str)
+	local fixed_rate: number = coupon_rate
 	local calendar = redukti.calendar(template.payment_calendar)
 	if not calendar then
 		return nil
 	end
 
-  -- bond effective date - may be in the past
+	-- bond effective date - may be in the past
 	local start_date: integer = redukti.date(issue_date)
 
 	-- bond maturity date
@@ -623,7 +638,7 @@ function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, te
 			end
 	    	fixscalars[i] = notional * units * fixed_rate * 
     	   		@number daycount:fraction(fixstarts[i], fixends[i], refstart, refend)
-			print("Start " .. fixstarts[i] .. " end " .. fixends[i] .. " refstart " .. refstart .. ' refend ' .. refend)
+			--print("Start " .. fixstarts[i] .. " end " .. fixends[i] .. " refstart " .. refstart .. ' refend ' .. refend)
 		else
 	    	fixscalars[i] = notional * units * fixed_rate * 
     	   		@number daycount:fraction(fixstarts[i], fixends[i])

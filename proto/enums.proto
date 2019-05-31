@@ -31,6 +31,7 @@ enum StandardResponseCode {
 
 // Currencies - we use enums as more efficient 
 // communication formats
+// Note that max value allowed is 31
 enum Currency {
 	CURRENCY_UNSPECIFIED = 0;
 	USD = 1;
@@ -55,6 +56,10 @@ enum Currency {
 
 // Index names closely matching those
 // used in FpML messages
+// We should probably rename this
+// to IsdaFloatingRateIndex as it only
+// references floating rate indices
+// (including Inflation indices)
 enum IsdaIndex {
 	ISDA_INDEX_UNSPECIFIED = 0;
 	AUD_AONIA_OIS_COMPOUND = 1;
@@ -101,6 +106,10 @@ enum IsdaIndex {
 
 // Index family is used to define a group of
 // indices
+// TODO we should rename this to maybe CurveFamily
+// as this should cover Bond and Repo
+// curves too
+// Note that max value alowed is 63 (6 bits)
 enum IndexFamily {
 	INDEX_FAMILY_UNSPECIFIED = 0;
 	LIBOR = 1;
@@ -128,6 +137,8 @@ enum IndexFamily {
 	BA = 23;
 	USDMXNBASIS = 24;
 	TIIE = 25;
+	GOVT_BOND = 26;
+	REPO_CURVE = 27;
 }
 
 // Day Count Fraction names based upon equivalent
@@ -209,9 +220,11 @@ enum BusinessDayConvention {
 // 2. Secondly the conversion from other representations
 //    to / from tenors is coded around this so changing
 //    the tenors means changing the conversion code
-// 3. OpennRedukti only handles tenors that are coded
+// 3. OpenRedukti only handles tenors that are coded
 //    here - so if a tenor is not defined here it cannot
-//    be used.    
+//    be used.
+//
+// Note that max value allowed is 127 (7 bits)    
 enum Tenor {
 	TENOR_UNSPECIFIED = 0;
 	TENOR_1D = 1;

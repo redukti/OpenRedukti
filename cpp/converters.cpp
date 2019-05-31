@@ -141,11 +141,11 @@ static std::pair<const char *, BusinessCenter> business_centers[] = {
 };
 
 static std::pair<const char *, IndexFamily> indices[] = {
-    {"LIBOR", LIBOR}, {"FEDFUND", FEDFUND}, {"EURIBOR", EURIBOR}, {"SONIA", SONIA}, {"AONIA", AONIA},
-    {"BBSW", BBSW},   {"CDOR", CDOR},       {"CORRA", CORRA},     {"TOIS", TOIS},   {"PRIBOR", PRIBOR},
-    {"CIBOR", CIBOR}, {"HIBOR", HIBOR},     {"BUBOR", BUBOR},     {"TONA", TONA},   {"NIBOR", NIBOR},
-    {"BKBM", BKBM},   {"WIBOR", WIBOR},     {"STIBOR", STIBOR},   {"SOR", SOR},     {"JIBAR", JIBAR},
-    {"EONIA", EONIA}};
+    {"LIBOR", LIBOR}, {"FEDFUND", FEDFUND},     {"EURIBOR", EURIBOR},      {"SONIA", SONIA}, {"AONIA", AONIA},
+    {"BBSW", BBSW},   {"CDOR", CDOR},		{"CORRA", CORRA},	  {"TOIS", TOIS},   {"PRIBOR", PRIBOR},
+    {"CIBOR", CIBOR}, {"HIBOR", HIBOR},		{"BUBOR", BUBOR},	  {"TONA", TONA},   {"NIBOR", NIBOR},
+    {"BKBM", BKBM},   {"WIBOR", WIBOR},		{"STIBOR", STIBOR},	{"SOR", SOR},     {"JIBAR", JIBAR},
+    {"EONIA", EONIA}, {"GOVT_BOND", GOVT_BOND}, {"REPO_CURVE", REPO_CURVE}};
 
 static std::pair<const char *, IsdaIndex> isdaindices[] = {
     {"AUD-BBR-BBSW", IsdaIndex::AUD_BBR_BBSW},

@@ -47,13 +47,20 @@ message ScheduleParameters {
   	sint32 payment_lag = 14;
   	repeated BusinessCenter period_calendars = 15;
   	repeated BusinessCenter payment_calendars = 16;
+  	sint32 ex_coupon_lag = 17;
+  	BusinessDayConvention ex_coupon_convention = 18;
+  	repeated BusinessCenter ex_coupon_calendars = 19;
 }
 
 message Schedule {
+	// TODO review the structure below
 	bool has_front_stub = 1;
 	bool has_back_stub = 2;
 	repeated int32 adjusted_start_dates = 3;
 	repeated int32 adjusted_end_dates = 4;
 	// payment date may be zero if not applicable for a period
-	repeated int32 adjusted_payment_dates = 5; 
+	repeated int32 adjusted_payment_dates = 5;
+	// Days offset from adjusted payment date
+	// to obtain ex coupon date
+	repeated sint32 ex_coupon_date_offsets = 6;
 }

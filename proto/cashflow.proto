@@ -26,8 +26,26 @@ import "enums.proto";
 message CFSimple {
 	Currency currency = 1;
 	double amount = 2;
+	// Adjusted payment date
 	int32 payment_date = 3;
+	// We need to know the floating rate
+	// index on the trade to determine
+	// the discount curve mapping to use
 	IsdaIndex trade_index = 4;
+	// For fixed rate Bond cashflows
+	// we need to have a direct specification
+	// of the Curve Family (called IndexFamily)
+	// so that we can map to the best discount curve
+	// If this is set this should override
+	// derivation via trade_index above.
+	IndexFamily discounting_index_family = 5;
+	// This is the date following which this
+	// cashflow will not be delivered
+	// Used by bonds
+	// Calculated by taking adjusted payment date
+	// and subtracting ex coupon days offset and then
+	// adusting the date
+	int32 ex_coupon_date = 6;
 }
 
 // A floating calculation period
@@ -50,6 +68,21 @@ message CFFloating {
 	CompoundingMethod compounding_method = 3;
 	DayCountFraction day_count_fraction = 4;
 	int32 payment_date = 5;
+	// For floating rate Bond cashflows
+	// we need to have a direct specification
+	// of the Curve Family (called IndexFamily)
+	// so that we can map to the best discount curve
+	// If this is set this should be used to
+	// map the discount curve rather than the
+	// floating rate.
+	IndexFamily discounting_index_family = 6;
+	// This is the date following which this
+	// cashflow will not be delivered
+	// Used by bonds
+	// Calculated by taking adjusted payment date
+	// and subtracting ex coupon days offset and then
+	// adusting the date
+	int32 ex_coupon_date = 7;
 }
 
 // FRA Cashflow

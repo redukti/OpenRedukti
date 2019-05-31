@@ -15,7 +15,7 @@
 -- This particular example is taken from Examples/Bond.cpp
 -- in Quantlib ; our curve doesn't quite match what Quantlib generates
 
-local business_date = redukti.date('2008/09/15')
+local business_date = redukti.date('2008/09/18')
 local utils = assert(require('utils'))
 local result, errmsg = utils.build_curves(business_date, 
 	'../testdata/bond/bond_curve_definitions.txt', 
@@ -38,9 +38,9 @@ local expected_rates = {}
 local expected_factors = {}
 
 expected_maturities[1] = {
-	39799,
-	39889,
-	40073,
+	39800,
+	39890,
+	40074,
 	40421,
 	40786,
 	41517,
@@ -48,25 +48,36 @@ expected_maturities[1] = {
 	50540
 }
 expected_rates[1] = {
-	0.0095860765553337,
-	0.014592250678254,
-	0.019424542573528,
-	0.022192046052709,
-	0.025084854386565,
-	0.030323972407618,
-	0.039050572523723,
-	0.04645600301827
+	0.009588529859942798,
+	0.014448118073675386,
+	0.019214218923804424,
+	0.022333814814160188,
+	0.025213394023920782,
+	0.03041127799766808,
+	0.039079008321177056,
+	0.04645988031116752
 }
 expected_factors[1] = {
-	0.99756050064685,
-	0.99271058289641,
-	0.98065851546356,
-	0.95745927620267,
-	0.92846399296358,
-	0.86031493716342,
-	0.67881742407796,
-	0.2518514143512
+	0.9976122901461,
+	0.99286092194617,
+	0.9809691975672,
+	0.95736913966835,
+	0.92830328689121,
+	0.86015732166091,
+	0.67884396543265,
+	0.25191861109561
 }
+
+-- Above doesn't match what Quantlib generates:
+--Curve node #0 date: 39709 value: 1
+--Curve node #1 date: 39800 value: 0.997612
+--Curve node #2 date: 39890 value: 0.992861
+--Curve node #3 date: 40074 value: 0.980969
+--Curve node #4 date: 40421 value: 0.958714
+--Curve node #5 date: 40786 value: 0.930809
+--Curve node #6 date: 41517 value: 0.861715
+--Curve node #7 date: 43327 value: 0.681765
+--Curve node #8 date: 50540 value: 0.260189
 
 local function compare(a,b)
 	for i = 1,#a do

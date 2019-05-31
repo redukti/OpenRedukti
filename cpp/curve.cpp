@@ -46,8 +46,8 @@ CurveId make_curve_id(PricingCurveType type, Currency ccy, IndexFamily index_fam
 	assert(scenario >= 0 && scenario <= 0xFFF);
 	assert(qual >= 0 && qual <= 1);
 	assert(tenor >= 0 && tenor <= 0x7F);
-	assert(ccy >= 0 && ccy <= Currency::PLN && ccy <= 0x1F);
-	assert(index_family >= 0 && index_family <= IndexFamily::TIIE && index_family <= 0x3F);
+	assert(ccy >= 0 && ccy <= Currency_MAX && ccy <= 0x1F);
+	assert(index_family >= 0 && index_family <= IndexFamily_MAX && index_family <= 0x3F);
 	assert(type >= 0 && type <= 3);
 	CurveId id = ((uint64_t)ccy & 0x1F) | (((uint64_t)index_family & 0x3F) << 5) |
 		     (((uint64_t)tenor & 0x7F) << 11) | (((uint64_t)as_of_date & 0xFFFFFF) << 18) |
@@ -66,9 +66,8 @@ bool curve_id_components(CurveId id, PricingCurveType &type, Currency &ccy, Inde
 	qual = (MarketDataQualifier)((id >> 49) & 0x1);
 	scenario = (short int)((id >> 50) & 0xFFF);
 	type = (PricingCurveType)((id >> 62) & 0x3);
-	if (ccy < 0 || ccy > Currency::PLN || index_family < 0 || index_family > IndexFamily::TIIE || tenor < 0 ||
-	    tenor > TENOR_1T || !is_valid_date(as_of_date) || type < 0 ||
-	    type > PricingCurveType::PRICING_CURVE_TYPE_DISCOUNT)
+	if (!Currency_IsValid(ccy) || !IndexFamily_IsValid(index_family) || !Tenor_IsValid(tenor) ||
+	    !is_valid_date(as_of_date) || !PricingCurveType_IsValid(type))
 		return false;
 	return true;
 }

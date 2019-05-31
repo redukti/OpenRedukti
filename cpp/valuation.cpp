@@ -732,6 +732,8 @@ class ValuationServiceImpl : public ValuationService
 					    make_curve(request->as_of_date(), defn, curve, derive_order,
 						       PRICING_CURVE_TYPE_FORWARD, request->qualifier(),
 						       (short)request->cycle(), (short)request->scenario());
+					auto curve_id = yieldcurve->id();
+					debug("Registered curve %s\n", curve_id_to_string(curve_id).c_str());
 					group->add(std::move(yieldcurve), defn->id());
 				}
 				for (int i = 0; i < request->discount_curves_size(); i++) {
@@ -742,6 +744,8 @@ class ValuationServiceImpl : public ValuationService
 					    make_curve(request->as_of_date(), defn, curve, derive_order,
 						       PRICING_CURVE_TYPE_DISCOUNT, request->qualifier(),
 						       (short)request->cycle(), (short)request->scenario());
+					auto curve_id = yieldcurve->id();
+					debug("Registered curve %s\n", curve_id_to_string(curve_id).c_str());
 					group->add(std::move(yieldcurve), defn->id());
 				}
 				for (int i = 0; i < request->par_sensitivities_size(); i++) {
