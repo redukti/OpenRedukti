@@ -624,6 +624,8 @@ function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, te
 	end
 
 	local fixscalars: number[] = {}
+	local refstarts: integer[] = {}
+	local refends:   integer[] = {}
 	local i
 	for i = 1,#fixstarts do
 		if (template.fixed_day_fraction == 'ACT/ACT.ISMA') then
@@ -636,12 +638,16 @@ function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, te
 				refstart = fixstarts[i]
 				refend = redukti.addperiod(fixstarts[i], template.fixed_payment_frequency)
 			end
+			refstarts[i] = refstart
+			refends[i]   = refend
 	    	fixscalars[i] = notional * units * fixed_rate * 
     	   		@number daycount:fraction(fixstarts[i], fixends[i], refstart, refend)
 			--print("Start " .. fixstarts[i] .. " end " .. fixends[i] .. " refstart " .. refstart .. ' refend ' .. refend)
 		else
 	    	fixscalars[i] = notional * units * fixed_rate * 
     	   		@number daycount:fraction(fixstarts[i], fixends[i])
+		refstarts[i] = fixstarts[i]
+		refends[i]   = fixends[i]
     	end
 	end
 
@@ -661,8 +667,30 @@ function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, te
 		payment_date = maturity_date		
 	}
 	local j = 3
+	local found_first_coupon = false
 	for i = 1,#fixscalars do
 		if fixpays[i] >= cutoff_date then
+			if not found_first_coupon then
+				found_first_coupon = true 
+				-- Calculate accrued interest
+				local accrual_end = math.min(today, fixends[i])
+				local day_count: number
+				if (template.fixed_day_fraction == 'ACT/ACT.ISMA') then
+					day_count = @number daycount:fraction(fixstarts[i], accrual_end, refstarts[i], refends[i])
+				else
+					day_count = @number daycount:fraction(fixstarts[i], accrual_end)
+				end
+				local accrued_interest = notional * units * fixed_rate * day_count
+				-- Since we are calculating clean price we need to subtract
+				-- acrued interest
+				cfstream[j] = {
+					type = 'simple',
+					currency = ccy,
+					amount = -accrued_interest,
+					payment_date = today
+				}
+				j = j + 1
+			end
 			cfstream[j] = {
 				type = 'simple',
 				currency = ccy,

@@ -76,6 +76,7 @@ class TimeSeries
 			value = iter->value();
 			return true;
 		}
+		value = 0.0; // avoid undefined value
 		return false;
 	}
 
