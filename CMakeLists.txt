@@ -19,6 +19,7 @@ endif(WIN32)
 ## -DPROTOBUF_SRC_ROOT_FOLDER=c:\Software\protobuf371d
 
 find_package(Protobuf REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -139,16 +140,49 @@ link_directories("${CMAKE_INSTALL_PREFIX}/lib")
 
 set(PROTO_FILES 
     proto/enums.proto 
+    proto/common.proto
     proto/index.proto 
     proto/schedule.proto 
     proto/cashflow.proto 
     proto/curve.proto
     proto/shared.proto 
     proto/bootstrap.proto 
-    proto/valuation.proto)
+    proto/valuation.proto
+    proto/infra.proto
+    )
+set(GRPC_PROTO_FILES
+	proto/services.proto)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
+get_filename_component(services_proto "proto/services.proto" ABSOLUTE)
+get_filename_component(services_proto_path "${services_proto}" PATH)
+
+message(STATUS "Using gRPC ${gRPC_VERSION}")
+set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
+set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)
+set(_GRPC_GRPCPP_UNSECURE gRPC::grpc++_unsecure)
+set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
+
+set(services_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.cc")
+set(services_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.h")
+set(services_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/services.grpc.pb.cc")
+set(services_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.grpc.pb.h")
+add_custom_command(
+      OUTPUT "${services_proto_srcs}" "${services_proto_hdrs}" "${services_grpc_srcs}" "${services_grpc_hdrs}"
+      COMMAND ${_PROTOBUF_PROTOC}
+      ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+        --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+        -I "${services_proto_path}"
+        --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
+        "${services_proto}"
+DEPENDS "${services_proto}")
+# Include generated *.pb.h files
+include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+include_directories(${gRPC_INCLUDE_DIR})
+if (MSVC)
+	add_definitions(-D_WIN32_WINNT=0x600)
+endif()
 set(CMAKE_CXX_STANDARD 17)
 
 set (SRCS 
@@ -237,6 +271,9 @@ target_link_libraries(openredukti ${Protobuf_LIBRARIES} ${LUA_LIBRARIES}
 if(APPLE)
 	set_target_properties(openredukti PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endif()
+
+add_executable(reduktiserv grpc-server/grpcmain.cpp ${services_proto_srcs} ${services_grpc_srcs})
+target_link_libraries(reduktiserv openredukti ${_GRPC_GRPCPP_UNSECURE} ${_PROTOBUF_LIBPROTOBUF})
 
 add_executable(runtests cpp/runtests.cpp)
 target_link_libraries(runtests openredukti) 

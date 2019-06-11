@@ -1,0 +1,48 @@
+// DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+//
+// Contributor(s):
+//
+// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
+// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
+// Authors: Dibyendu Majumdar
+//
+// Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+//
+// The contents of this file are subject to the the GNU General Public License
+// Version 3 (https://www.gnu.org/licenses/gpl.txt).
+syntax = "proto3";
+
+package redukti;
+option cc_enable_arenas = true;
+option csharp_namespace = "Redukti.Types";
+option java_package = "com.redukti.types";
+option java_multiple_files = true;
+option java_outer_classname = "Types";
+
+import "common.proto";
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+  // Optional delay time in millisecs
+  // If specified the service will cause a delay 
+  // before returning a response.
+  uint32 delay_for = 2;
+  // Optional flag to indicate that
+  // request should be handled by the first 
+  // recipient
+  bool immediate = 3;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
+}
+
+
+message ShutdownRequest {
+	string password = 1;
+}
+
+message ShutdownReply {
+}

@@ -728,7 +728,7 @@ static bool build_cashflow_floating(lua_State *L, CFCollection *cashflows, CFStr
 	char compounding_method_str[80] = {0};
 	char currency_str[10] = {0};
 	char day_count_fraction_str[40] = {0};
-	CompoundingMethod compounding_method = CompoundingMethod::CM_NONE;
+	CompoundingMethod compounding_method = CompoundingMethod::COMPOUNDING_METHOD_NONE;
 	Currency currency = Currency::CURRENCY_UNSPECIFIED;
 	DayCountFraction day_count_fraction = DayCountFraction::DAY_COUNT_FRACTION_UNSPECIFIED;
 	if (table_get_string(L, -1, "compounding_method", compounding_method_str, sizeof compounding_method_str))

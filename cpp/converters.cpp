@@ -507,7 +507,7 @@ class ValueConverter : public Converter
 	CompoundingMethod compounding_method_from_string(const char *s) const override final
 	{
 		if (s == nullptr || *s == 0)
-			return CompoundingMethod::CM_NONE;
+			return CompoundingMethod::COMPOUNDING_METHOD_NONE;
 		else if (strcmp(s, "FLAT") == 0)
 			return CompoundingMethod::FLAT;
 		else if (strcmp(s, "STRAIGHT") == 0)
@@ -515,7 +515,7 @@ class ValueConverter : public Converter
 		else if (strcmp(s, "SPREAD_EXCLUSIVE") == 0)
 			return CompoundingMethod::SPREAD_EXCLUSIVE;
 		else
-			return CompoundingMethod::CM_NONE;
+			return CompoundingMethod::COMPOUNDING_METHOD_NONE;
 	}
 	const char *period_unit_to_string(PeriodUnit value) const override final
 	{

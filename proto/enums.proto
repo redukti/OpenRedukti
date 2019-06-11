@@ -159,7 +159,7 @@ enum DayCountFraction {
 // Compounding methods as defined by FpML
 enum CompoundingMethod {
 	COMPOUNDING_METHOD_UNSPECIFIED = 0;
-	CM_NONE = 1;
+	COMPOUNDING_METHOD_NONE = 1;
 	FLAT = 2;
 	STRAIGHT = 3;
 	SPREAD_EXCLUSIVE = 4;
