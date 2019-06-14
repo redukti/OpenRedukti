@@ -496,28 +496,24 @@ class ValuationServiceImpl : public ValuationService
 	}
 
 	ResetValuationServiceReply *
-	handle_reset_valuation_service_request(Arena *arena, const ResetValuationServiceRequest *request) final
+	handle_reset_valuation_service_request(const ResetValuationServiceRequest *request, ResetValuationServiceReply *reply) final
 	{
 		std::unique_lock<std::shared_mutex> locked(lock_);
 		this->curves_by_group_.clear();
 		this->curve_definitions_.clear();
 		this->curve_mappers_.clear();
 		this->fixings_data_service_->reset();
-		auto reply = Arena::CreateMessage<ResetValuationServiceReply>(arena);
-		ReplyHeader *header = Arena::CreateMessage<ReplyHeader>(arena);
-		reply->set_allocated_header(header);
+		ReplyHeader *header = reply->mutable_header();
 		header->set_response_code(StandardResponseCode::SRC_OK);
 		inform("Valuation service has been reset");
 		return reply;
 	}
 
 	~ValuationServiceImpl() {}
-	CurveInterpolationReply *handle_curve_interpolation_request(Arena *arena,
-								    const CurveInterpolationRequest *request)
+	CurveInterpolationReply *handle_curve_interpolation_request(
+								    const CurveInterpolationRequest *request, CurveInterpolationReply *reply)
 	{
-		auto reply = Arena::CreateMessage<CurveInterpolationReply>(arena);
-		ReplyHeader *header = Arena::CreateMessage<ReplyHeader>(arena);
-		reply->set_allocated_header(header);
+		ReplyHeader *header = reply->mutable_header();
 		header->set_response_code(StandardResponseCode::SRC_ERROR);
 		header->set_response_message(error_message(StatusCode::kInternalError));
 

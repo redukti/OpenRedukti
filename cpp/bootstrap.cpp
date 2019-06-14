@@ -1377,8 +1377,8 @@ class BootstrapperImpl : public CurveBuilderService
 	public:
 	BootstrapperImpl(std::string script);
 	~BootstrapperImpl() {}
-	BootstrapCurvesReply *handle_bootstrap_request(Arena *arena,
-						       const BootstrapCurvesRequest *request) override final;
+	BootstrapCurvesReply *handle_bootstrap_request(const BootstrapCurvesRequest *request,
+						       BootstrapCurvesReply *reply) override final;
 };
 
 BootstrapperImpl::BootstrapperImpl(std::string script)
@@ -1387,11 +1387,10 @@ BootstrapperImpl::BootstrapperImpl(std::string script)
 	luaok_ = lua_->load_luascript(script);
 }
 
-BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(Arena *arena, const BootstrapCurvesRequest *request)
+BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(const BootstrapCurvesRequest *request,
+								 BootstrapCurvesReply *reply)
 {
-	BootstrapCurvesReply *reply = Arena::CreateMessage<BootstrapCurvesReply>(arena);
-	auto header = Arena::CreateMessage<ReplyHeader>(arena);
-	reply->set_allocated_header(header);
+	auto header = reply->mutable_header();
 	header->set_response_code(StandardResponseCode::SRC_ERROR);
 	header->set_response_message(error_message(StatusCode::kInternalError));
 	// debug("Request %s\n", request->DebugString().c_str());

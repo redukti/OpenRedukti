@@ -32,10 +32,10 @@ class RequestProcessorImpl : public RequestProcessor
 	Response *process(const Request *request, Response* response) override;
 
 	private:
-	Response *make_response(google::protobuf::Arena *arena, const ReplyHeader &reply_header);
+	Response *make_response(const ReplyHeader &reply_header, Response *response);
 	Response *handle_hello_request(const Request *request, Response *response);
-	Response *handle_shutdown_request(google::protobuf::Arena *arena, const Request *request);
-	Response *handle_unknown_request(google::protobuf::Arena *arena, const Request *request);
+	Response *handle_shutdown_request(const Request *request, Response *response);
+	Response *handle_unknown_request(const Request *request, Response *response);
 };
 
 std::unique_ptr<RequestProcessor> get_request_processor(
@@ -64,31 +64,25 @@ Response *RequestProcessorImpl::handle_hello_request(const Request *request, Res
 // The actual shutdown is initiated in the work handler
 // TODO this needs to perform some sort of validation of the request
 // Possibly password verification
-Response *RequestProcessorImpl::handle_shutdown_request(google::protobuf::Arena *arena, const Request *request)
+Response *RequestProcessorImpl::handle_shutdown_request(const Request *request, Response *response)
 {
-	Response *response = google::protobuf::Arena::CreateMessage<Response>(arena);
 	inform("Received shutdown request\n");
-	ResponseHeader *header = google::protobuf::Arena::CreateMessage<ResponseHeader>(arena);
+	ResponseHeader *header = response->mutable_header();
 	header->set_response_code(StandardResponseCode::SRC_OK);
-	response->set_allocated_header(header);
 	return response;
 }
 
-Response *RequestProcessorImpl::handle_unknown_request(google::protobuf::Arena *arena, const Request *request)
+Response *RequestProcessorImpl::handle_unknown_request(const Request *request, Response *response)
 {
-	Response *response = google::protobuf::Arena::CreateMessage<Response>(arena);
-	ResponseHeader *header = google::protobuf::Arena::CreateMessage<ResponseHeader>(arena);
+	ResponseHeader *header = response->mutable_header();
 	header->set_response_code(StandardResponseCode::SRC_UNKNOWN_REQUEST);
-	header->set_response_message("MyCCP.Risk: Unknown request type");
-	response->set_allocated_header(header);
+	header->set_response_message("Unknown request type");
 	return response;
 }
 
-Response *RequestProcessorImpl::make_response(google::protobuf::Arena *arena, const ReplyHeader &reply_header)
+Response *RequestProcessorImpl::make_response(const ReplyHeader &reply_header, Response *response)
 {
-	Response *response = google::protobuf::Arena::CreateMessage<Response>(arena);
-	ResponseHeader *header = google::protobuf::Arena::CreateMessage<ResponseHeader>(arena);
-	response->set_allocated_header(header);
+	ResponseHeader *header = response->mutable_header();
 	header->set_response_code(reply_header.response_code());
 	header->set_response_sub_code(reply_header.response_sub_code());
 	header->set_response_message(reply_header.response_message());
@@ -103,68 +97,63 @@ Response *RequestProcessorImpl::process(const Request *request, Response *respon
 	auto start = std::chrono::high_resolution_clock::now();
 	switch (request->request_case()) {
 	case Request::RequestCase::kHelloRequest: {
-		response = handle_hello_request(arena, request);
+		response = handle_hello_request(request, response);
 		break;
 	}
 	case Request::RequestCase::kShutdownRequest: {
-		response = handle_shutdown_request(arena, request);
+		response = handle_shutdown_request(request, response);
 		break;
 	}
 	case Request::RequestCase::kBootstrapCurvesRequest: {
-		auto reply = bootstrapper_->handle_bootstrap_request(arena, &request->bootstrap_curves_request());
-		response = make_response(arena, reply->header());
-		response->set_allocated_bootstrap_curves_reply(reply);
+		auto reply = bootstrapper_->handle_bootstrap_request(&request->bootstrap_curves_request(), 
+			response->mutable_bootstrap_curves_reply());
+		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kCurveInterpolationRequest: {
 		auto reply = valuation_service_->handle_curve_interpolation_request(
-		    arena, &request->curve_interpolation_request());
-		response = make_response(arena, reply->header());
-		response->set_allocated_curve_interpolation_reply(reply);
+		    &request->curve_interpolation_request(), response->mutable_curve_interpolation_reply());
+		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kResetValuationServiceRequest: {
 		auto reply = valuation_service_->handle_reset_valuation_service_request(
-		    arena, &request->reset_valuation_service_request());
-		response = make_response(arena, reply->header());
-		response->set_allocated_reset_valuation_service_reply(reply);
+		    &request->reset_valuation_service_request(), response->mutable_reset_valuation_service_reply());
+		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kRegisterCurveDefinitionsRequest: {
 		auto reply = valuation_service_->handle_register_curve_definitions_request(
-		    arena, &request->register_curve_definitions_request());
-		response = make_response(arena, reply->header());
-		response->set_allocated_register_curve_definitions_reply(reply);
+		    &request->register_curve_definitions_request(), response->mutable_register_curve_definitions_reply());
+		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kSetZeroCurvesRequest: {
 		auto reply =
-		    valuation_service_->handle_set_zero_curves_request(arena, &request->set_zero_curves_request());
-		response = make_response(arena, reply->header());
-		response->set_allocated_set_zero_curves_reply(reply);
+		    valuation_service_->handle_set_zero_curves_request(&request->set_zero_curves_request(), response->set_zero_curves_reply());
+		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kSetCurveMappingsRequest: {
 		auto reply = valuation_service_->handle_set_curve_mappings_request(
-		    arena, &request->set_curve_mappings_request());
-		response = make_response(arena, reply->header());
-		response->set_allocated_set_curve_mappings_reply(reply);
+		    &request->set_curve_mappings_request(), response->mutable_set_curve_mappings_reply());
+		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kSetFixingsRequest: {
-		auto reply = valuation_service_->handle_set_fixings_request(arena, &request->set_fixings_request());
-		response = make_response(arena, reply->header());
-		response->set_allocated_set_fixings_reply(reply);
+		auto reply = valuation_service_->handle_set_fixings_request(&request->set_fixings_request(),
+			response->mutable_set_fixings_reply());
+		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kValuationRequest: {
-		auto reply = valuation_service_->handle_valuation_request(arena, &request->valuation_request());
-		response = make_response(arena, reply->header());
-		response->set_allocated_valuation_reply(reply);
+		auto reply = valuation_service_->handle_valuation_request(&request->valuation_request(), 
+			response->mutable_valuation_reply());
+		response = make_response(reply->header(), response);
 		break;
 	}
 	default: {
-		response = handle_unknown_request(arena, request);
+		response = handle_unknown_request(request, response);
 		break;
 	}
 	}

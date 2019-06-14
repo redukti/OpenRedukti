@@ -30,8 +30,8 @@ class CurveBuilderService
 {
 	public:
 	virtual ~CurveBuilderService() {}
-	virtual BootstrapCurvesReply *handle_bootstrap_request(google::protobuf::Arena *arena,
-							       const BootstrapCurvesRequest *request) = 0;
+	virtual BootstrapCurvesReply *handle_bootstrap_request(const BootstrapCurvesRequest *request,
+							       BootstrapCurvesReply *reply) = 0;
 };
 
 std::unique_ptr<CurveBuilderService> get_curve_builder_service(std::string script);
