@@ -346,7 +346,7 @@ void pv(FixedRegionAllocator *A, V &accrued_amount, int vars, int order, const N
 		}
 
 		if (!flag) {
-			if (cf->compounding_method != CompoundingMethod::CM_NONE) {
+			if (cf->compounding_method != CompoundingMethod::COMPOUNDING_METHOD_NONE) {
 				if (cf->compounding_method == CompoundingMethod::FLAT) { // Flat
 					// accrual_rate = rate + spread;
 					// accrued_amount += fp->notional *

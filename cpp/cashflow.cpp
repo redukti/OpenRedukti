@@ -269,7 +269,7 @@ FloatingPeriod::FloatingPeriod()
 }
 
 NFloatingCashflow::NFloatingCashflow()
-    : head(nullptr), tail(nullptr), var(-1), compounding_method(CompoundingMethod::CM_NONE)
+    : head(nullptr), tail(nullptr), var(-1), compounding_method(CompoundingMethod::COMPOUNDING_METHOD_NONE)
 {
 }
 void NFloatingCashflow::push_back(FloatingPeriod *fp)
