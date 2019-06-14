@@ -16,6 +16,9 @@
 #ifndef _REDUKTI_VALUATION_H
 #define _REDUKTI_VALUATION_H
 
+#include <index.h>
+#include <calendars.h>
+
 #include <valuation.pb.h>
 
 namespace redukti
@@ -43,6 +46,9 @@ class ValuationService
 	handle_reset_valuation_service_request(google::protobuf::Arena *arena,
 					       const ResetValuationServiceRequest *request) = 0;
 };
+
+std::unique_ptr<ValuationService> get_valuation_service(IndexService *index_service, CalendarService *calendar_service);
+
 } // namespace redukti
 
 #endif

@@ -204,6 +204,7 @@ set (SRCS
 	cpp/logger.cpp
 	cpp/matrix.c
 	cpp/raviapi.cpp
+	cpp/request_processor.cpp
 	cpp/schedule.cpp
 	cpp/sensitivities.cpp
 	cpp/statistics.cpp
@@ -230,6 +231,7 @@ set (HEADERS
 	cpp/linalg.h
 	cpp/logger.h
 	cpp/matrix.h
+	cpp/request_processor.h
 	cpp/schedule.h
 	cpp/statistics.h
 	cpp/status.h
