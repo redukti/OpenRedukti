@@ -1,8 +1,23 @@
-#include <request_processor.h>
+/**
+ * DO NOT REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ *
+ * Contributor(s):
+ *
+ * The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
+ * The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
+ * Authors: Dibyendu Majumdar
+ *
+ * Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
+ *
+ * The contents of this file are subject to the the GNU General Public License
+ * Version 3 (https://www.gnu.org/licenses/gpl.txt).
+ */
+
 #include <bootstrap.h>
-#include <valuation.h>
 #include <cashflow.h>
 #include <logger.h>
+#include <request_processor.h>
+#include <valuation.h>
 
 #include <inttypes.h>
 
@@ -22,14 +37,23 @@ class RequestProcessorImpl : public RequestProcessor
 	private:
 	std::unique_ptr<CurveBuilderService> bootstrapper_;
 	std::unique_ptr<ValuationService> valuation_service_;
+	void *shutdown_data_;
+	void (*shutdown_func_)(void *);
 
 	public:
 	RequestProcessorImpl(std::unique_ptr<CurveBuilderService> bootstrapper,
 			     std::unique_ptr<ValuationService> valuation_service)
-	    : bootstrapper_(std::move(bootstrapper)), valuation_service_(std::move(valuation_service))
+	    : bootstrapper_(std::move(bootstrapper)), valuation_service_(std::move(valuation_service)),
+	      shutdown_data_(nullptr), shutdown_func_(nullptr)
 	{
 	}
-	Response *process(const Request *request, Response* response) override;
+	Response *process(const Request *request, Response *response) override;
+
+	void set_shutdown_handler(void *p, void (*funcptr)(void *))
+	{
+		shutdown_data_ = p;
+		shutdown_func_ = funcptr;
+	}
 
 	private:
 	Response *make_response(const ReplyHeader &reply_header, Response *response);
@@ -38,11 +62,10 @@ class RequestProcessorImpl : public RequestProcessor
 	Response *handle_unknown_request(const Request *request, Response *response);
 };
 
-std::unique_ptr<RequestProcessor> get_request_processor(
-	std::unique_ptr<CurveBuilderService> bootstrapper,
+std::unique_ptr<RequestProcessor> get_request_processor(std::unique_ptr<CurveBuilderService> bootstrapper,
 							std::unique_ptr<ValuationService> valuation_service)
 {
-	return std::make_unique<RequestProcessorImpl>(bootstrapper, valuation_service);
+	return std::make_unique<RequestProcessorImpl>(std::move(bootstrapper), std::move(valuation_service));
 }
 
 Response *RequestProcessorImpl::handle_hello_request(const Request *request, Response *response)
@@ -68,7 +91,14 @@ Response *RequestProcessorImpl::handle_shutdown_request(const Request *request, 
 {
 	inform("Received shutdown request\n");
 	ResponseHeader *header = response->mutable_header();
-	header->set_response_code(StandardResponseCode::SRC_OK);
+	if (shutdown_func_) {
+		// Use a different thread to invoke shutdown
+		header->set_response_code(StandardResponseCode::SRC_OK);
+		std::thread shutdown_thread(shutdown_func_, shutdown_data_);
+	} else {
+		header->set_response_code(StandardResponseCode::SRC_ERROR);
+		header->set_response_message("No shutdown hook defined");
+	}
 	return response;
 }
 
@@ -93,7 +123,6 @@ Response *RequestProcessorImpl::process(const Request *request, Response *respon
 {
 	get_threadspecific_allocators()->reset();
 
-	Response *response = nullptr;
 	auto start = std::chrono::high_resolution_clock::now();
 	switch (request->request_case()) {
 	case Request::RequestCase::kHelloRequest: {
@@ -105,8 +134,8 @@ Response *RequestProcessorImpl::process(const Request *request, Response *respon
 		break;
 	}
 	case Request::RequestCase::kBootstrapCurvesRequest: {
-		auto reply = bootstrapper_->handle_bootstrap_request(&request->bootstrap_curves_request(), 
-			response->mutable_bootstrap_curves_reply());
+		auto reply = bootstrapper_->handle_bootstrap_request(&request->bootstrap_curves_request(),
+								     response->mutable_bootstrap_curves_reply());
 		response = make_response(reply->header(), response);
 		break;
 	}
@@ -124,13 +153,14 @@ Response *RequestProcessorImpl::process(const Request *request, Response *respon
 	}
 	case Request::RequestCase::kRegisterCurveDefinitionsRequest: {
 		auto reply = valuation_service_->handle_register_curve_definitions_request(
-		    &request->register_curve_definitions_request(), response->mutable_register_curve_definitions_reply());
+		    &request->register_curve_definitions_request(),
+		    response->mutable_register_curve_definitions_reply());
 		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kSetZeroCurvesRequest: {
-		auto reply =
-		    valuation_service_->handle_set_zero_curves_request(&request->set_zero_curves_request(), response->set_zero_curves_reply());
+		auto reply = valuation_service_->handle_set_zero_curves_request(
+		    &request->set_zero_curves_request(), response->mutable_set_zero_curves_reply());
 		response = make_response(reply->header(), response);
 		break;
 	}
@@ -142,13 +172,13 @@ Response *RequestProcessorImpl::process(const Request *request, Response *respon
 	}
 	case Request::RequestCase::kSetFixingsRequest: {
 		auto reply = valuation_service_->handle_set_fixings_request(&request->set_fixings_request(),
-			response->mutable_set_fixings_reply());
+									    response->mutable_set_fixings_reply());
 		response = make_response(reply->header(), response);
 		break;
 	}
 	case Request::RequestCase::kValuationRequest: {
-		auto reply = valuation_service_->handle_valuation_request(&request->valuation_request(), 
-			response->mutable_valuation_reply());
+		auto reply = valuation_service_->handle_valuation_request(&request->valuation_request(),
+									  response->mutable_valuation_reply());
 		response = make_response(reply->header(), response);
 		break;
 	}

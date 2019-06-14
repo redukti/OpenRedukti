@@ -312,8 +312,7 @@ class ValuationServiceImpl : public ValuationService
 	// for Zero sensitivities but this is also a convenient place to compute
 	// the Par sensitivities.
 	// TODO consider refactoring
-	StatusCode add_irsensitivities(Arena *arena, CurvesByGroup *curves_by_group, ValuationResult *result,
-				       Sensitivities &sens)
+	StatusCode add_irsensitivities(CurvesByGroup *curves_by_group, ValuationResult *result, Sensitivities &sens)
 	{
 		FixedRegionAllocator *tempalloc = get_threadspecific_allocators()->tempspace_allocator;
 		FixedRegionAllocatorGuard guard(tempalloc);
@@ -495,8 +494,8 @@ class ValuationServiceImpl : public ValuationService
 	{
 	}
 
-	ResetValuationServiceReply *
-	handle_reset_valuation_service_request(const ResetValuationServiceRequest *request, ResetValuationServiceReply *reply) final
+	ResetValuationServiceReply *handle_reset_valuation_service_request(const ResetValuationServiceRequest *request,
+									   ResetValuationServiceReply *reply) final
 	{
 		std::unique_lock<std::shared_mutex> locked(lock_);
 		this->curves_by_group_.clear();
@@ -510,8 +509,8 @@ class ValuationServiceImpl : public ValuationService
 	}
 
 	~ValuationServiceImpl() {}
-	CurveInterpolationReply *handle_curve_interpolation_request(
-								    const CurveInterpolationRequest *request, CurveInterpolationReply *reply)
+	CurveInterpolationReply *handle_curve_interpolation_request(const CurveInterpolationRequest *request,
+								    CurveInterpolationReply *reply)
 	{
 		ReplyHeader *header = reply->mutable_header();
 		header->set_response_code(StandardResponseCode::SRC_ERROR);
@@ -575,12 +574,10 @@ class ValuationServiceImpl : public ValuationService
 		return reply;
 	}
 
-	SetCurveMappingsReply *handle_set_curve_mappings_request(Arena *arena,
-								 const SetCurveMappingsRequest *request) override final
+	SetCurveMappingsReply *handle_set_curve_mappings_request(const SetCurveMappingsRequest *request,
+								 SetCurveMappingsReply *response) override final
 	{
-		SetCurveMappingsReply *response = Arena::CreateMessage<SetCurveMappingsReply>(arena);
-		ReplyHeader *header = Arena::CreateMessage<ReplyHeader>(arena);
-		response->set_allocated_header(header);
+		ReplyHeader *header = response->mutable_header();
 		{
 			std::unique_lock<std::shared_mutex> locked(lock_);
 			auto &&iter = curve_mappers_.find(request->curve_group());
@@ -610,12 +607,10 @@ class ValuationServiceImpl : public ValuationService
 	}
 
 	RegisterCurveDefinitionsReply *
-	handle_register_curve_definitions_request(Arena *arena,
-						  const RegisterCurveDefinitionsRequest *request) override final
+	handle_register_curve_definitions_request(const RegisterCurveDefinitionsRequest *request,
+						  RegisterCurveDefinitionsReply *response) override final
 	{
-		RegisterCurveDefinitionsReply *response = Arena::CreateMessage<RegisterCurveDefinitionsReply>(arena);
-		ReplyHeader *header = Arena::CreateMessage<ReplyHeader>(arena);
-		response->set_allocated_header(header);
+		ReplyHeader *header = response->mutable_header();
 		{
 			std::unique_lock<std::shared_mutex> locked(lock_);
 			for (int i = 0; i < request->curve_definitions_size(); i++) {
@@ -654,12 +649,10 @@ class ValuationServiceImpl : public ValuationService
 		return status;
 	}
 
-	SetZeroCurvesReply *handle_set_zero_curves_request(Arena *arena,
-							   const SetZeroCurvesRequest *request) override final
+	SetZeroCurvesReply *handle_set_zero_curves_request(const SetZeroCurvesRequest *request,
+							   SetZeroCurvesReply *response) override final
 	{
-		SetZeroCurvesReply *response = Arena::CreateMessage<SetZeroCurvesReply>(arena);
-		ReplyHeader *header = Arena::CreateMessage<ReplyHeader>(arena);
-		response->set_allocated_header(header);
+		ReplyHeader *header = response->mutable_header();
 		header->set_response_code(StandardResponseCode::SRC_ERROR);
 		StatusCode status = StatusCode::kOk;
 		if (!is_valid_date(request->as_of_date())) {
@@ -780,11 +773,10 @@ class ValuationServiceImpl : public ValuationService
 		return response;
 	}
 
-	SetFixingsReply *handle_set_fixings_request(Arena *arena, const SetFixingsRequest *request) override final
+	SetFixingsReply *handle_set_fixings_request(const SetFixingsRequest *request,
+						    SetFixingsReply *response) override final
 	{
-		SetFixingsReply *response = Arena::CreateMessage<SetFixingsReply>(arena);
-		ReplyHeader *header = Arena::CreateMessage<ReplyHeader>(arena);
-		response->set_allocated_header(header);
+		ReplyHeader *header = response->mutable_header();
 		header->set_response_code(StandardResponseCode::SRC_ERROR);
 		std::vector<Value> values;
 		auto &fixings = request->fixings_by_index_tenor();
@@ -820,11 +812,10 @@ class ValuationServiceImpl : public ValuationService
 	/**
 	 * Performs valuations of cashflows within a pricing context.
 	 */
-	ValuationReply *handle_valuation_request(Arena *arena, const ValuationRequest *request) override final
+	ValuationReply *handle_valuation_request(const ValuationRequest *request,
+						 ValuationReply *response) override final
 	{
-		ValuationReply *response = Arena::CreateMessage<ValuationReply>(arena);
-		ReplyHeader *header = Arena::CreateMessage<ReplyHeader>(arena);
-		response->set_allocated_header(header);
+		ReplyHeader *header = response->mutable_header();
 		header->set_response_code(StandardResponseCode::SRC_ERROR);
 		if (!request->has_cashflows()) {
 			header->set_response_message(error_message(StatusCode::kVAL_MissingCashflow));
@@ -897,8 +888,7 @@ class ValuationServiceImpl : public ValuationService
 			}
 			StatusCode status = StatusCode::kOk;
 			Sensitivities sens(allocSet->sensitivities_allocator);
-			auto result = Arena::CreateMessage<ValuationResult>(arena);
-			response->set_allocated_result(result);
+			auto result = response->mutable_result();
 			for (int scenario = request->pricing_context().from_scenario();
 			     status == StatusCode::kOk && scenario <= request->pricing_context().to_scenario();
 			     scenario++) {
@@ -914,7 +904,7 @@ class ValuationServiceImpl : public ValuationService
 					header->set_response_message(error_message(status));
 				} else {
 					if (scenario == 0) {
-						add_irsensitivities(arena, curves_by_group, result, sens);
+						add_irsensitivities(curves_by_group, result, sens);
 					}
 					result->mutable_valuations()->insert(
 					    MapPair<google::protobuf::int32, double>(scenario, value));

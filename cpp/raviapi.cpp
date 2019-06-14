@@ -2842,7 +2842,8 @@ static int build_curves(lua_State *L)
 
 		std::unique_ptr<CurveBuilderService> bootstrapper =
 		    get_curve_builder_service(std::string(pricing_script));
-		auto reply = bootstrapper->handle_bootstrap_request(&ptr->arena, bootstrap_request);
+		auto reply = Arena::CreateMessage<BootstrapCurvesReply>(&ptr->arena);
+		bootstrapper->handle_bootstrap_request(bootstrap_request, reply);
 		assert(reply->has_header());
 		if (reply->header().response_code() != StandardResponseCode::SRC_OK) {
 			string_copy(temp, reply->header().response_message().c_str(), sizeof temp);

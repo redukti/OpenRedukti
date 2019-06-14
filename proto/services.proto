@@ -6,10 +6,11 @@
 // The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
 // Authors: Dibyendu Majumdar
 //
-// Copyright 2017 REDUKTI LIMITED. All Rights Reserved.
+// Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
 //
 // The contents of this file are subject to the the GNU General Public License
 // Version 3 (https://www.gnu.org/licenses/gpl.txt).
+
 syntax = "proto3";
 
 package redukti;
@@ -60,6 +61,8 @@ message ResponseHeader {
 // which contains a union of different request types
 // This strategy is adopted so that we can evolve the service 
 // without requiring too many changes in the codebase
+// Missing field numbers are because this is a subset of the
+// full MyCCP services definition
 message Request {
 	RequestHeader header = 1;
 	oneof request {
@@ -78,6 +81,8 @@ message Request {
 
 // Likewise there is common Response wrapper
 // which contains a union of different reply types
+// Missing field numbers are because this is a subset of the
+// full MyCCP services definition
 message Response {
 	ResponseHeader header = 1;
 	oneof response {
@@ -85,6 +90,7 @@ message Response {
 		BootstrapCurvesReply bootstrap_curves_reply = 22;
 		CurveInterpolationReply curve_interpolation_reply = 23;
 		SetCurveMappingsReply set_curve_mappings_reply = 27;
+		SetZeroCurvesReply set_zero_curves_reply = 29;
 		RegisterCurveDefinitionsReply register_curve_definitions_reply = 30;
 		SetFixingsReply set_fixings_reply = 31;
 		ValuationReply valuation_reply = 32;
@@ -96,4 +102,3 @@ message Response {
 service OpenReduktiServices {
 	rpc serve (Request) returns (Response) {}
 }
-
