@@ -10,6 +10,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 if (WIN32)
 	option(USE_OPENBLAS "Controls whether OpenBLAS will be used" ON)
 	option(USE_MKL      "Controls whether Intel MKL will be used" OFF)
+	option(GRPC_SERVER  "Controls whether GRPC server will be built" ON)
 endif(WIN32)
 
 ## On Windows
@@ -19,7 +20,9 @@ endif(WIN32)
 ## -DPROTOBUF_SRC_ROOT_FOLDER=c:\Software\protobuf371d
 
 find_package(Protobuf REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
+if (GRPC_SERVER)
+	find_package(gRPC CONFIG REQUIRED)
+endif()
 include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -150,25 +153,26 @@ set(PROTO_FILES
     proto/valuation.proto
     proto/infra.proto
     )
-set(GRPC_PROTO_FILES
-	proto/services.proto)
-
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
-get_filename_component(services_proto "proto/services.proto" ABSOLUTE)
-get_filename_component(services_proto_path "${services_proto}" PATH)
+if (GRPC_SERVER)
+	set(GRPC_PROTO_FILES
+		proto/services.proto)
 
-message(STATUS "Using gRPC ${gRPC_VERSION}")
-set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
-set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)
-set(_GRPC_GRPCPP_UNSECURE gRPC::grpc++_unsecure)
-set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
+	get_filename_component(services_proto "proto/services.proto" ABSOLUTE)
+	get_filename_component(services_proto_path "${services_proto}" PATH)
 
-set(services_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.cc")
-set(services_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.h")
-set(services_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/services.grpc.pb.cc")
-set(services_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.grpc.pb.h")
-add_custom_command(
+	message(STATUS "Using gRPC ${gRPC_VERSION}")
+	set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
+	set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)
+	set(_GRPC_GRPCPP_UNSECURE gRPC::grpc++_unsecure)
+	set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
+
+	set(services_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.cc")
+	set(services_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.h")
+	set(services_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/services.grpc.pb.cc")
+	set(services_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.grpc.pb.h")
+	add_custom_command(
       OUTPUT "${services_proto_srcs}" "${services_proto_hdrs}" "${services_grpc_srcs}" "${services_grpc_hdrs}"
       COMMAND ${_PROTOBUF_PROTOC}
       ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
@@ -176,14 +180,16 @@ add_custom_command(
         -I "${services_proto_path}"
         --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
         "${services_proto}"
-DEPENDS "${services_proto}")
-# Include generated *.pb.h files
-include_directories("${CMAKE_CURRENT_BINARY_DIR}")
-include_directories(${gRPC_INCLUDE_DIR})
-if (MSVC)
-	add_definitions(-D_WIN32_WINNT=0x600)
+	DEPENDS "${services_proto}")
+	# Include generated *.pb.h files
+	include_directories(${gRPC_INCLUDE_DIR})
+	if (MSVC)
+		add_definitions(-D_WIN32_WINNT=0x600)
+	endif()
 endif()
+
 set(CMAKE_CXX_STANDARD 17)
+include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 set (SRCS 
 	cpp/allocators.cpp
@@ -255,7 +261,11 @@ endif ()
 
 source_group("OpenRedukti Sources" FILES ${SRCS})
 source_group("OpenRedukti Headers" FILES ${HEADERS} ${INTERNAL_HEADERS})
-source_group("Protobuf Headers" FILES ${PROTO_HDRS})
+source_group("Protobuf Headers" FILES ${PROTO_HDRS} ${services_proto_hdrs})
+if (GRPC_SERVER)
+	source_group("GRPC Headers" FILES ${services_grpc_hdrs})
+	source_group("GRPC Sources" FILES ${services_grpc_srcs})
+endif()
 
 if (MSVC)
 	set(LIBRARY_TYPE STATIC)
@@ -274,8 +284,10 @@ if(APPLE)
 	set_target_properties(openredukti PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endif()
 
-add_executable(reduktiserv grpc-server/grpcmain.cpp ${services_proto_srcs} ${services_grpc_srcs})
-target_link_libraries(reduktiserv openredukti ${_GRPC_GRPCPP_UNSECURE} ${_PROTOBUF_LIBPROTOBUF})
+if (GRPC_SERVER)
+	add_executable(reduktiserv grpc-server/grpcmain.cpp ${services_proto_srcs} ${services_grpc_srcs})
+	target_link_libraries(reduktiserv openredukti ${_GRPC_GRPCPP_UNSECURE} ${_PROTOBUF_LIBPROTOBUF})
+endif()
 
 add_executable(runtests cpp/runtests.cpp)
 target_link_libraries(runtests openredukti) 
