@@ -125,7 +125,7 @@ Build gPRC
 This is an optional step. 
 
 On Windows, you can build and install gRPC using `vcpkg`. This is what I did.
-Or else follow instructions at `gRPC C++ Building from source <https://github.com/grpc/grpc/blob/master/BUILDING.md`_.  
+Or else follow instructions at `gRPC C++ Building from source <https://github.com/grpc/grpc/blob/master/BUILDING.md>`_.  
 
 Build OpenRedukti
 -----------------
