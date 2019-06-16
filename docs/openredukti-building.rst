@@ -47,6 +47,7 @@ Note that I had to modify the following in the supplied Makefile:
 
 Then I executed following steps::
 
+	git submodule update --init
 	make
 	make install
 	
@@ -61,9 +62,10 @@ OpenRedukti was built as follows::
 	cd build
 	cmake -DCMAKE_INSTALL_PREFIX=/home/dylan/Software/grpc -DProtobuf_ROOT=/home/dylan/Software/protobuf -DGRPC_SERVER=ON ..	
 
-
 Build Instructions for Ubuntu Linux 18.04 LTS
 =============================================
+
+Following instructions do not build GRPC server.
 
 Pre-Requisites
 --------------
