@@ -12,6 +12,10 @@ OpenRedukti makes use of following external libraries:
 * `LAPACK <http://www.netlib.org/lapack/>`_ is used for Linear Algebra
 * `CMake <https://cmake.org/>`_ is used to generate build scripts 
 
+Optionally if you want to enable a gRPC based server aplication then additional dependency on:
+
+* `gRPC <https://grpc.io/>`_ framework
+
 Build Instructions for Ubuntu Linux 18.04 LTS
 =============================================
 
@@ -41,7 +45,6 @@ Build Instructions for Windows
 ==============================
 These are instructions for building OpenRedukti on Windows 10 64-bit.
 
-
 Setup OpenBLAS and LAPACK
 -------------------------
 These are available as pre-built packages from `Ravi Distribution Dependencies <https://github.com/dibyendumajumdar/ravi-external-libs>`_. 
@@ -51,6 +54,8 @@ If you have your OpenBLAS and LAPACK files installed differently, please review 
 
 Obtain Protocol Buffers via vcpkg
 ---------------------------------
+NOTE: I had to build protobuf locally because I faced some issues with below. (FIXME)
+
 Install `vcpkg <https://github.com/Microsoft/vcpkg>`_.
 We assume below that ``vcpkg`` is installed at ``c:\work\vcpkg``.
 
@@ -67,6 +72,12 @@ Ensure protoc is on the path as follows::
 
     set PATH=C:\work\vcpkg\installed\x64-windows\tools\protobuf;%PATH%
 
+Build gPRC
+----------
+This is an optional step. 
+
+On Windows, you can build and install gRPC using `vcpkg`. This is what I did.
+Or else follow instructions at `gRPC C++ Building from source <https://github.com/grpc/grpc/blob/master/BUILDING.md`_.  
 
 Build OpenRedukti
 -----------------
@@ -74,7 +85,8 @@ Once all of above steps are done, you can build OpenRedukti as follows::
 
 	mkdir build
 	cd build
-	cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Debug ..
+	set PATH=c:\Software\protobuf371d\bin;%PATH%
+	cmake -DPROTOBUF_SRC_ROOT_FOLDER=c:\Software\protobuf371d -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Debug -DgRPC_DIR=c:\work\vcpkg\installed\x64-windows-static-dyncrt\share\grpc -Dc-ares_DIR=c:\work\vcpkg\installed\x64-windows-static-dyncrt\share\c-ares -DCMAKE_INSTALL_PREFIX=c:\Software\OpenRedukti ..
 
 Above creates projects suited for debug build. You can go into VS2017 and do the build from there.
 
