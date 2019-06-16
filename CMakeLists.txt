@@ -34,7 +34,11 @@ else()
 	find_package(LAPACK REQUIRED)
 endif()
 if (GRPC_SERVER)
-	find_package(gRPC CONFIG REQUIRED)
+	if (WIN32)
+		find_package(gRPC CONFIG REQUIRED)
+	else()
+		find_package(GRPC REQUIRED)
+	endif()
 endif()
 
 message( STATUS "Protobuf_LIBRARIES      : " ${Protobuf_LIBRARIES} )
@@ -47,6 +51,7 @@ message( STATUS "OPENBLAS_LIBRARIES      : " ${OPENBLAS_LIBRARIES} )
 message( STATUS "OPENBLAS_INCLUDE_DIRS   : " ${OPENBLAS_INCLUDE_DIRS} )
 message( STATUS "MKL_LIBRARIES           : " ${MKL_LIBRARIES} )
 message( STATUS "MKL_INCLUDE_DIRS        : " ${MKL_INCLUDE_DIRS} )
+message( STATUS "GRPC_LIBRARIES          : " ${GRPC_LIBRARIES} )
 
 # TODO Clang/C2 support  
 if (MSVC AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -138,7 +143,17 @@ set(PROTO_FILES
     )
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
-if (GRPC_SERVER)
+if (GRPC_SERVER AND NOT WIN32)
+	set(GRPC_PROTO_FILES
+		proto/services.proto)
+	PROTOBUF_GENERATE_GRPC_CPP(services_grpc_srcs services_grpc_hdrs ${GRPC_PROTO_FILES})
+	include_directories(${GRPC_INCLUDE_DIR})
+	if (MSVC)
+		add_definitions(-D_WIN32_WINNT=0x600)
+	endif()
+endif()
+
+if (GRPC_SERVER AND WIN32)
 	set(GRPC_PROTO_FILES
 		proto/services.proto)
 
@@ -150,6 +165,8 @@ if (GRPC_SERVER)
 	set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)
 	set(_GRPC_GRPCPP_UNSECURE gRPC::grpc++_unsecure)
 	set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
+
+	set(GRPC_LIBRARIES gRPC::grpc++_unsecure) 
 
 	set(services_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.cc")
 	set(services_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.h")
@@ -270,7 +287,7 @@ endif()
 if (GRPC_SERVER)
 	set(REDUKTISERV reduktiserv)
 	add_executable(${REDUKTISERV} grpc-server/grpcmain.cpp ${services_proto_srcs} ${services_grpc_srcs})
-	target_link_libraries(${REDUKTISERV} openredukti ${_GRPC_GRPCPP_UNSECURE} ${_PROTOBUF_LIBPROTOBUF})
+	target_link_libraries(${REDUKTISERV} openredukti ${GRPC_LIBRARIES} ${Protobuf_LIBRARIES})
 endif()
 
 add_executable(runtests cpp/runtests.cpp)
