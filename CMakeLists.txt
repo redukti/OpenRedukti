@@ -7,10 +7,10 @@ enable_testing()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+option(GRPC_SERVER  "Controls whether GRPC server will be built" OFF)
 if (WIN32)
 	option(USE_OPENBLAS "Controls whether OpenBLAS will be used" ON)
 	option(USE_MKL      "Controls whether Intel MKL will be used" OFF)
-	option(GRPC_SERVER  "Controls whether GRPC server will be built" ON)
 endif(WIN32)
 
 ## On Windows
@@ -20,21 +20,19 @@ endif(WIN32)
 ## -DPROTOBUF_SRC_ROOT_FOLDER=c:\Software\protobuf371d
 
 find_package(Protobuf REQUIRED)
+#LAPACK and BLAS
+if (WIN32)
+	if (USE_OPENBLAS)
+		find_package(OpenBLAS REQUIRED)
+	endif(USE_OPENBLAS)
+	if (USE_MKL)
+		find_package(MKL REQUIRED)
+	endif(USE_MKL)
+else()
+	find_package(LAPACK REQUIRED)
+endif()
 if (GRPC_SERVER)
 	find_package(gRPC CONFIG REQUIRED)
-endif()
-include_directories(${Protobuf_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-#LAPACK and BLAS
-if (USE_OPENBLAS)
-	find_package(OpenBLAS REQUIRED)
-endif(USE_OPENBLAS)
-if (USE_MKL)
-	find_package(MKL REQUIRED)
-endif(USE_MKL)
-if (NOT WIN32)
-	find_package(LAPACK REQUIRED)
 endif()
 
 message( STATUS "Protobuf_LIBRARIES      : " ${Protobuf_LIBRARIES} )
@@ -74,10 +72,7 @@ if (MSVC AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	add_definitions("/wd4996")
 	add_definitions("/wd4291")
 	add_definitions("/wd4624")
-endif ()
-
-
-if (UNIX AND NOT APPLE)
+elseif (UNIX AND NOT APPLE)
 	# -fsanitize=bounds -fsanitize=alignment -fsanitize=object-size
 	# set(SANITIZER_FLAGS "-fsanitize=address")
 	set(CMAKE_C_FLAGS_DEBUG "${SANITIZER_FLAGS} -fno-omit-frame-pointer -std=c99 -O0 -g3 -Wall -Wextra ${CXX_OPTIONS}")
@@ -86,9 +81,7 @@ if (UNIX AND NOT APPLE)
 	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -Wno-sign-compare -std=c++14 -fno-exceptions ${CXX_OPTIONS}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${SANITIZER_FLAGS} -fno-omit-frame-pointer -O0 -g3 -Wall -Wno-sign-compare -std=c++14 -fno-exceptions ${CXX_OPTIONS}")
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${SANITIZER_FLAGS} -O1 -g3 -Wall -Wno-sign-compare -std=c++14 -fno-exceptions ${CXX_OPTIONS}")
-endif ()
-
-if (APPLE)
+elseif (APPLE)
 	set(CMAKE_C_FLAGS "-std=c99 -O1 -g3 -Wall -Wextra")
 	set(CMAKE_C_FLAGS_DEBUG "-std=c99 -O0 -g3 -Wall -Wextra")
 	set(CMAKE_C_FLAGS_RELEASE "-std=c99 -O3 -Wall -Wextra")
@@ -102,8 +95,6 @@ endif ()
 include( cmake/ravi.cmake )
 include( cmake/cminpack.cmake )
 
-include_directories("${PROJECT_SOURCE_DIR}/cpp")
-
 if (WIN32)
 	# LAPACK defines  
 	add_definitions(-DADD_)
@@ -111,35 +102,24 @@ if (WIN32)
 	add_definitions(-DLAPACK_COMPLEX_STRUCTURE)
 	if (USE_OPENBLAS)
 		add_definitions(-DUSE_OPENBLAS)
-	endif()
-	if (USE_MKL)
-		add_definitions(-DUSE_MKL)
-	endif()
-endif()
-if (UNIX AND NOT APPLE)
-	# FIXME 
-	include_directories(/usr/include/openblas)
-	add_definitions(-DUSE_OPENBLAS)
-endif()
-if (APPLE)
-	include_directories("/System/Library/Frameworks")
-endif()
-
-if (WIN32)
-	if (USE_OPENBLAS)
 		include_directories("${OPENBLAS_INCLUDE_DIRS}")
 		set(LAPACK_LIBRARIES "${LAPACK_LIBRARIES};${OPENBLAS_LIBRARIES}")
 	elseif (USE_MKL)
+		add_definitions(-DUSE_MKL)
 		include_directories("${MKL_INCLUDE_DIRS}")
 		set(LAPACK_LIBRARIES "${MKL_LIBRARIES}")
 	else()
 		set(LAPACK_LIBRARIES "liblapack.lib;libblas.lib")
 	endif()
-elseif(APPLE)
-else()
+elseif (UNIX AND NOT APPLE)
+	# FIXME 
+	include_directories(/usr/include/openblas)
+	add_definitions(-DUSE_OPENBLAS)
+	set(EXTRA_LIBRARIES m dl readline)
+elseif (APPLE)
+	include_directories("/System/Library/Frameworks")
+	set(EXTRA_LIBRARIES m readline)
 endif()
-# FIXME
-link_directories("${CMAKE_INSTALL_PREFIX}/lib")
 
 set(PROTO_FILES 
     proto/enums.proto 
@@ -152,6 +132,7 @@ set(PROTO_FILES
     proto/bootstrap.proto 
     proto/valuation.proto
     proto/infra.proto
+    proto/services.proto
     )
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
@@ -172,11 +153,12 @@ if (GRPC_SERVER)
 	set(services_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.pb.h")
 	set(services_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/services.grpc.pb.cc")
 	set(services_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/services.grpc.pb.h")
+	#         --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+
 	add_custom_command(
       OUTPUT "${services_proto_srcs}" "${services_proto_hdrs}" "${services_grpc_srcs}" "${services_grpc_hdrs}"
       COMMAND ${_PROTOBUF_PROTOC}
       ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
-        --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
         -I "${services_proto_path}"
         --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
         "${services_proto}"
@@ -189,7 +171,12 @@ if (GRPC_SERVER)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
-include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+include_directories("${PROJECT_SOURCE_DIR}/cpp")
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+# FIXME
+link_directories("${CMAKE_INSTALL_PREFIX}/lib")
 
 set (SRCS 
 	cpp/allocators.cpp
@@ -253,12 +240,6 @@ set (INTERNAL_HEADERS
     
 add_definitions(-DPRICING_SCRIPT="${PROJECT_SOURCE_DIR}/scripts/pricing.lua")
 
-if (APPLE)
-	set(EXTRA_LIBRARIES m readline)
-elseif (UNIX)
-	set(EXTRA_LIBRARIES m dl readline)
-endif ()
-
 source_group("OpenRedukti Sources" FILES ${SRCS})
 source_group("OpenRedukti Headers" FILES ${HEADERS} ${INTERNAL_HEADERS})
 source_group("Protobuf Headers" FILES ${PROTO_HDRS} ${services_proto_hdrs})
@@ -285,8 +266,9 @@ if(APPLE)
 endif()
 
 if (GRPC_SERVER)
-	add_executable(reduktiserv grpc-server/grpcmain.cpp ${services_proto_srcs} ${services_grpc_srcs})
-	target_link_libraries(reduktiserv openredukti ${_GRPC_GRPCPP_UNSECURE} ${_PROTOBUF_LIBPROTOBUF})
+	set(REDUKTISERV reduktiserv)
+	add_executable(${REDUKTISERV} grpc-server/grpcmain.cpp ${services_proto_srcs} ${services_grpc_srcs})
+	target_link_libraries(${REDUKTISERV} openredukti ${_GRPC_GRPCPP_UNSECURE} ${_PROTOBUF_LIBPROTOBUF})
 endif()
 
 add_executable(runtests cpp/runtests.cpp)
@@ -303,15 +285,15 @@ add_test(RunTests runtests)
 
 install(FILES ${HEADERS}
 	DESTINATION include/openredukti)
-install(FILES ${PROTO_HDRS}
+install(FILES ${PROTO_HDRS} 
 	DESTINATION include/openredukti/proto)
-install(FILES ${PROTO_FILES}
+install(FILES ${PROTO_FILES} ${GRPC_PROTO_FILES}
 	DESTINATION proto)
 install(FILES ${LUA_HEADERS} 
 	DESTINATION include/ravi)
 install(DIRECTORY scripts/
 	DESTINATION scripts)
-install(TARGETS openredukti dylan
+install(TARGETS openredukti dylan ravidebug ${REDUKTISERV}
 	RUNTIME DESTINATION bin
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib)
