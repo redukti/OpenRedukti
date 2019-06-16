@@ -1,5 +1,7 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.3)
 project(OpenRedukti)
+
+cmake_policy(SET CMP0074 NEW)
 
 enable_language(CXX)
 enable_language(C)
