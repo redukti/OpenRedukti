@@ -60,7 +60,7 @@ OpenRedukti was built as follows::
 
 	mkdir build
 	cd build
-	cmake -DCMAKE_INSTALL_PREFIX=/home/dylan/Software/grpc -DProtobuf_ROOT=/home/dylan/Software/protobuf -DGRPC_SERVER=ON ..	
+	cmake -DCMAKE_INSTALL_PREFIX=$HOME/Software/grpc -DProtobuf_ROOT=$HOME/Software/protobuf -DGRPC_SERVER=ON ..	
 
 Build Instructions for Ubuntu Linux 18.04 LTS
 =============================================
@@ -134,7 +134,7 @@ Once all of above steps are done, you can build OpenRedukti as follows::
 	mkdir build
 	cd build
 	set PATH=c:\Software\protobuf371d\bin;%PATH%
-	cmake -DPROTOBUF_SRC_ROOT_FOLDER=c:\Software\protobuf371d -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Debug -DgRPC_DIR=c:\work\vcpkg\installed\x64-windows-static-dyncrt\share\grpc -Dc-ares_DIR=c:\work\vcpkg\installed\x64-windows-static-dyncrt\share\c-ares -DCMAKE_INSTALL_PREFIX=c:\Software\OpenRedukti ..
+	cmake  -DCMAKE_INSTALL_PREFIX=c:\Software\OpenRedukti -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Debug -DPROTOBUF_SRC_ROOT_FOLDER=c:\Software\protobuf371d -DgRPC_DIR=c:\work\vcpkg\installed\x64-windows-static-dyncrt\share\grpc -Dc-ares_DIR=c:\work\vcpkg\installed\x64-windows-static-dyncrt\share\c-ares ..
 
 Above creates projects suited for debug build. You can go into VS2017 and do the build from there.
 
