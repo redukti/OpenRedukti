@@ -23,6 +23,14 @@ I installed CMake manually.
 
 I built protobuf and grpc manually.
 
+I enabled `EPEL <https://fedoraproject.org/wiki/EPEL>`_ repository as follows::
+
+	subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms"  --enable "rhel-ha-for-rhel-*-server-rpms"
+	
+Above was necessary to obtain openblas which I then installed as follows::
+
+	sudo yum install openblas-devel	
+
 Building protobuf
 -----------------
 
