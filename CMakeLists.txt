@@ -302,12 +302,10 @@ target_link_libraries(ravidebug openredukti)
 
 add_test(RunTests runtests)
 
-install(FILES ${HEADERS}
-	DESTINATION include/openredukti)
-install(FILES ${PROTO_HDRS} 
-	DESTINATION include/openredukti/proto)
+install(FILES ${HEADERS} ${PROTO_HDRS}
+		DESTINATION include/redukti)
 install(FILES ${PROTO_FILES} ${GRPC_PROTO_FILES}
-	DESTINATION proto)
+	DESTINATION proto/redukti)
 install(FILES ${LUA_HEADERS} 
 	DESTINATION include/ravi)
 install(DIRECTORY scripts/
