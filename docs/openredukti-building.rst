@@ -68,7 +68,7 @@ OpenRedukti was built as follows::
 
 	mkdir build
 	cd build
-	cmake -DCMAKE_INSTALL_PREFIX=$HOME/Software/grpc -DProtobuf_ROOT=$HOME/Software/protobuf -DGRPC_SERVER=ON ..	
+	cmake -DGRPC_SERVER=ON -DProtobuf_ROOT=~/Software/protobuf -DCMAKE_INSTALL_PREFIX=~/Software/redukti -DGRPC_ROOT=~/Software/grpc ..
 
 Build Instructions for Ubuntu Linux 18.04 LTS
 =============================================

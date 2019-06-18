@@ -1,5 +1,5 @@
 find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin) # Get full path to plugin
-
+find_path(GRPC_INCLUDE_DIR grpcpp/grpcpp.h)
 find_library(GRPC_LIBRARY NAMES grpc)
 find_library(GRPCPP_LIBRARY NAMES grpc++)
 find_library(GPR_LIBRARY NAMES gpr)

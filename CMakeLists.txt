@@ -101,6 +101,7 @@ endif ()
 
 include( cmake/ravi.cmake )
 include( cmake/cminpack.cmake )
+include( cmake/generators.cmake )
 
 if (WIN32)
 	# LAPACK defines  
@@ -129,24 +130,24 @@ elseif (APPLE)
 endif()
 
 set(PROTO_FILES 
-    proto/enums.proto 
-    proto/common.proto
-    proto/index.proto 
-    proto/schedule.proto 
-    proto/cashflow.proto 
-    proto/curve.proto
-    proto/shared.proto 
-    proto/bootstrap.proto 
-    proto/valuation.proto
-    proto/infra.proto
-    proto/services.proto
+    proto/redukti/enums.proto
+		proto/redukti/common.proto
+		proto/redukti/index.proto
+		proto/redukti/schedule.proto
+		proto/redukti/cashflow.proto
+		proto/redukti/curve.proto
+		proto/redukti/shared.proto
+		proto/redukti/bootstrap.proto
+		proto/redukti/valuation.proto
+		proto/redukti/infra.proto
+		proto/redukti/services.proto
     )
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
+protobuf_generate_cpp_new(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 if (GRPC_SERVER AND NOT WIN32)
 	set(GRPC_PROTO_FILES
-		proto/services.proto)
-	PROTOBUF_GENERATE_GRPC_CPP(services_grpc_srcs services_grpc_hdrs ${GRPC_PROTO_FILES})
+		proto/redukti/services.proto)
+	protobuf_generate_grpc_cpp_new(services_grpc_srcs services_grpc_hdrs ${GRPC_PROTO_FILES})
 	include_directories(${GRPC_INCLUDE_DIR})
 	if (MSVC)
 		add_definitions(-D_WIN32_WINNT=0x600)
@@ -193,6 +194,7 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories("${PROJECT_SOURCE_DIR}/cpp")
 include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/redukti)
 
 # FIXME
 link_directories("${CMAKE_INSTALL_PREFIX}/lib")

@@ -19,16 +19,30 @@ option java_package = "com.redukti.types";
 option java_multiple_files = true;
 option java_outer_classname = "Types";
 
-import "enums.proto";
+import "redukti/common.proto";
 
-// The typical operations requested by services
-enum StandardRequestType {
-	SRT_ADD = 0;
-	SRT_SAVE = 1;
-	SRT_DELETE = 2;
-	SRT_FIND = 3;
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+  // Optional delay time in millisecs
+  // If specified the service will cause a delay 
+  // before returning a response.
+  uint32 delay_for = 2;
+  // Optional flag to indicate that
+  // request should be handled by the first 
+  // recipient
+  bool immediate = 3;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
 }
 
 
+message ShutdownRequest {
+	string password = 1;
+}
 
-
+message ShutdownReply {
+}

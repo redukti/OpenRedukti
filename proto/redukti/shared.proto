@@ -20,7 +20,7 @@ option java_package = "com.redukti.types";
 option java_multiple_files = true;
 option java_outer_classname = "Types";
 
-import "enums.proto";
+import "redukti/enums.proto";
 
 // Should form part of every reply message
 message ReplyHeader {

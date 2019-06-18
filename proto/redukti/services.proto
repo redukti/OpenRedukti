@@ -20,10 +20,10 @@ option java_package = "com.redukti.types";
 option java_multiple_files = true;
 option java_outer_classname = "Types";
 
-import "enums.proto";
-import "infra.proto";
-import "valuation.proto";
-import "bootstrap.proto";
+import "redukti/enums.proto";
+import "redukti/infra.proto";
+import "redukti/valuation.proto";
+import "redukti/bootstrap.proto";
 
 // Common RequestHeader for messages
 message RequestHeader {

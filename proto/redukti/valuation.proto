@@ -20,10 +20,10 @@ option java_package = "com.redukti.types";
 option java_multiple_files = true;
 option java_outer_classname = "Types";
 
-import "enums.proto";
-import "curve.proto";
-import "cashflow.proto";
-import "shared.proto";
+import "redukti/enums.proto";
+import "redukti/curve.proto";
+import "redukti/cashflow.proto";
+import "redukti/shared.proto";
 
 message PricingContext {
 	int32 as_of_date = 1;
