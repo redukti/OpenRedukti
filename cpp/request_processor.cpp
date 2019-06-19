@@ -74,7 +74,6 @@ Response *RequestProcessorImpl::handle_hello_request(const Request *request, Res
 	helloReply->set_message(request->hello_request().name());
 	ResponseHeader *header = response->mutable_header();
 	header->set_response_code(StandardResponseCode::SRC_OK);
-	response->set_allocated_header(header);
 	int32_t delayfor = request->hello_request().delay_for();
 	if (delayfor > 0) {
 		inform("Sleeping for %d milliseconds\n", delayfor);
@@ -95,6 +94,7 @@ Response *RequestProcessorImpl::handle_shutdown_request(const Request *request, 
 		// Use a different thread to invoke shutdown
 		header->set_response_code(StandardResponseCode::SRC_OK);
 		std::thread shutdown_thread(shutdown_func_, shutdown_data_);
+		shutdown_thread.detach();
 	} else {
 		header->set_response_code(StandardResponseCode::SRC_ERROR);
 		header->set_response_message("No shutdown hook defined");
