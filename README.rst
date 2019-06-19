@@ -20,6 +20,9 @@ Main Features
 * Compute present value of cashflows
 * Compute first and second order derivatives using `Automatic/algorithmic Differentiation <http://www.autodiff.org/>`_.
 * Script using `Ravi <https://github.com/dibyendumajumdar/ravi>`_ - a derivative of `Lua <http://www.lua.org>`_ programming language
+* **New!** Script using Python - this feature will be available soon. See `PyRedukti <https://github.com/redukti/PyRedukti>`_ for details.
+* **New!** `gRPC <https://grpc.io/>`_ server in development will enable access from multiple programming languages.
+
 
 Background
 ==========
