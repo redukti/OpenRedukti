@@ -16,12 +16,14 @@ Optionally if you want to enable a gRPC based server application then additional
 
 * `gRPC <https://grpc.io/>`_ framework
 
+Note that the gRPC server is required if you want to use the pricing and curve building functions from the `Python interface <https://github.com/redukti/PyRedukti>`_.
+
 Build Instructions for RHEL 7.5
 ===============================
 I am using gcc 8.3 on Redhat obtained via devtoolset-8.
 I installed CMake manually.
 
-I built protobuf and grpc manually.
+I built protobuf and grpc manually (see below).
 
 I enabled `EPEL <https://fedoraproject.org/wiki/EPEL>`_ repository as follows::
 
@@ -29,7 +31,7 @@ I enabled `EPEL <https://fedoraproject.org/wiki/EPEL>`_ repository as follows::
 	
 Above was necessary to obtain openblas which I then installed as follows::
 
-	sudo yum install openblas-devel	
+	sudo yum install openblas-devel
 
 Building protobuf
 -----------------
@@ -50,8 +52,8 @@ So then I cloned the grpc github repo and built from there.
 
 Note that I had to modify the following in the supplied Makefile:
 
-* prefix
-* CPPFLAGS - I removed Werror option as this caused a failure with gcc 8.3
+* prefix - base path for installation
+* CPPFLAGS - I removed the ``-Werror`` option as this caused a failure with gcc 8.3
 
 Then I executed following steps::
 
@@ -69,6 +71,8 @@ OpenRedukti was built as follows::
 	mkdir build
 	cd build
 	cmake -DGRPC_SERVER=ON -DProtobuf_ROOT=~/Software/protobuf -DCMAKE_INSTALL_PREFIX=~/Software/redukti -DGRPC_ROOT=~/Software/grpc ..
+
+You can omit the GRPC_SERVER option if that is not needed.
 
 Build Instructions for Ubuntu Linux 18.04 LTS
 =============================================

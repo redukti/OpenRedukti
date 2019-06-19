@@ -81,7 +81,9 @@ class Calendar
 
 struct JointCalendarParameters {
 	std::array<BusinessCenter, 4> centers;
-	JointCalendarParameters(BusinessCenter center1, BusinessCenter center2,
+	JointCalendarParameters(
+	            BusinessCenter center1 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED,   // For Cython
+	            BusinessCenter center2 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED,   // For Cython
 				BusinessCenter center3 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED,
 				BusinessCenter center4 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED)
 	{

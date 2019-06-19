@@ -1,6 +1,11 @@
-# We have to use a custom version the defaukt one in FindProtobuf isn't
-# flexible enough to handle relative paths. Unfortunately elative paths are
+# We have to use a custom version the default one in FindProtobuf isn't
+# flexible enough to handle relative paths. Unfortunately relative paths are
 # needed to generate Python versions with proper package structure
+# Our goal here is to ensure that imports of protobuf files include
+# the redukti folder; this translates in Python to the redukti package.
+# FIXME there is some hardcoding here - this should be parameterised
+# Following variables must be set before calling the functions her:
+# Protobuf_PROTOC_EXECUTABLE
 function(PROTOBUF_GENERATE_CPP_NEW SRCS HDRS)
     if(NOT ARGN)
         message(SEND_ERROR "Error: PROTOBUF_GENERATE_GRPC_CPP() called without any proto files")
@@ -34,6 +39,15 @@ function(PROTOBUF_GENERATE_CPP_NEW SRCS HDRS)
     set(${HDRS} ${${HDRS}} PARENT_SCOPE)
 endfunction()
 
+# We have to use a custom version the default one in FindProtobuf isn't
+# flexible enough to handle relative paths. Unfortunately relative paths are
+# needed to generate Python versions with proper package structure
+# Our goal here is to ensure that imports of protobuf files include
+# the redukti folder; this translates in Python to the redukti package.
+# FIXME there is some hardcoding here - this should be parameterised
+# Following variables must be set before calling the functions her:
+# Protobuf_PROTOC_EXECUTABLE
+# GRPC_CPP_PLUGIN
 function(PROTOBUF_GENERATE_GRPC_CPP_NEW SRCS HDRS)
     if(NOT ARGN)
         message(SEND_ERROR "Error: PROTOBUF_GENERATE_GRPC_CPP_NEW() called without any proto files")
