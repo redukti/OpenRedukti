@@ -44,7 +44,7 @@ message ParRates {
 	// We assume that all instrument definitions can be located by 
 	// a numeric id - that is given the id there is a way to locate the
 	// instrument, maybe by looking up in a database
-	// Note that the boostrapper does not use these ids
+	// Note that the bootstrapper does not use these ids
 	repeated int32 instrument_ids = 1;
 	repeated double values = 2;
 }

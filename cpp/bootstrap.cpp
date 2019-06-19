@@ -966,7 +966,7 @@ class SolverFunction
 			if (status != StatusCode::kOk) {
 				char instrument_name[128];
 				item.second->get_name(instrument_name, sizeof instrument_name);
-				error("Failed to evaluate instrument %s\n", instrument_name);
+				error("Failed to evaluate instrument %s: %s\n", instrument_name, error_message(status));
 				return false;
 			}
 			instrument_num++;
