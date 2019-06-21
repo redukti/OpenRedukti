@@ -81,6 +81,8 @@ const char *error_message(StatusCode code)
 		return "BTS1218: Request is missing PAR curves";
 	case StatusCode::kBTS_DefinitonsAndCurvesMismatch:
 		return "BTS1219: Curve Definitions and PAR Curves do not match";
+	case StatusCode::kBTS_BadMaturityGenerationRule:
+		return "BTS1220: Maturity generation rule is not compatible with curve type";
 
 	case StatusCode::kVAL_BadBusinessDate:
 		return "VAL1231: Bad business date";

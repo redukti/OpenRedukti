@@ -32,6 +32,7 @@
 
 #include <cminpack.h>
 
+#include <array>
 #include <map>
 #include <memory>
 #include <string>
@@ -146,6 +147,7 @@ class BootstrapCurveProvider : public CurveProvider
 // this allows the pricing functions to be unaware of which
 // curve is being used
 struct CurveHolder : public CurveReference {
+	CurveType curve_type_;
 	uint32_t n_maturities_;
 	Date as_of_date_;
 	const DayFraction *fraction_;
@@ -163,6 +165,8 @@ struct CurveHolder : public CurveReference {
 	double *saved_rates_;
 
 	// Curves may be interpolated on discount factors rather than rates
+	// values hold the data that is interpolated, so they can be either
+	// zero rates or discount factors
 	double *values_;
 	double *values_plus_h_;
 	double *values_minus_h_;
@@ -175,17 +179,15 @@ struct CurveHolder : public CurveReference {
 	// The curve used for pricing - could be one of the three above
 	YieldCurve *pricing_curve_;
 
-	CurveHolder(uint32_t n_maturities);
+	CurveHolder(CurveType curve_type, uint32_t n_maturities);
 	~CurveHolder();
 	YieldCurve *get() const noexcept final { return pricing_curve_; }
 
 	void dump(const char *heading)
 	{
-		if (!is_trace_enabled())
-			return;
-		trace("%s\n", heading);
+		printf("%s\n", heading);
 		for (int i = 0; i < n_maturities_; i++) {
-			trace("Curve[%d] = { %d, %.12f }\n", i, maturities_[i], values_[i]);
+			printf("Curve[%d] = {%d, %.12f}\n", i, maturities_[i], values_[i]);
 		}
 	}
 
@@ -196,7 +198,8 @@ struct CurveHolder : public CurveReference {
 		interpolated_on_ = interpolated_on;
 		std::copy(rates_, rates_ + n_maturities_, rates_plus_h_);
 		std::copy(rates_, rates_ + n_maturities_, rates_minus_h_);
-		if (interpolated_on == IRRateType::DISCOUNT_FACTOR) {
+		if (curve_type_ == CurveType::CURVE_TYPE_INTERPOLATED &&
+		    interpolated_on == IRRateType::DISCOUNT_FACTOR) {
 			for (int i = 0; i < n_maturities_; i++) {
 				// Convert to discount factor
 				double t = fraction_->year_fraction(asOfDate, maturities_[i]);
@@ -207,15 +210,34 @@ struct CurveHolder : public CurveReference {
 			std::copy(rates_, rates_ + n_maturities_, values_plus_h_);
 			std::copy(rates_, rates_ + n_maturities_, values_minus_h_);
 		}
-		base_curve_ =
-		    make_curve(alloc, curveId, asOfDate, maturities_, values_, n_maturities_, interp, interpolated_on_);
-		curve_plus_h_ = make_curve(alloc, curveId, asOfDate, maturities_, values_plus_h_, n_maturities_, interp,
-					   interpolated_on_);
-		curve_minus_h_ = make_curve(alloc, curveId, asOfDate, maturities_, values_minus_h_, n_maturities_,
-					    interp, interpolated_on_);
+		switch (curve_type_) {
+		case CurveType::CURVE_TYPE_INTERPOLATED:
+			base_curve_ = make_curve(alloc, curveId, asOfDate, maturities_, values_, n_maturities_, interp,
+						 interpolated_on_);
+			curve_plus_h_ = make_curve(alloc, curveId, asOfDate, maturities_, values_plus_h_, n_maturities_,
+						   interp, interpolated_on_);
+			curve_minus_h_ = make_curve(alloc, curveId, asOfDate, maturities_, values_minus_h_,
+						    n_maturities_, interp, interpolated_on_);
+			break;
+		case CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC: {
+			// A this point the have the same initial guess parameters
+			// TODO check that input has 6 parameters
+			std::array<double, 6> parameters;
+			assert(parameters.size() == n_maturities_);
+			std::copy(values_, values_ + n_maturities_, std::begin(parameters));
+			base_curve_ = make_svensson_curve(alloc, curveId, asOfDate, parameters);
+			curve_plus_h_ = make_svensson_curve(alloc, curveId, asOfDate, parameters);
+			curve_minus_h_ = make_svensson_curve(alloc, curveId, asOfDate, parameters);
+			break;
+		}
+		}
 		pricing_curve_ = base_curve_.get();
 	}
 
+	// Bumps a particular rate (identified by pillar) up and down
+	// We always bump rates, never discount factors, when interpolating
+	// in discount factor space we derive the discount factors from the
+	// bumped rates
 	void bump(uint32_t pillar, const double h)
 	{
 		std::copy(rates_, rates_ + n_maturities_, rates_plus_h_);
@@ -223,7 +245,8 @@ struct CurveHolder : public CurveReference {
 		std::copy(rates_, rates_ + n_maturities_, rates_minus_h_);
 		rates_minus_h_[pillar] = rates_minus_h_[pillar] - h;
 		for (int i = 0; i < n_maturities_; i++) {
-			if (interpolated_on_ == IRRateType::DISCOUNT_FACTOR) {
+			if (curve_type_ == CurveType::CURVE_TYPE_INTERPOLATED &&
+			    interpolated_on_ == IRRateType::DISCOUNT_FACTOR) {
 				// Convert to discount factor
 				double t = fraction_->year_fraction(as_of_date_, maturities_[i]);
 				values_plus_h_[i] = std::exp(-rates_plus_h_[i] * t);
@@ -247,9 +270,40 @@ struct CurveHolder : public CurveReference {
 		std::copy(saved_rates_, saved_rates_ + n_maturities_, rates_);
 		std::copy(saved_values_, saved_values_ + n_maturities_, values_);
 	}
+
+	void set_vector(const double *x, unsigned n, bool is_correction = false)
+	{
+		assert(n == n_maturities_);
+		for (int pillar = 0; pillar < n_maturities_; pillar++) {
+			if (is_correction)
+				rates_[pillar] = rates_[pillar] - x[pillar];
+			else
+				rates_[pillar] = x[pillar];
+			if (curve_type_ == CurveType::CURVE_TYPE_INTERPOLATED &&
+			    interpolated_on_ == IRRateType::DISCOUNT_FACTOR) {
+				values_[pillar] = std::exp(-rates_[pillar] *
+							   fraction_->year_fraction(as_of_date_, maturities_[pillar]));
+			} else {
+				values_[pillar] = rates_[pillar];
+			}
+		}
+		if (is_trace_enabled()) {
+			dump("Updated curve values");
+		}
+		base_curve_->update_rates(values_, n_maturities_);
+	}
+
+	void get_vector(double *x, unsigned n)
+	{
+		assert(n == n_maturities_);
+		for (uint32_t pillar = 0; pillar < n_maturities_; pillar++) {
+			x[pillar] = rates_[pillar];
+		}
+	}
 };
 
-CurveHolder::CurveHolder(uint32_t n) : n_maturities_(n), as_of_date_(0), pricing_curve_(nullptr)
+CurveHolder::CurveHolder(CurveType curve_type, uint32_t n)
+    : curve_type_(curve_type), n_maturities_(n), as_of_date_(0), pricing_curve_(nullptr)
 {
 	// FIXME use allocator
 	fraction_ = get_day_fraction(DayCountFraction::ACT_365_FIXED);
@@ -406,16 +460,34 @@ class LuaWrapper
 	lua_State *L() const { return L_; }
 };
 
+typedef double (*PenaltyFunction)(const double *x, const double *lower_bound, const double *upper_bound, unsigned n);
+double default_penalty_function(const double *x, const double *lower_bound, const double *upper_bound, unsigned n)
+{
+	double penalty = 0.0;
+	for (int i = 0; i < n; i++) {
+		if ((lower_bound[i] != -HUGE_VAL && x[i] < lower_bound[i]) ||
+		    (upper_bound[i] != HUGE_VAL && x[i] > upper_bound[i])) {
+			double y = x[i];
+			if (fabs(y) < 1.0)
+				y = fabs(y) + 1.0;
+			penalty += (y * y);
+		}
+	}
+	return penalty;
+}
+
 class CurveBuilderOptions
 {
 	public:
-	bool use_levenberg_marquardt_solver;
+	SolverType solver_type;
 	int max_iterations;
 	bool generate_par_sensitivities;
+	PenaltyFunction penalty_function;
 
 	public:
 	CurveBuilderOptions()
-	    : use_levenberg_marquardt_solver(true), max_iterations(10), generate_par_sensitivities(false)
+	    : solver_type(SolverType::SOLVER_TYPE_LEVENBERG_MARQUARDT), max_iterations(10),
+	      generate_par_sensitivities(false), penalty_function(default_penalty_function)
 	{
 	}
 };
@@ -423,9 +495,9 @@ class CurveBuilderOptions
 class ParSensitivities
 {
 	private:
-	int m_; // rows
-	int n_; // columns
-	std::vector<double> values_;
+	int m_;			     // rows
+	int n_;			     // columns
+	std::vector<double> values_; // row major data
 
 	public:
 	ParSensitivities(int m, int n) : m_(m), n_(n), values_(m * n) {}
@@ -459,6 +531,7 @@ class ParSensitivities
 	}
 };
 
+class SolverFunction;
 class CurveBuilder
 {
 	private:
@@ -522,6 +595,7 @@ class CurveBuilder
 		}
 		return n;
 	}
+	int num_curves() const { return bootstrap_curves_.size(); }
 	std::map<uint64_t, CashflowInstrument *> &sorted_instruments() { return global_instruments_list_; }
 	CurveHolder *get_curve_by_index(int id) const
 	{
@@ -555,6 +629,7 @@ class CurveBuilder
 	// In the same order as the input curves
 	std::vector<std::unique_ptr<CurveHolder>> &curves() { return bootstrap_curves_; }
 	StatusCode build_curves(const CurveBuilderOptions &options);
+	std::unique_ptr<SolverFunction> make_solver(const CurveBuilderOptions &options);
 };
 
 CurveBuilder::CurveBuilder(LuaWrapper &lua, Date business_date, const CurveDefinitionProvider *definition_provider)
@@ -704,15 +779,28 @@ bool CurveBuilder::create_bootstrap_curve(const ParCurve &input_curve,
 					  const CashflowInstrumentByCurve *instruments_by_curve)
 {
 	const IRCurveDefinition *defn = definition_provider_->get_definition_by_id(input_curve.curve_definition_id());
+	if (defn->curve_type() == CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC) {
+		if (defn->maturity_generation_rule() != MaturityGenerationRule::MATURITY_GENERATION_RULE_SVENSSON ||
+		    defn->interpolated_on() != IRRateType::ZERO_RATE) {
+			last_error_code_ = StatusCode::kBTS_BadInterpolatedOn;
+			snprintf(last_error_message_, sizeof last_error_message_,
+				 "%s: Svensson curves must be on zero rates, and maturity "
+				 "generation rule must be set to MATURITY_GENERATION_RULE_SVENSSON",
+				 error_message(last_error_code_));
+			error("%s\n", last_error_message_);
+			return false;
+		}
+	}
 	assert(defn != nullptr);
 	std::unique_ptr<CurveHolder> ycurve;
-	if (defn->maturity_generation_rule() == MaturityGenerationRule::MATURITY_GENERATION_RULE_FIXED_TENORS) {
+	switch (defn->maturity_generation_rule()) {
+	case MaturityGenerationRule::MATURITY_GENERATION_RULE_FIXED_TENORS: {
 		// input curve has defined set of maturities
 		// FIXME we need to implement some logic to base the initial
 		// guess on par rates as otherwise the solver may not
 		// converge. For now for discount factors we set guess to 1.0,
 		// for rates to 5%.
-		ycurve = std::make_unique<CurveHolder>(defn->tenors_size());
+		ycurve = std::make_unique<CurveHolder>(defn->curve_type(), defn->tenors_size());
 		auto converter = get_default_converter();
 		for (int i = 0; i < defn->tenors_size(); i++) {
 			int offset = converter->tenor_to_days(defn->tenors(i));
@@ -720,11 +808,22 @@ bool CurveBuilder::create_bootstrap_curve(const ParCurve &input_curve,
 			ycurve->maturities_[i] = maturity;
 			ycurve->rates_[i] = 0.05;
 		}
-	} else {
+		break;
+	}
+	case MaturityGenerationRule::MATURITY_GENERATION_RULE_SVENSSON: {
+		ycurve = std::make_unique<CurveHolder>(defn->curve_type(),
+						       6); // We have six parameters
+		for (int i = 0; i < 6; i++) {
+			ycurve->maturities_[i] = 0; // Dummy value as we don't have maturities
+			ycurve->rates_[i] = 0.5;    // Initial guess
+		}
+		break;
+	}
+	case MaturityGenerationRule::MATURITY_GENERATION_RULE_DERIVE_FROM_INSTRUMENTS: {
 		// We will use the input instruments to define the set of
 		// maturities
 		uint32_t n = input_curve.instruments_size();
-		ycurve = std::make_unique<CurveHolder>(n);
+		ycurve = std::make_unique<CurveHolder>(defn->curve_type(), n);
 		// Iterate over the instruments by maturity date
 		int i = 0;
 		for (auto &&iter = std::begin(instruments_by_curve->instruments_by_maturity);
@@ -751,6 +850,8 @@ bool CurveBuilder::create_bootstrap_curve(const ParCurve &input_curve,
 			}
 			i++;
 		}
+		break;
+	}
 	}
 	ycurve->init(business_date_, &GlobalAllocator,
 		     make_curve_id(PricingCurveType::PRICING_CURVE_TYPE_UNSPECIFIED, defn->currency(),
@@ -880,25 +981,24 @@ int minpack_lmder_function(void *p, int m, int n, const double *x, double *fvec,
 
 class SolverFunction
 {
-	private:
+	protected:
 	CurveBuilder *curve_builder_;
 	std::map<std::string, std::shared_ptr<YieldCurve>> output_curves_;
 	int max_iterations_;
 	Allocator *alloc_;
 	FILE *debug_output_;
-	double *A;
-	std::vector<bool> InitialA;
-	double *bx;
-	int savings;
-	int iter;
+	double *A;  // sized m x n
+	double *bx; // sized m
+	double *upper_bounds_;
+	double *lower_bounds_;
 	Sensitivities dummy_sens;
+	PenaltyFunction penalty_function_;
 	FixedRegionAllocator *pricing_allocator;
 
 	public:
 	SolverFunction(CurveBuilder *builder, int max_iterations, Allocator *alloc, FILE *debug_output)
 	    : curve_builder_(builder), max_iterations_(max_iterations), alloc_(alloc), debug_output_(debug_output),
-	      InitialA(curve_builder_->num_instruments() * curve_builder_->num_pillars(), false), savings(0), iter(0),
-	      dummy_sens(alloc)
+	      dummy_sens(alloc), penalty_function_(default_penalty_function)
 	{
 		A = new double[curve_builder_->num_instruments() * curve_builder_->num_pillars()];
 		// Note that bx is sized to be as big as the m() = num
@@ -907,18 +1007,28 @@ class SolverFunction
 		// corrections and checking the solution we must only look at
 		// n() elements in bx
 		bx = new double[curve_builder_->num_instruments()];
+		upper_bounds_ = new double[curve_builder_->num_pillars()];
+		std::fill_n(upper_bounds_, curve_builder_->num_pillars(), HUGE_VAL);
+		lower_bounds_ = new double[curve_builder_->num_pillars()];
+		std::fill_n(lower_bounds_, curve_builder_->num_pillars(), -HUGE_VAL);
 		pricing_allocator = get_threadspecific_allocators()->tempspace_allocator;
 	}
 
-	~SolverFunction()
+	virtual ~SolverFunction()
 	{
 		delete[] bx;
+		delete[] upper_bounds_;
+		delete[] lower_bounds_;
 		delete[] A;
 	}
 	// number of functions
+	// each instrument is a row in the Jacobian
 	int32_t m() { return (int32_t)curve_builder_->num_instruments(); }
 
 	// number of variables
+	// consists of all pillars of all curves arranged
+	// by curve
+	// each pillar is a column in the Jacobian
 	int32_t n() { return (int32_t)curve_builder_->num_pillars(); }
 
 	double *solution_vector() { return bx; }
@@ -928,28 +1038,33 @@ class SolverFunction
 	// Reset any cached data
 	void reset() {}
 
-	double evaluate_instrument(CashflowInstrument *cfinst, StatusCode &status)
+	void set_penalty_function(PenaltyFunction f) { this->penalty_function_ = f; }
+
+	double evaluate_instrument(CashflowInstrument *cfinst, StatusCode &status, double *x, unsigned n)
 	{
 		CurveReference *forward_curve = curve_builder_->get_curve_by_index(cfinst->forward_curve());
 		CurveReference *discount_curve = curve_builder_->get_curve_by_index(cfinst->discount_curve());
 		ValuationContextImpl ctx(curve_builder_->business_date());
 		BootstrapCurveProvider provider(discount_curve, forward_curve);
-		return cfinst->evaluate(pricing_allocator, ctx, &provider, dummy_sens, status);
-		// return cfinst->evaluate(pricing_allocator, ctx,
-		// forward_curve,
-		//                        discount_curve, dummy_sens, status);
+		return cfinst->evaluate(pricing_allocator, ctx, &provider, dummy_sens, status) +
+		       (penalty_function_ != nullptr ? penalty_function_(x, lower_bounds_, upper_bounds_, n) : 0.0);
 	}
 
-	void dump_solution_vector(const char *description)
+	void dump_solution_vector(const char *description, bool force = false)
 	{
-		if (!is_trace_enabled())
+		if (!is_trace_enabled() && !force)
 			return;
 		unsigned int instrument_num = 0;
 		char instrument_name[128];
+		printf("%s\n", description);
 		for (auto &item : curve_builder_->sorted_instruments()) {
 			item.second->get_name(instrument_name, sizeof instrument_name);
-			trace("bx[%d] = %f, %s\n", instrument_num, bx[instrument_num], instrument_name);
+			printf("fx[%d] = %.12f, %s\n", instrument_num, bx[instrument_num], instrument_name);
 			instrument_num++;
+		}
+		printf("Curve values\n");
+		for (auto &ch : curve_builder_->curves()) {
+			ch->dump(ch->base_curve_->name().c_str());
 		}
 	}
 
@@ -957,16 +1072,17 @@ class SolverFunction
 	bool evaluate()
 	{
 		reset();
-
 		StatusCode status = StatusCode::kOk;
+		double *x = (double *)alloca(sizeof(double) * n());
+		get_vector(x, n());
 		// and populate vector
 		unsigned int instrument_num = 0;
 		for (auto &item : curve_builder_->sorted_instruments()) {
-			bx[instrument_num] = evaluate_instrument(item.second, status);
+			bx[instrument_num] = evaluate_instrument(item.second, status, x, n());
 			if (status != StatusCode::kOk) {
 				char instrument_name[128];
 				item.second->get_name(instrument_name, sizeof instrument_name);
-				error("Failed to evaluate instrument %s: %s\n", instrument_name, error_message(status));
+				error("Failed to evaluate instrument %s\n", instrument_name);
 				return false;
 			}
 			instrument_num++;
@@ -975,14 +1091,25 @@ class SolverFunction
 		return true;
 	}
 
-	// calculate the jacobian numerically
+	// calculate the Jacobian numerically
 	bool compute_jacobian()
 	{
+		// Get the current solution vector
+		// we can use this as input to penalty function
+		// We ignore the bumped values here
+		double *x = (double *)alloca(sizeof(double) * n());
+		get_vector(x, n());
+
+		double epsmch = __cminpack_func__(dpmpar)(1);
+		double eps = sqrt(epsmch);
+
+		redukti_matrix_t X = {m(), n(), A};
 		// To populate the Jacobian , we process by curve pillar by
 		// instrument so that we can setup the curve once for each
 		// pillar rate_num tracks where we are in terms of the
 		// curve/pillar combination - i.e. rate_num is 0 for first
 		// curve/pillar
+
 		int rate_num = 0;
 		int curve_num = 0;
 		StatusCode status = StatusCode::kOk;
@@ -993,67 +1120,155 @@ class SolverFunction
 			// approach to ensure we can handle unknown
 			// interpolation methods
 			for (uint32_t pillar = 0; pillar < ch->n_maturities_; pillar++) {
-				const double h = 0.0001;
+				const double h =
+				    ch->curve_type_ == CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC
+					? (ch->rates_[pillar] == 0.0 ? eps : eps * fabs(ch->rates_[pillar]))
+					: 0.0001; // use 1 basis point shifts for regular curves.
 				ch->bump(pillar, h);
+
+				bool forward_diff = false;
+				// FIXME this check should use the lower_bounds array
+				if (ch->curve_type_ == CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC &&
+				    (pillar == 0 || pillar == 4 || pillar == 5)) {
+					forward_diff = true;
+				}
 
 				size_t instrument_num = 0;
 				for (auto &item : curve_builder_->sorted_instruments()) {
-					if (iter == 0 || InitialA[rate_num * m() + instrument_num]) {
+					double partial = 0.0;
+
+					if (!forward_diff) {
+						// Central diff
 						// First calculate PV using -h
 						// bump
 						ch->pricing_curve_ = ch->curve_minus_h_.get();
-						double minus_h_pv = evaluate_instrument(item.second, status);
+						double minus_h_pv = evaluate_instrument(item.second, status, x, n());
 						if (status != StatusCode::kOk)
 							return false;
 
 						// Now calculate PV using +h
 						// bump
 						ch->pricing_curve_ = ch->curve_plus_h_.get();
-						double plus_h_pv = evaluate_instrument(item.second, status);
+						double plus_h_pv = evaluate_instrument(item.second, status, x, n());
 						if (status != StatusCode::kOk)
 							return false;
 
 						// Calculate partial derivative
-						double partial = 0.0;
 						if (plus_h_pv != minus_h_pv) {
 							partial = (plus_h_pv - minus_h_pv) / (2 * h);
 						}
-
-						// reset pricing curve
+					} else {
+						// FIXME as the base curve doesn't change we don't need
+						// to evaluate every time
+						// Can we just use bx here?
 						ch->pricing_curve_ = ch->base_curve_.get();
+						double base_pv = evaluate_instrument(item.second, status, x, n());
+						if (status != StatusCode::kOk)
+							return false;
 
-						// printf("Setting matrix A for
-						// curve %d, curve pillar %d,
-						// global pillar %d instrument
-						// %d at [%d]\n", curve_num,
-						// (int)pillar, rate_num,
-						// instrument_num, rate_num *
-						// m() + instrument_num); Set
-						// value in matrix
-						A[rate_num * m() + instrument_num] = partial;
-						if (iter == 0 && partial != 0.0)
-							InitialA[rate_num * m() + instrument_num] = true;
-						// printf("A[%d, %d] = %f\n",
-						// (int)instrument_num,
-						// rate_num, partial);
+						// Now calculate PV using +h
+						// bump
+						ch->pricing_curve_ = ch->curve_plus_h_.get();
+						double plus_h_pv = evaluate_instrument(item.second, status, x, n());
+						if (status != StatusCode::kOk)
+							return false;
+
+						// Calculate partial derivative
+						if (plus_h_pv != base_pv) {
+							partial = (plus_h_pv - base_pv) / h;
+						}
 					}
+					// reset pricing curve
+					ch->pricing_curve_ = ch->base_curve_.get();
+
+					trace("Setting matrix A for curve %d, curve pillar %d, "
+					      "global pillar %d instrument %d at [%d]\n",
+					      curve_num, (int)pillar, rate_num, instrument_num,
+					      rate_num * m() + instrument_num);
+
+					// Set value in matrix
+					// rate_num is the column
+					// instrument_num is the row
+					// m() is the number of instruments (rows)
+					// A[rate_num * m() + instrument_num] = partial;
+					redukti_matrix_set(&X, instrument_num, rate_num, partial);
+					trace("A[%d, %d] = %f\n", (int)instrument_num, rate_num, partial);
+
 					instrument_num++;
 				}
 				rate_num++;
 			}
 			curve_num++;
 		}
-
-		// if (redukti_debug) fprintf(stderr, "Solving\n");
-		if (iter == 0) {
-			// We save the first Jacobian so that in subsequent
-			// iterations we can avoid computing partials where the
-			// original partial was 0.0 exactly; this is a
-			// performance feature InitialA.add(A);
-		}
 		// dump("Jacobian:", A, debug_output_);
 		// dump("Vector:", bx, debug_output_);
 		return true;
+	}
+
+	void set_vector(const double *x, size_t n)
+	{
+		assert(n == this->n());
+		int rate_num = 0;
+		for (auto &ch : curve_builder_->curves()) {
+			// for each pillar on the curve we
+			// compute the partial derivative for each instrument
+			unsigned n = ch->n_maturities_;
+			ch->set_vector(x + rate_num, n);
+			rate_num += n;
+		}
+	}
+
+	void get_vector(double *x, size_t len)
+	{
+		assert(len == n());
+		int rate_num = 0;
+		for (auto &ch : curve_builder_->curves()) {
+			// for each pillar on the curve we
+			// compute the partial derivative for each instrument
+			unsigned n = ch->n_maturities_;
+			ch->get_vector(x + rate_num, n);
+			rate_num += n;
+		}
+	}
+
+	void compute_bounds()
+	{
+		int rate_num = 0;
+		for (auto &ch : curve_builder_->curves()) {
+			unsigned n = ch->n_maturities_;
+			if (ch->curve_type_ == CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC) {
+				double *ub = upper_bounds_ + rate_num;
+				double *lb = lower_bounds_ + rate_num;
+				// TODO These bounds need to be reviewed
+				ub[0] = 25.0; // TODO Beta0 should be close to the overnight rate according to some
+					      // docs TBC
+				lb[0] = 0.0;  // Beta0 must be positive
+				ub[1] = HUGE_VAL;
+				lb[1] = -HUGE_VAL;
+				ub[2] = HUGE_VAL;
+				lb[2] = -HUGE_VAL;
+				ub[3] = HUGE_VAL;
+				lb[3] = -HUGE_VAL;
+				lb[4] = 0.0; // tau1 must be positive
+				ub[4] = HUGE_VAL;
+				lb[5] = 0.0; // tau2 must be positive
+				ub[5] = HUGE_VAL;
+			}
+			rate_num += n;
+		}
+		apply_bounds();
+	}
+
+	virtual void apply_bounds() {}
+	virtual bool solve() = 0;
+};
+
+class LinearLeastSquaresSolver : public SolverFunction
+{
+	public:
+	LinearLeastSquaresSolver(CurveBuilder *builder, int max_iterations, Allocator *alloc, FILE *debug_output)
+	    : SolverFunction(builder, max_iterations, alloc, debug_output)
+	{
 	}
 
 	bool solution()
@@ -1089,65 +1304,9 @@ class SolverFunction
 		for (auto &ch : curve_builder_->curves()) {
 			// for each pillar on the curve we
 			// compute the partial derivative for each instrument
-			for (uint32_t pillar = 0; pillar < ch->n_maturities_; pillar++) {
-				double correction = bx[rate_num];
-				ch->rates_[pillar] = ch->rates_[pillar] - correction;
-				if (ch->interpolated_on_ == IRRateType::DISCOUNT_FACTOR) {
-					ch->values_[pillar] = std::exp(
-					    -ch->rates_[pillar] *
-					    ch->fraction_->year_fraction(ch->as_of_date_, ch->maturities_[pillar]));
-				} else {
-					ch->values_[pillar] = ch->rates_[pillar];
-				}
-				// fprintf(debug_output_, "Curve %s pillar %d
-				// value %.10f\n",
-				//        ch->curvename_, pillar,
-				//        ch->rates_[pillar]);
-				rate_num++;
-			}
-			ch->dump("Curve values after correction");
-			ch->base_curve_->update_rates(ch->values_, ch->n_maturities_);
-		}
-	}
-
-	void set_vector(const double *x, size_t n)
-	{
-		assert(n == this->n());
-		int rate_num = 0;
-		for (auto &ch : curve_builder_->curves()) {
-			// for each pillar on the curve we
-			// compute the partial derivative for each instrument
-			for (uint32_t pillar = 0; pillar < ch->n_maturities_; pillar++) {
-				ch->rates_[pillar] = x[rate_num];
-				if (ch->interpolated_on_ == IRRateType::DISCOUNT_FACTOR) {
-					ch->values_[pillar] = std::exp(
-					    -ch->rates_[pillar] *
-					    ch->fraction_->year_fraction(ch->as_of_date_, ch->maturities_[pillar]));
-				} else {
-					ch->values_[pillar] = ch->rates_[pillar];
-				}
-				// fprintf(debug_output_, "Curve %s pillar %d
-				// value %.10f\n",
-				//        ch->curvename_, pillar,
-				//        ch->rates_[pillar]);
-				rate_num++;
-			}
-			ch->dump("Updated curve values");
-			ch->base_curve_->update_rates(ch->values_, ch->n_maturities_);
-		}
-	}
-
-	void get_vector(double *x, size_t len)
-	{
-		assert(len == n());
-		int rate_num = 0;
-		for (auto &ch : curve_builder_->curves()) {
-			// for each pillar on the curve we
-			// compute the partial derivative for each instrument
-			for (uint32_t pillar = 0; pillar < ch->n_maturities_; pillar++) {
-				x[rate_num] = ch->rates_[pillar];
-				rate_num++;
-			}
+			unsigned n = ch->n_maturities_;
+			ch->set_vector(bx + rate_num, n, true);
+			rate_num += n;
 		}
 	}
 
@@ -1167,7 +1326,7 @@ class SolverFunction
 		return iterate;
 	}
 
-	bool solve()
+	bool solve() override final
 	{
 		for (int iter = 0; iter < max_iterations_; iter++) {
 			// fprintf(stderr, "Pricing instruments: iteration
@@ -1188,22 +1347,58 @@ class SolverFunction
 		fprintf(stdout, "+");
 		return true;
 	}
+};
 
-	bool solve_lmder()
+class LMDER_Solver : public SolverFunction
+{
+	public:
+	LMDER_Solver(CurveBuilder *builder, int max_iterations, Allocator *alloc, FILE *debug_output)
+	    : SolverFunction(builder, max_iterations, alloc, debug_output)
 	{
+	}
+
+	bool solve() override final
+	{
+#if 0
 		size_t lwa = 5 * this->n() + this->m();
 		std::unique_ptr<double[]> wa = std::unique_ptr<double[]>(new double[lwa]);
+#endif
+
 		std::unique_ptr<int[]> ipvt = std::unique_ptr<int[]>(new int[this->n()]);
+		std::unique_ptr<double[]> wa1 = std::unique_ptr<double[]>(new double[n()]);
+		std::unique_ptr<double[]> wa2 = std::unique_ptr<double[]>(new double[n()]);
+		std::unique_ptr<double[]> wa3 = std::unique_ptr<double[]>(new double[n()]);
+		std::unique_ptr<double[]> wa4 = std::unique_ptr<double[]>(new double[m()]);
+		std::unique_ptr<double[]> qtf = std::unique_ptr<double[]>(new double[n()]);
+		std::unique_ptr<double[]> diag = std::unique_ptr<double[]>(new double[n()]);
 
 		double tol = std::sqrt(dpmpar(1));
 		int info = 0;
 
 		std::unique_ptr<double[]> x = std::unique_ptr<double[]>(new double[this->n()]);
 		get_vector(x.get(), this->n());
+
+#if 0
+		// we switched to the full api so that we can set max evaluations
 		info = lmder1(minpack_lmder_function, this, this->m(), this->n(), x.get(), this->solution_vector(),
 			      this->jacobian(), this->m(), tol, ipvt.get(), wa.get(), lwa);
+#endif
 
-		// fprintf(stderr, "info = %d\n", info);
+		double ftol = tol;
+		double xtol = tol;
+		double gtol = 0.0;
+		int maxfev = 10000;
+		int mode = 1; // autoscale
+		double factor = 100.;
+		int nprint = 0;
+		int nfev = 0;
+		int njev = 0;
+		info = lmder(minpack_lmder_function, reinterpret_cast<void *>(this), this->m(), this->n(), x.get(),
+			     this->solution_vector(), this->jacobian(), this->m(), ftol, xtol, gtol, maxfev, diag.get(),
+			     mode, factor, nprint, &nfev, &njev, ipvt.get(), qtf.get(), wa1.get(), wa2.get(), wa3.get(),
+			     wa4.get());
+
+		debug("info = %d, nfev = %d, njev = %d\n", info, nfev, njev);
 		set_vector(x.get(), this->n());
 
 		// debug
@@ -1226,7 +1421,7 @@ class SolverFunction
 /* return a negative value to terminate lmder1/lmder */
 int minpack_lmder_function(void *p, int m, int n, const double *x, double *fvec, double *fjac, int ldfjac, int iflag)
 {
-	SolverFunction *fn = reinterpret_cast<SolverFunction *>(p);
+	LMDER_Solver *fn = reinterpret_cast<LMDER_Solver *>(p);
 	assert((size_t)n == fn->n());
 	assert((size_t)m == fn->m());
 	assert((size_t)ldfjac == fn->m());
@@ -1248,14 +1443,29 @@ int minpack_lmder_function(void *p, int m, int n, const double *x, double *fvec,
 	return 0;
 }
 
+std::unique_ptr<SolverFunction> CurveBuilder::make_solver(const CurveBuilderOptions &options)
+{
+	switch (options.solver_type) {
+	default:
+	case SolverType::SOLVER_TYPE_LEVENBERG_MARQUARDT:
+		return std::make_unique<LMDER_Solver>(this, options.max_iterations, &GlobalAllocator, stderr);
+	case SolverType::SOLVER_TYPE_LINEAR_LEAST_SQUARE:
+		return std::make_unique<LinearLeastSquaresSolver>(this, options.max_iterations, &GlobalAllocator,
+								  stderr);
+	}
+}
+
 // This function builds the base curves and optionally
 // also builds the par sensitivities matrix (Jacobian) for
 // each curve
 StatusCode CurveBuilder::build_curves(const CurveBuilderOptions &options)
 {
-	SolverFunction solver(this, options.max_iterations, &GlobalAllocator, stderr);
-	bool result = options.use_levenberg_marquardt_solver ? solver.solve_lmder() : solver.solve();
+	auto solver = make_solver(options);
+	solver->compute_bounds();
+	solver->set_penalty_function(options.penalty_function);
+	bool result = solver->solve();
 	if (!result) {
+		solver->dump_solution_vector("Final solution vector", true);
 		return StatusCode::kBTS_SolverFailure;
 	}
 	if (!options.generate_par_sensitivities)
@@ -1268,6 +1478,10 @@ StatusCode CurveBuilder::build_curves(const CurveBuilderOptions &options)
 	}
 	par_sensitivities_by_curve_.clear();
 	for (int curve_index = 0; curve_index < instruments_by_curve_.size(); curve_index++) {
+		if (curves[curve_index]->curve_type_ == CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC)
+			// PAR sensitivities don't make sense when the curve is made up
+			// of parameters
+			continue;
 		// m is the number of instruments
 		// and also the rows of the par sensitivities matrix
 		int m = instruments_by_curve_[curve_index]->instruments_by_maturity.size();
@@ -1314,7 +1528,7 @@ StatusCode CurveBuilder::build_curves(const CurveBuilderOptions &options)
 
 			// By default we have baseline rates as initial guess
 			// Run solver
-			bool result = options.use_levenberg_marquardt_solver ? solver.solve_lmder() : solver.solve();
+			bool result = solver->solve();
 			if (!result) {
 				return StatusCode::kBTS_SolverFailure;
 			}
@@ -1337,7 +1551,7 @@ StatusCode CurveBuilder::build_curves(const CurveBuilderOptions &options)
 			cfinst->build_cashflows(&temp_allocator);
 
 			// Rebuild curves
-			result = options.use_levenberg_marquardt_solver ? solver.solve_lmder() : solver.solve();
+			result = solver->solve();
 			if (!result) {
 				return StatusCode::kBTS_SolverFailure;
 			}
@@ -1421,6 +1635,18 @@ BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(const Bootstrap
 	}
 	CurveDefinitionProviderImpl defn_provider;
 	for (int i = 0; i < request->curve_definitions_size(); i++) {
+		if (request->curve_definitions(i).curve_type() == CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC) {
+			if (request->curve_definitions(i).maturity_generation_rule() !=
+			    MaturityGenerationRule::MATURITY_GENERATION_RULE_SVENSSON) {
+				header->set_response_message(error_message(StatusCode::kBTS_BadMaturityGenerationRule));
+				header->set_response_sub_code(StatusCode::kBTS_BadInterpolatedOn);
+				return reply;
+			} else if (request->curve_definitions(i).interpolated_on() != IRRateType::ZERO_RATE) {
+				header->set_response_message(error_message(StatusCode::kBTS_BadInterpolatedOn));
+				header->set_response_sub_code(StatusCode::kBTS_BadInterpolatedOn);
+				return reply;
+			}
+		}
 		if (request->curve_definitions(i).maturity_generation_rule() ==
 			MaturityGenerationRule::MATURITY_GENERATION_RULE_FIXED_TENORS &&
 		    request->curve_definitions(i).tenors_size() == 0) {
@@ -1450,10 +1676,11 @@ BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(const Bootstrap
 	}
 	CurveBuilderOptions options;
 	options.generate_par_sensitivities = request->generate_par_sensitivities();
-	options.use_levenberg_marquardt_solver = request->solver_type() == SolverType::SOLVER_TYPE_LEVENBERG_MARQUARDT;
+	options.solver_type = request->solver_type();
 	options.max_iterations = request->max_solver_iterations() != 0 ? request->max_solver_iterations() : 20;
-	debug("Starting curve build: Levenberg_marquardt solver: %d, max_iterations: %d\n",
-	      (int)options.use_levenberg_marquardt_solver, options.max_iterations);
+	debug("Starting curve build: Levenberg_marquardt solver: %d, max_iterations: "
+	      "%d\n",
+	      options.solver_type == SolverType::SOLVER_TYPE_LEVENBERG_MARQUARDT, options.max_iterations);
 	auto status = curve_builder.build_curves(options);
 	debug("Curve build completed %s\n", status != StatusCode::kOk ? "with ERROR" : "successfully");
 	if (status != StatusCode::kOk) {
@@ -1467,8 +1694,9 @@ BootstrapCurvesReply *BootstrapperImpl::handle_bootstrap_request(const Bootstrap
 		ParSensitivities *parsens = options.generate_par_sensitivities
 						? curve_builder.get_sensitivities_by_curve_definition_id(def.id())
 						: nullptr;
-		if (curveholder == nullptr || (options.generate_par_sensitivities && parsens == nullptr)) {
-			error("Par sensitivities requested but failed to generate those");
+		if (curveholder == nullptr || (options.generate_par_sensitivities && parsens == nullptr &&
+					       def.curve_type() == CurveType::CURVE_TYPE_INTERPOLATED)) {
+			error("PAR sensitivities requested but failed to generate those");
 			return reply;
 		}
 		ZeroCurve *zc = reply->add_curves();

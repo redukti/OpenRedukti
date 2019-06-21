@@ -96,8 +96,9 @@ Response *RequestProcessorImpl::handle_shutdown_request(const Request *request, 
 		std::thread shutdown_thread(shutdown_func_, shutdown_data_);
 		shutdown_thread.detach();
 	} else {
+		warn("No shutdown hook registered, do not know how to shutdown\n");
 		header->set_response_code(StandardResponseCode::SRC_ERROR);
-		header->set_response_message("No shutdown hook defined");
+		header->set_response_message("No shutdown hook registered, do not know how to shutdown");
 	}
 	return response;
 }

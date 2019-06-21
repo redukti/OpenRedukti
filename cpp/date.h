@@ -232,6 +232,12 @@ constexpr unsigned last_day_of_month(int y, unsigned m) noexcept
 // Add/subtract periods from dates
 extern Date add(Date date, const Period &) noexcept;
 extern Date sub(Date date, const Period &) noexcept;
+// Adds or subtracts a period from a date
+// For handling month periods it ensures that the day stays the same if possible,
+// but if not (e.g. no 29th Feb in final date) then the day is adjusted to fit in the month
+// When handling year periods, the day and month are kept the same if possible
+// or adjusted as above.
+extern Date advance(Date date, int n, PeriodUnit units) noexcept;
 
 // Construct an end of month date for the
 // given year and month

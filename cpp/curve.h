@@ -28,6 +28,7 @@
 #include <interpolators.h>
 
 #include <inttypes.h>
+#include <array>
 
 namespace redukti
 {
@@ -58,10 +59,14 @@ class Curve
 	double time_from_reference(Date d) const noexcept { return day_fraction().year_fraction(as_of_date(), d); }
 	virtual const DayFraction &day_fraction() const noexcept = 0;
 	virtual Date as_of_date() const noexcept = 0;
-	virtual Date last_maturity() const noexcept = 0;
 	CurveId id() const noexcept { return curve_id_; }
 	std::string name() const noexcept { return curve_id_to_string(curve_id_); }
 	virtual bool is_valid() const noexcept { return false; }
+	virtual bool curve_sensitivities_supported() const noexcept
+	{
+		return curve_type() == CurveType::CURVE_TYPE_INTERPOLATED;
+	}
+	virtual CurveType curve_type() const noexcept = 0;
 
 	private:
 	Curve(const Curve &) = delete;
@@ -112,29 +117,36 @@ class YieldCurve : public Curve
 	// Instantaneous forward rate
 	virtual double forward(double t) const noexcept = 0;
 
-	// Gets the sensitivities to pillars using the underlying
-	// interpolator.
-	virtual std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>>
-	get_sensitivities(double x, FixedRegionAllocator *A) const noexcept = 0;
-
-	// The offset of the last pillar.
+	// The offset of the last pillar for interpolated curves
 	// The first pillar is numbered 1.
+	// For parametric curves offset of last parameter
 	virtual int last_pillar() const noexcept = 0;
 
-	// Update the rates
+	// Update the rates or parameters
 	virtual void update_rates(const double *rates, size_t n) noexcept = 0;
 
-	// Value at pillar point
+	// Value at pillar point for interpolated curves
+	// Parameter value for parametric curves
 	virtual double value(int pillar) const noexcept = 0;
 
 	// maturity time from ref date
+	// Only available on interpolated curves
 	virtual double maturity_time(int pillar) const = 0;
 
 	// maturity date for a pillar
+	// Only available on interpolated curves
 	virtual Date maturity_date(int pillar) const = 0;
 
+	// Only available on interpolated curves
 	double last_maturity_time() const { return maturity_time(last_pillar()); }
 
+	// Gets the sensitivities to pillars using the underlying
+	// interpolator.
+	// Note: only available on interolated curves
+	virtual std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>>
+	get_sensitivities(double x, FixedRegionAllocator *A) const noexcept = 0;
+
+	// Only available on interpolated curves
 	virtual std::vector<std::unique_ptr<YieldCurve, Deleter<YieldCurve>>>
 	get_bumped_curves(Allocator *A, double h = 0.00001) const noexcept = 0;
 	virtual std::unique_ptr<YieldCurve, Deleter<YieldCurve>> get_bumped_curve(Allocator *A, int pillar,
@@ -144,6 +156,9 @@ class YieldCurve : public Curve
 	virtual void dump(FILE *fp = stderr) const noexcept = 0;
 
 	virtual InterpolatorType interpolator_type() const noexcept = 0;
+
+	// Only available on interpolated curves
+	virtual Date last_maturity() const noexcept = 0;
 
 	protected:
 	YieldCurve(CurveId id) noexcept : Curve(id) {}
@@ -198,6 +213,10 @@ class CurveWrapper : public CurveReference
 extern std::unique_ptr<YieldCurve, Deleter<YieldCurve>>
 make_curve(Allocator *A, CurveId id, Date as_of_date, Date maturities[], double values[], size_t n,
 	   InterpolatorType interpolator, IRRateType type = IRRateType::ZERO_RATE, int deriv_order = 0,
+	   DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
+
+extern std::unique_ptr<YieldCurve, Deleter<YieldCurve>>
+make_svensson_curve(Allocator *A, CurveId id, Date as_of_date, std::array<double, 6> parameters,
 	   DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
 
 extern std::unique_ptr<YieldCurve, Deleter<YieldCurve>>

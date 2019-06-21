@@ -34,6 +34,8 @@
 extern "C" {
 #endif
 
+// Note that the matrix data is assumed to be
+// column major
 typedef struct redukti_matrix_t redukti_matrix_t;
 struct redukti_matrix_t {
 	int32_t m; /* rows */

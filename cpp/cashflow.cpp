@@ -368,10 +368,10 @@ void SimpleCurveMapper::add_mapping(PricingCurve from_curve, PricingCurve to_cur
 
 Cashflow *create_simple_cashflow(RegionAllocator *A, const ValuationContext &ctx, VariableResolvers *resolvers,
 				 Currency currency, double amount, Date payment_date, IsdaIndex trade_index,
-				 const CurveMapper *curve_mapper)
+				 IndexFamily discounting_curve_family, const CurveMapper *curve_mapper)
 {
-	IndexFamily index_family = INDEX_FAMILY_UNSPECIFIED;
-	if (trade_index != ISDA_INDEX_UNSPECIFIED) {
+	IndexFamily index_family = discounting_curve_family;
+	if (index_family == IndexFamily::INDEX_FAMILY_UNSPECIFIED && trade_index != ISDA_INDEX_UNSPECIFIED) {
 		auto index = get_default_index_service()->get_index(trade_index, TENOR_UNSPECIFIED);
 		if (!index) {
 			error("Index definition not found for %s\n",
@@ -400,7 +400,7 @@ Cashflow *create_simple_cashflow(RegionAllocator *A, const ValuationContext &ctx
 				 VariableResolvers *resolvers, const CurveMapper *curve_mapper)
 {
 	return create_simple_cashflow(A, ctx, resolvers, cf->currency(), cf->amount(), cf->payment_date(),
-				      cf->trade_index(), curve_mapper);
+				      cf->trade_index(), cf->discounting_index_family(), curve_mapper);
 }
 
 static NOISCashflow *create_ois_cashflow(RegionAllocator *A, const ValuationContext &ctx, VariableResolvers *resolvers,

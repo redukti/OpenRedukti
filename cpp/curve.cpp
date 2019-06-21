@@ -20,6 +20,7 @@
 #include <converters.h>
 #include <curve.h>
 #include <curve.pb.h>
+#include <date.h>
 
 #include <assert.h>
 #include <cmath>
@@ -96,40 +97,129 @@ std::string curve_id_to_string(CurveId id)
 	return std::string(buf);
 }
 
-std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Date as_of_date, const IRCurveDefinition *defn,
-							    const ZeroCurve &curve, int deriv_order,
-							    PricingCurveType type, MarketDataQualifier mdq,
-							    short int cycle, short int scenario)
+/*
+Svensson, L. (1994). Estimating and interpreting forward interest rates: Sweden 1992-4.
+Discussion paper, Centre for Economic Policy Research(1051).
+*/
+class SvenssonCurve : public YieldCurve
 {
-	auto n = curve.maturities_size();
-	int reqsize = n * sizeof(double) * 2;
-	FixedRegionAllocator *tempalloc = get_threadspecific_allocators()->tempspace_allocator;
-	FixedRegionAllocatorGuard guard(tempalloc);
-	StackRegionWithFallbackAllocator<1024> buf(tempalloc);
-	Date *maturities = (Date *)buf.safe_allocate(sizeof(Date) * n);
-	double *values = (double *)buf.safe_allocate(sizeof(double) * n);
-	for (int i = 0; i < n; i++) {
-		maturities[i] = curve.maturities(i);
-		values[i] = curve.values(i);
+	public:
+	SvenssonCurve(CurveId id, Date as_of_date, std::array<double, 6> parameters,
+		      DayCountFraction fraction = DayCountFraction::ACT_365_FIXED)
+	    : YieldCurve(id), as_of_date_(as_of_date), parameters_(parameters)
+	{
+		day_fraction_ = get_day_fraction(fraction);
+		assert(day_fraction_ != nullptr);
 	}
-	if (defn->interpolated_on() == IRRateType::DISCOUNT_FACTOR) {
-		// Convert the values to discount factors as we need to
-		// interpolate on discount factors
-		// FIXME the day count fraction ought to be a parameter in curve
-		// definition
-		auto fraction = get_day_fraction(DayCountFraction::ACT_365_FIXED);
-		for (int i = 0; i < n; i++) {
-			double t = fraction->year_fraction(as_of_date, maturities[i]);
-			values[i] = std::exp(-values[i] * t);
+	virtual ~SvenssonCurve() noexcept {}
+	double discount(double t) const noexcept final
+	{
+		if (t <= 0.0)
+			return 1.0;
+		return std::exp(-zero_rate(t) * t);
+	}
+	double forward(double t) const noexcept final
+	{
+		auto B0 = parameters_[0];
+		auto B1 = parameters_[1];
+		auto B2 = parameters_[2];
+		auto B3 = parameters_[3];
+		auto tau1 = parameters_[4];
+		auto tau2 = parameters_[5];
+		return B0 + B1 * std::exp(-t / tau1) + B2 * (t / tau1) * std::exp(-t / tau1) +
+		       B3 * (t / tau2) * std::exp(-t / tau2);
+	}
+	double discount(Date d) const noexcept final
+	{
+		double t = time_from_reference(d);
+		return discount(t);
+	}
+	double zero_rate(Date d) const noexcept final
+	{
+		double t = time_from_reference(d);
+		return zero_rate(t);
+	}
+	double zero_rate(double t) const noexcept final
+	{
+		auto B0 = parameters_[0];
+		auto B1 = parameters_[1];
+		auto B2 = parameters_[2];
+		auto B3 = parameters_[3];
+		auto tau1 = parameters_[4];
+		auto tau2 = parameters_[5];
+		auto r = B0 + B1 * ((1 - std::exp(-t / tau1)) / (t / tau1)) +
+			 B2 * (((1 - std::exp(-t / tau1)) / (t / tau1)) - std::exp(-t / tau1)) +
+			 B3 * (((1 - std::exp(-t / tau2)) / (t / tau2)) - std::exp(-t / tau2));
+		return r / 100.0;
+	}
+	double forward_rate(Date d1, Date d2) const noexcept final
+	{
+		double t = time_from_reference(d1);
+		if (d2 == d1) {
+			return forward(t);
+		} else {
+			return forward_rate(t, time_from_reference(d2));
 		}
 	}
-	CurveId curveId = make_curve_id(type, defn->currency(), defn->index_family(), defn->tenor(), as_of_date, cycle,
-					mdq, scenario);
-	return make_curve(&GlobalAllocator, curveId, as_of_date, maturities, values, n, defn->interpolator_type(),
-			  defn->interpolated_on(), deriv_order);
-}
+	double forward_rate(double t1, double t2) const noexcept final
+	{
+		if (t1 == t2) {
+			return forward(t1);
+		}
+		double r1 = zero_rate(t1);
+		double r2 = zero_rate(t2);
+		return (r2 * t2 - r1 * t1) / (t2 - t1);
+	}
+	std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>> get_sensitivities(double x,
+											 FixedRegionAllocator *A) const
+	    noexcept final
+	{
+		return nullptr;
+	}
+	const DayFraction &day_fraction() const noexcept final { return *day_fraction_; }
+	Date as_of_date() const noexcept override final { return as_of_date_; }
+	int last_pillar() const noexcept override final { return parameters_.size() - 1; }
+	Date maturity_date(int pillar) const override final { return 0; }
+	double value(int pillar) const noexcept override final { return parameters_[pillar]; }
+	double maturity_time(int pillar) const noexcept override final { return 0; }
+	Date last_maturity() const noexcept final { return 0; }
+	CurveType curve_type() const noexcept override final { return CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC; }
+	void update_rates(const double *rates, size_t n) noexcept
+	{
+		assert(n == parameters_.size());
+		for (int i = 0; i < parameters_.size(); i++) {
+			parameters_[i] = rates[i];
+			trace("Parameter[%d] = %.12f\n", i, parameters_[i]);
+		}
+	}
+	std::vector<std::unique_ptr<YieldCurve, Deleter<YieldCurve>>> get_bumped_curves(Allocator *A,
+											double h = 0.00001) const
+	    noexcept
+	{
+		return std::vector<std::unique_ptr<YieldCurve, Deleter<YieldCurve>>>();
+	}
+	std::unique_ptr<YieldCurve, Deleter<YieldCurve>> get_bumped_curve(Allocator *A, int pillar,
+									  double h = 0.00001) const noexcept
+	{
+		return nullptr;
+	}
+	virtual void dump(FILE *fp = stderr) const noexcept {}
+	virtual bool is_valid() const noexcept final { return true; }
+	virtual InterpolatorType interpolator_type() const noexcept final
+	{
+		// FIXME
+		return InterpolatorType::LINEAR;
+	}
+
+	private:
+	Date as_of_date_;
+	std::array<double, 6> parameters_;
+	const DayFraction *day_fraction_;
+};
+
 /**
- * Curve that takes zero rates as input
+ * Curve that takes
+ * zero rates as input
  *
  */
 template <typename Derived> class InterestRateCurveImpl : public YieldCurve
@@ -156,6 +246,7 @@ template <typename Derived> class InterestRateCurveImpl : public YieldCurve
 	virtual const DayFraction &day_fraction() const noexcept final { return *day_fraction_; }
 	Date as_of_date() const noexcept override final { return as_of_date_; }
 	int last_pillar() const noexcept override final { return n_ - 1; }
+	CurveType curve_type() const noexcept override final { return CurveType::CURVE_TYPE_INTERPOLATED; }
 	Date maturity_date(int pillar) const override final
 	{
 		if (pillar < 0 || pillar > last_pillar())
@@ -568,4 +659,65 @@ std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Allocator *A, CurveI
 	}
 }
 
+std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_svensson_curve(Allocator *A, CurveId id, Date as_of_date,
+								     std::array<double, 6> parameters,
+								     DayCountFraction fraction) noexcept
+{
+	return std::unique_ptr<YieldCurve, Deleter<YieldCurve>>(new (*A) SvenssonCurve(id, as_of_date, parameters),
+								Deleter<YieldCurve>(A));
+}
+
+std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Date as_of_date, const IRCurveDefinition *defn,
+							    const ZeroCurve &curve, int deriv_order,
+							    PricingCurveType type, MarketDataQualifier mdq,
+							    short int cycle, short int scenario)
+{
+	switch (defn->curve_type()) {
+	default:
+	case CurveType::CURVE_TYPE_INTERPOLATED: {
+		auto n = curve.maturities_size();
+		int reqsize = n * sizeof(double) * 2;
+		FixedRegionAllocator *tempalloc = get_threadspecific_allocators()->tempspace_allocator;
+		FixedRegionAllocatorGuard guard(tempalloc);
+		StackRegionWithFallbackAllocator<1024> buf(tempalloc);
+		Date *maturities = (Date *)buf.safe_allocate(sizeof(Date) * n);
+		double *values = (double *)buf.safe_allocate(sizeof(double) * n);
+		for (int i = 0; i < n; i++) {
+			maturities[i] = curve.maturities(i);
+			values[i] = curve.values(i);
+		}
+		if (defn->interpolated_on() == IRRateType::DISCOUNT_FACTOR) {
+			// Convert the values to discount factors as we need to
+			// interpolate on discount factors
+			// FIXME the day count fraction ought to be a parameter in curve
+			// definition
+			auto fraction = get_day_fraction(DayCountFraction::ACT_365_FIXED);
+			for (int i = 0; i < n; i++) {
+				double t = fraction->year_fraction(as_of_date, maturities[i]);
+				values[i] = std::exp(-values[i] * t);
+			}
+		}
+		CurveId curveId = make_curve_id(type, defn->currency(), defn->index_family(), defn->tenor(), as_of_date,
+						cycle, mdq, scenario);
+		return make_curve(&GlobalAllocator, curveId, as_of_date, maturities, values, n,
+				  defn->interpolator_type(), defn->interpolated_on(), deriv_order);
+	}
+	case CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC: {
+		std::array<double, 6> parameters;
+		auto n = curve.values_size();
+		assert(n == parameters.size());
+		if (n != parameters.size()) {
+			error("Curve being constructed with missing parameters, expected %d but got %d\n",
+			      parameters.size(), n);
+			return std::unique_ptr<YieldCurve, Deleter<YieldCurve>>();
+		}
+		for (int i = 0; i < parameters.size(); i++) {
+			parameters[i] = curve.values(i);
+		}
+		CurveId curveId = make_curve_id(type, defn->currency(), defn->index_family(), defn->tenor(), as_of_date,
+						cycle, mdq, scenario);
+		return make_svensson_curve(&GlobalAllocator, curveId, as_of_date, parameters);
+	}
+	}
+}
 } // namespace redukti

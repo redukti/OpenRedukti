@@ -25,10 +25,14 @@ import "redukti/shared.proto";
 
 message ParInstrument {
 	// instrument type is used to decide the pricing algorithm to use
+	// the type needs to match a Lua function name that can be used
+	// to define the instrument cashflow structure
 	string instrument_type = 1;
 	// The instrument_key is a way to identify the instrument
 	// for futures it must be MmmYY where MMM is the expiry month
-	// for Fras its must be nnxnnF  
+	// for Fras its must be nnxnnF 
+	// For Bonds the key is used to specify issue date,
+	// maturity date, dirty or clean price
 	string instrument_key = 2;
 	// A reference to a curve within the owning set
 	int32 discount_curve_definition_id = 3;
@@ -46,6 +50,8 @@ message ParRates {
 	// instrument, maybe by looking up in a database
 	// Note that the bootstrapper does not use these ids
 	repeated int32 instrument_ids = 1;
+	// Normally these are the PAR rates
+	// For Bonds these are the fixed rates
 	repeated double values = 2;
 }
 

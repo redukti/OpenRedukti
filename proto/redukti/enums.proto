@@ -394,6 +394,14 @@ enum CurveGroup {
 	CURVE_GROUP_F = 6;
 }
 
+enum CurveType {
+	// Curve uses an interpolator and a vecor of
+	// rates or discount factors
+	CURVE_TYPE_INTERPOLATED = 0;
+	// Curve uses parameters 
+	CURVE_TYPE_SVENSSON_PARAMETRIC = 1;
+}
+
 // The type of value used in a curve
 enum IRRateType 
 { 
@@ -424,6 +432,9 @@ enum MarketDataQualifier {
 enum MaturityGenerationRule {
 	MATURITY_GENERATION_RULE_DERIVE_FROM_INSTRUMENTS = 0;
 	MATURITY_GENERATION_RULE_FIXED_TENORS = 1;
+	// For Svensson curves the curve is based on 
+	// 6 parameters rather than maturity pillars
+	MATURITY_GENERATION_RULE_SVENSSON = 2;
 }
 
 enum ResponseSubCode {
@@ -454,6 +465,7 @@ enum ResponseSubCode {
   kBTS_MissingCurveDefinitions = 1217;
   kBTS_MissingParCurves = 1218;
   kBTS_DefinitonsAndCurvesMismatch = 1219;
+  kBTS_BadMaturityGenerationRule = 1220;
 
   kVAL_BadBusinessDate = 1231;
   kVAL_BadMaturityDate = 1232;
