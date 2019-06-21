@@ -399,6 +399,7 @@ The Calendar API is as described below.
    //    service is live.
    // b) Ditto for joint calendar instances.
    // c) Calendar instances must be immutable.
+   // d) It must be threadsafe
    class CalendarService
    {
    public:
@@ -423,7 +424,9 @@ The Calendar API is as described below.
                       JointCalendarRule rule = JointCalendarRule::JOIN_HOLIDAYS) noexcept;
    };
 
-   // Get the calendar factory
+   // Gets the global calendar service
+   // As Calendars are immutable once constructed it is safe to allow
+   // them to be managed via a global Calendar Service
    extern CalendarService *get_calendar_factory() noexcept;
 
    // Utility for constructing a joint calendar
