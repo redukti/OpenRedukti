@@ -676,7 +676,6 @@ std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Date as_of_date, con
 	default:
 	case CurveType::CURVE_TYPE_INTERPOLATED: {
 		auto n = curve.maturities_size();
-		int reqsize = n * sizeof(double) * 2;
 		FixedRegionAllocator *tempalloc = get_threadspecific_allocators()->tempspace_allocator;
 		FixedRegionAllocatorGuard guard(tempalloc);
 		StackRegionWithFallbackAllocator<1024> buf(tempalloc);
@@ -699,7 +698,7 @@ std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Date as_of_date, con
 		}
 		CurveId curveId = make_curve_id(type, defn->currency(), defn->index_family(), defn->tenor(), as_of_date,
 						cycle, mdq, scenario);
-		return make_curve(&GlobalAllocator, curveId, as_of_date, maturities, values, n,
+		return make_curve(get_default_allocator(), curveId, as_of_date, maturities, values, n,
 				  defn->interpolator_type(), defn->interpolated_on(), deriv_order);
 	}
 	case CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC: {
@@ -716,7 +715,7 @@ std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Date as_of_date, con
 		}
 		CurveId curveId = make_curve_id(type, defn->currency(), defn->index_family(), defn->tenor(), as_of_date,
 						cycle, mdq, scenario);
-		return make_svensson_curve(&GlobalAllocator, curveId, as_of_date, parameters);
+		return make_svensson_curve(get_default_allocator(), curveId, as_of_date, parameters);
 	}
 	}
 }

@@ -139,9 +139,9 @@ class MallocAllocator : public Allocator
 	MallocAllocator &operator=(const MallocAllocator &) = delete;
 };
 
-// It doesn't make sense to have multiple instances
-// of the MallocAllocator
-extern MallocAllocator GlobalAllocator;
+// Returns the default allocator which should normally be the
+// malloc allocator
+extern Allocator* get_default_allocator();
 
 // Allocator interface where it is not necessary
 // to destroy or free individual objects
@@ -159,7 +159,7 @@ class RegionAllocator : public Allocator
 	// deallocate() explicitly on objects.
 	// Note therefore that this allocator is unsuitable for
 	// objects with destructors!
-	~RegionAllocator() = default;
+	~RegionAllocator() override = default;
 
 	void *allocate(size_t size) noexcept override = 0;
 

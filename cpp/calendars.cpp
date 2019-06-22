@@ -574,7 +574,7 @@ template <> struct NilHelper<Calendar *> {
 class CalendarFactoryImpl : public CalendarService
 {
 	public:
-	CalendarFactoryImpl() : inuse_(false), lock_()
+	CalendarFactoryImpl() : lock_(), inuse_(false)
 	{
 		std::fill(std::begin(default_calendars_), std::end(default_calendars_), nullptr);
 		std::fill(std::begin(default_calendars_allocstatus_), std::end(default_calendars_allocstatus_), false);

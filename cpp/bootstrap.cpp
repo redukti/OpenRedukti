@@ -59,7 +59,7 @@ namespace redukti
 class CurveDefinitionProvider
 {
 	public:
-	virtual ~CurveDefinitionProvider() {}
+	virtual ~CurveDefinitionProvider() = default;
 	virtual const IRCurveDefinition *get_definition_by_id(int id) const = 0;
 };
 
@@ -70,9 +70,9 @@ class CurveDefinitionProviderImpl : public CurveDefinitionProvider
 	std::map<int, const IRCurveDefinition *> mapping;
 
 	public:
-	~CurveDefinitionProviderImpl() {}
+	~CurveDefinitionProviderImpl() = default;
 	void add(const IRCurveDefinition *def) { mapping.insert({(int)def->id(), def}); }
-	const IRCurveDefinition *get_definition_by_id(int id) const override final
+	const IRCurveDefinition *get_definition_by_id(int id) const final
 	{
 		auto &&iter = mapping.find(id);
 		if (iter != mapping.end())
@@ -211,6 +211,7 @@ struct CurveHolder : public CurveReference {
 			std::copy(rates_, rates_ + n_maturities_, values_minus_h_);
 		}
 		switch (curve_type_) {
+		default:
 		case CurveType::CURVE_TYPE_INTERPOLATED:
 			base_curve_ = make_curve(alloc, curveId, asOfDate, maturities_, values_, n_maturities_, interp,
 						 interpolated_on_);
@@ -819,6 +820,7 @@ bool CurveBuilder::create_bootstrap_curve(const ParCurve &input_curve,
 		}
 		break;
 	}
+	default:
 	case MaturityGenerationRule::MATURITY_GENERATION_RULE_DERIVE_FROM_INSTRUMENTS: {
 		// We will use the input instruments to define the set of
 		// maturities
@@ -853,7 +855,7 @@ bool CurveBuilder::create_bootstrap_curve(const ParCurve &input_curve,
 		break;
 	}
 	}
-	ycurve->init(business_date_, &GlobalAllocator,
+	ycurve->init(business_date_, get_default_allocator(),
 		     make_curve_id(PricingCurveType::PRICING_CURVE_TYPE_UNSPECIFIED, defn->currency(),
 				   defn->index_family(), defn->tenor(), business_date_),
 		     defn->interpolator_type(), defn->interpolated_on());
@@ -1448,9 +1450,9 @@ std::unique_ptr<SolverFunction> CurveBuilder::make_solver(const CurveBuilderOpti
 	switch (options.solver_type) {
 	default:
 	case SolverType::SOLVER_TYPE_LEVENBERG_MARQUARDT:
-		return std::make_unique<LMDER_Solver>(this, options.max_iterations, &GlobalAllocator, stderr);
+		return std::make_unique<LMDER_Solver>(this, options.max_iterations, get_default_allocator(), stderr);
 	case SolverType::SOLVER_TYPE_LINEAR_LEAST_SQUARE:
-		return std::make_unique<LinearLeastSquaresSolver>(this, options.max_iterations, &GlobalAllocator,
+		return std::make_unique<LinearLeastSquaresSolver>(this, options.max_iterations, get_default_allocator(),
 								  stderr);
 	}
 }

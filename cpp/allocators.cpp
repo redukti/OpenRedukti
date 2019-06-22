@@ -25,6 +25,11 @@ namespace redukti
 
 MallocAllocator GlobalAllocator;
 
+Allocator* get_default_allocator()
+{
+    return &GlobalAllocator;
+}
+
 static thread_local AllocatorSet *allocSet = nullptr;
 
 // Returns the thread specific allocators.

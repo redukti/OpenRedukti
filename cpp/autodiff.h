@@ -192,6 +192,10 @@ static inline void redukti_adouble_set_derivative2(redukti_adouble_t *x, int par
 	matrix[pos] = v;
 }
 
+static inline int redukti_adouble_get_order(const redukti_adouble_t *x) { return x->order_; }
+
+static inline int redukti_adouble_get_nvars(const redukti_adouble_t *x) { return x->vars_; }
+
 #ifdef __cplusplus
 }
 #endif

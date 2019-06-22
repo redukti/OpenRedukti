@@ -741,10 +741,10 @@ class ValuationServiceImpl : public ValuationService
 					auto const &sens = request->par_sensitivities(i);
 					// Copy the zero curve par sensitivities to a dense col major matrix
 					auto size = sens.num_instruments() * sens.num_maturities();
-					void *p = GlobalAllocator.allocate(sizeof(Matrix) + sizeof(double) * size);
+					void *p = get_default_allocator()->allocate(sizeof(Matrix) + sizeof(double) * size);
 					auto matrix = std::unique_ptr<Matrix, Deleter<Matrix>>(
 					    new (p) Matrix(sens.num_instruments(), sens.num_maturities()),
-					    Deleter<Matrix>(&GlobalAllocator));
+					    Deleter<Matrix>(get_default_allocator()));
 					for (auto &iter : sens.values()) {
 						uint32_t n = iter.first;
 						uint32_t col = n >> 16;

@@ -1009,7 +1009,7 @@ template <typename T> class MonotoneConvexInterpolator
 	 */
 	MonotoneConvexInterpolator(double *x, double *y, unsigned int size, bool inputsAreForwards,
 				   bool allowNegativeForwards, InterpolatorType type, int order,
-				   bool extrapolate = false, Allocator *alloc = &GlobalAllocator);
+				   bool extrapolate = false, Allocator *alloc = get_default_allocator());
 	~MonotoneConvexInterpolator() {}
 
 	void update();
@@ -2465,7 +2465,7 @@ int testSplineErrorOnGaussianValues()
 
 		// Not-a-knot
 		auto f = make_interpolator(InterpolatorType::CUBIC_SPLINE_NOT_A_KNOT, x.data(), y.data(),
-					   x.end() - x.begin(), &GlobalAllocator);
+					   x.end() - x.begin(), get_default_allocator());
 		double result = std::sqrt(integral(make_error_function(*f), -1.7, 1.9));
 		result /= scaleFactor;
 		if (std::fabs(result - tabulatedErrors[i]) > toleranceOnTabErr[i]) {
@@ -2476,7 +2476,7 @@ int testSplineErrorOnGaussianValues()
 		}
 // MC not-a-knot
 #if 0
-    f = make_interpolator(InterpolatorType::MonotonicCubicSplineNotAKnot, x.data(), y.data(), x.end() - x.begin(), &GlobalAllocator);
+    f = make_interpolator(InterpolatorType::MonotonicCubicSplineNotAKnot, x.data(), y.data(), x.end() - x.begin(), get_default_allocator());
     result = std::sqrt(integral(make_error_function(*f), -1.7, 1.9));
     result /= scaleFactor;
     if (std::fabs(result - tabulatedMCErrors[i]) > toleranceOnTabMCErr[i]) {
@@ -2509,7 +2509,7 @@ int testSplineOnRPN15AValues()
 
 	// Natural spline
 	auto f = make_interpolator(InterpolatorType::CUBIC_SPLINE_NATURAL, RPN15A_x, RPN15A_y,
-				   std::end(RPN15A_x) - std::begin(RPN15A_x), &GlobalAllocator);
+				   std::end(RPN15A_x) - std::begin(RPN15A_x), get_default_allocator());
 	failure_count +=
 	    checkValues("Natural spline", *f, std::begin(RPN15A_x), std::end(RPN15A_x), std::begin(RPN15A_y));
 	failure_count += check2ndDerivativeValue("Natural spline", *f, *std::begin(RPN15A_x), 0.0);
@@ -2525,7 +2525,7 @@ int testSplineOnRPN15AValues()
 
 	// Clamped spline
 	f = make_interpolator(InterpolatorType::CUBIC_SPLINE_CLAMPED, RPN15A_x, RPN15A_y,
-			      std::end(RPN15A_x) - std::begin(RPN15A_x), &GlobalAllocator);
+			      std::end(RPN15A_x) - std::begin(RPN15A_x), get_default_allocator());
 	failure_count +=
 	    checkValues("Clamped spline", *f, std::begin(RPN15A_x), std::end(RPN15A_x), std::begin(RPN15A_y));
 	failure_count += check1stDerivativeValue("Clamped spline", *f, *std::begin(RPN15A_x), 0.0);
@@ -2541,7 +2541,7 @@ int testSplineOnRPN15AValues()
 
 	// Not-a-knot spline
 	f = make_interpolator(InterpolatorType::CUBIC_SPLINE_NOT_A_KNOT, RPN15A_x, RPN15A_y,
-			      std::end(RPN15A_x) - std::begin(RPN15A_x), &GlobalAllocator);
+			      std::end(RPN15A_x) - std::begin(RPN15A_x), get_default_allocator());
 	failure_count +=
 	    checkValues("Not-a-knot spline", *f, std::begin(RPN15A_x), std::end(RPN15A_x), std::begin(RPN15A_y));
 	failure_count += checkNotAKnotCondition("Not-a-knot spline", *f);
@@ -2556,7 +2556,7 @@ int testSplineOnRPN15AValues()
 
 #if 0
   // MC natural spline values
-  f = make_interpolator(InterpolatorType::MonotonicCubicSplineNatural, RPN15A_x, RPN15A_y, std::end(RPN15A_x) - std::begin(RPN15A_x), &GlobalAllocator);
+  f = make_interpolator(InterpolatorType::MonotonicCubicSplineNatural, RPN15A_x, RPN15A_y, std::end(RPN15A_x) - std::begin(RPN15A_x), get_default_allocator());
   failure_count += checkValues("MC natural spline", *f,
     std::begin(RPN15A_x), std::end(RPN15A_x), std::begin(RPN15A_y));
   // good performance
@@ -2572,7 +2572,7 @@ int testSplineOnRPN15AValues()
 
 
   // MC clamped spline values
-  f = make_interpolator(InterpolatorType::MonotonicCubicSplineClamped, RPN15A_x, RPN15A_y, std::end(RPN15A_x) - std::begin(RPN15A_x), &GlobalAllocator);
+  f = make_interpolator(InterpolatorType::MonotonicCubicSplineClamped, RPN15A_x, RPN15A_y, std::end(RPN15A_x) - std::begin(RPN15A_x), get_default_allocator());
   failure_count += checkValues("MC clamped spline", *f,
     std::begin(RPN15A_x), std::end(RPN15A_x), std::begin(RPN15A_y));
   failure_count += check1stDerivativeValue("MC clamped spline", *f,
@@ -2592,7 +2592,7 @@ int testSplineOnRPN15AValues()
 
 
   // MC not-a-knot spline values
-  f = make_interpolator(InterpolatorType::MonotonicCubicSplineNotAKnot, RPN15A_x, RPN15A_y, std::end(RPN15A_x) - std::begin(RPN15A_x), &GlobalAllocator);
+  f = make_interpolator(InterpolatorType::MonotonicCubicSplineNotAKnot, RPN15A_x, RPN15A_y, std::end(RPN15A_x) - std::begin(RPN15A_x), get_default_allocator());
   failure_count += checkValues("MC not-a-knot spline", *f,
     std::begin(RPN15A_x), std::end(RPN15A_x), std::begin(RPN15A_y));
   // good performance
@@ -2632,7 +2632,7 @@ int testSplineOnGenericValues()
 	data.cubic_right_condition_value = generic_natural_y2[n - 1];
 	// Natural spline
 	auto f = make_interpolator(InterpolatorType::CUBIC_SPLINE_NATURAL, generic_x, generic_y,
-				   std::end(generic_x) - std::begin(generic_x), &GlobalAllocator, data);
+				   std::end(generic_x) - std::begin(generic_x), get_default_allocator(), data);
 	failure_count +=
 	    checkValues("Natural spline", *f, std::begin(generic_x), std::end(generic_x), std::begin(generic_y));
 	// cached second derivative
@@ -2654,7 +2654,7 @@ int testSplineOnGenericValues()
 	data.cubic_left_condition_value = y1a;
 	data.cubic_right_condition_value = y1b;
 	f = make_interpolator(InterpolatorType::CUBIC_SPLINE_CLAMPED, generic_x, generic_y,
-			      std::end(generic_x) - std::begin(generic_x), &GlobalAllocator, data);
+			      std::end(generic_x) - std::begin(generic_x), get_default_allocator(), data);
 	failure_count +=
 	    checkValues("Clamped spline", *f, std::begin(generic_x), std::end(generic_x), std::begin(generic_y));
 	failure_count += check1stDerivativeValue("Clamped spline", *f, *std::begin(generic_x), 0.0);
@@ -2663,7 +2663,7 @@ int testSplineOnGenericValues()
 
 	// Not-a-knot spline
 	f = make_interpolator(InterpolatorType::CUBIC_SPLINE_NOT_A_KNOT, generic_x, generic_y,
-			      std::end(generic_x) - std::begin(generic_x), &GlobalAllocator);
+			      std::end(generic_x) - std::begin(generic_x), get_default_allocator());
 	failure_count +=
 	    checkValues("Not-a-knot spline", *f, std::begin(generic_x), std::end(generic_x), std::begin(generic_y));
 	failure_count += checkNotAKnotCondition("Not-a-knot spline", *f);
@@ -2695,14 +2695,14 @@ int testSimmetricEndConditions()
 
 	// Not-a-knot spline
 	auto f = make_interpolator(InterpolatorType::CUBIC_SPLINE_NOT_A_KNOT, x.data(), y.data(), x.size(),
-				   &GlobalAllocator);
+				   get_default_allocator());
 	failure_count += checkValues("Not-a-knot spline", *f, x.begin(), x.end(), y.begin());
 	failure_count += checkNotAKnotCondition("Not-a-knot spline", *f);
 	failure_count += checkSymmetry("Not-a-knot spline", *f, x[0]);
 
 #if 0
   // MC not-a-knot spline
-  f = make_interpolator(InterpolatorType::MonotonicCubicSplineNotAKnot, x.data(), y.data(), x.size(), &GlobalAllocator);
+  f = make_interpolator(InterpolatorType::MonotonicCubicSplineNotAKnot, x.data(), y.data(), x.size(), get_default_allocator());
   failure_count += checkValues("MC not-a-knot spline", *f,
     x.begin(), x.end(), y.begin());
   failure_count += checkSymmetry("MC not-a-knot spline", *f, x[0]);
@@ -2726,7 +2726,7 @@ int testDerivativeEndConditions()
 
 	// Not-a-knot spline
 	auto f = make_interpolator(InterpolatorType::CUBIC_SPLINE_NOT_A_KNOT, x.data(), y.data(), x.size(),
-				   &GlobalAllocator);
+				   get_default_allocator());
 	failure_count += checkValues("Not-a-knot spline", *f, x.begin(), x.end(), y.begin());
 	failure_count += check1stDerivativeValue("Not-a-knot spline", *f, x[0], 4.0);
 	failure_count += check1stDerivativeValue("Not-a-knot spline", *f, x[n - 1], -4.0);
@@ -2737,7 +2737,7 @@ int testDerivativeEndConditions()
 	InterpolationOptions data;
 	data.cubic_left_condition_value = 4.0;
 	data.cubic_right_condition_value = -4.0;
-	f = make_interpolator(InterpolatorType::CUBIC_SPLINE_CLAMPED, x.data(), y.data(), x.size(), &GlobalAllocator,
+	f = make_interpolator(InterpolatorType::CUBIC_SPLINE_CLAMPED, x.data(), y.data(), x.size(), get_default_allocator(),
 			      data);
 	failure_count += checkValues("Clamped spline", *f, x.begin(), x.end(), y.begin());
 	failure_count += check1stDerivativeValue("Clamped spline", *f, x[0], 4.0);
@@ -2764,7 +2764,7 @@ int testDerivativeEndConditions()
 
 #if 0
   // MC Not-a-knot spline
-  f = make_interpolator(InterpolatorType::MonotonicCubicSplineNotAKnot, x.data(), y.data(), x.size(), &GlobalAllocator);
+  f = make_interpolator(InterpolatorType::MonotonicCubicSplineNotAKnot, x.data(), y.data(), x.size(), get_default_allocator());
   failure_count += checkValues("MC Not-a-knot spline", *f,
     x.begin(), x.end(), y.begin());
   failure_count += check1stDerivativeValue("MC Not-a-knot spline", *f,
@@ -2779,7 +2779,7 @@ int testDerivativeEndConditions()
   // MC Clamped spline
   data.cubic_left_condition_value = 4.0;
   data.cubic_right_condition_value = -4.0;
-  f = make_interpolator(InterpolatorType::MonotonicCubicSplineClamped, x.data(), y.data(), x.size(), &GlobalAllocator, data);
+  f = make_interpolator(InterpolatorType::MonotonicCubicSplineClamped, x.data(), y.data(), x.size(), get_default_allocator(), data);
   failure_count += checkValues("MC Clamped spline", *f,
     x.begin(), x.end(), y.begin());
   failure_count += check1stDerivativeValue("MC Clamped spline", *f,
@@ -2822,7 +2822,7 @@ int test_simple_cubicspline()
 
 	CubicInterpolator<redukti_adouble_t> interp(
 	    std::begin(xa), std::end(xa), ya, BoundaryCondition::SecondDerivative, 0.0,
-	    BoundaryCondition::SecondDerivative, 0.0, InterpolatorType::CUBIC_SPLINE_NATURAL, 2, &GlobalAllocator);
+	    BoundaryCondition::SecondDerivative, 0.0, InterpolatorType::CUBIC_SPLINE_NATURAL, 2, get_default_allocator());
 
 	for (int x = 0; x < 7; x++) {
 		double y = interp.interpolate(x);
@@ -2864,7 +2864,7 @@ static int test_interp(double *x_data, double *y_data, size_t n, InterpolatorTyp
 	int status = 0;
 	size_t i;
 
-	auto interp = make_interpolator(T, x_data, y_data, n, &GlobalAllocator);
+	auto interp = make_interpolator(T, x_data, y_data, n, get_default_allocator());
 
 	for (i = 0; i < test_n; i++) {
 		double x = test_x[i];
@@ -2901,7 +2901,7 @@ static int test_linear_sensitivities()
 	InterpolationOptions data;
 	data.differentiation_order = 1;
 	auto interp = make_interpolator(InterpolatorType::LINEAR, xa, ya, 4,
-					&GlobalAllocator, data);
+					get_default_allocator(), data);
 	int failure_count = 0;
 	auto n = std::end(xValues) - std::begin(xValues);
 	for (int i = 0; i < n; i++) {

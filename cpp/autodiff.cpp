@@ -69,7 +69,7 @@ void redukti_adouble_init(redukti_adouble_t *x, int n_vars, int order, int var, 
 	assert(order <= 2);
 
 	size_t mysize = redukti_adouble_alloc_size(n_vars, order);
-	memset(x, 0, mysize);
+	memset((void *)x, 0, mysize);
 	x->order_ = order; // order
 	x->vars_ = n_vars; // number of variables
 	x->data_[0] = v;   // value
@@ -82,7 +82,7 @@ void redukti_adouble_assign(redukti_adouble_t *A, const redukti_adouble_t *B)
 	if (A == B)
 		return;
 	size_t mysize = redukti_adouble_alloc_size(B->vars_, B->order_);
-	memcpy(A, B, mysize);
+	memcpy((void *)A, (const void *)B, mysize);
 }
 
 // Compute the number of array elements in autodiff variable

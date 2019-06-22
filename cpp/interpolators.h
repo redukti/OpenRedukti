@@ -31,6 +31,7 @@ namespace redukti
 {
 
 struct InterpolationOptions;
+typedef std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>> SensitivitiesPointerType; // To help Cython
 
 class Interpolator
 {
@@ -44,22 +45,20 @@ class Interpolator
 	// Interpolate at x
 	// And also compute sensitivities of value at x
 	// to the various terms in the data set.
-	// Both first order and second order sensitivies
+	// Both first order and second order sensitivities
 	// can be computed depending upon how the
 	// the interpolator was created.
 	// Uses automatic differentiation
-	virtual std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>>
-	interpolate_with_sensitivities(double x, FixedRegionAllocator *A) = 0;
+	virtual SensitivitiesPointerType interpolate_with_sensitivities(double x, FixedRegionAllocator *A) = 0;
 
 	// Interpolate at x
 	// And also compute sensitivities of value at x
 	// to the various terms in the data set.
-	// Both first order and second order sensitivies
+	// Both first order and second order sensitivities
 	// can be computed depending upon how the
 	// the interpolator was created.
 	// Uses numeric differentiation
-	virtual std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>>
-	interpolate_with_numeric_sensitivities(double x, FixedRegionAllocator *A) = 0;
+	virtual SensitivitiesPointerType interpolate_with_numeric_sensitivities(double x, FixedRegionAllocator *A) = 0;
 
 	// If underlying values have changed, this
 	// method can be called to reinitialise the
@@ -109,13 +108,14 @@ struct InterpolationOptions {
 	}
 };
 
+typedef std::unique_ptr<Interpolator, Deleter<Interpolator>> InterpolatorPointerType; // To help Cython
 // Return an Interpolator of the desired type.
 // The x and y arrays will be referenced by the Interpolator,
 // and therefore the caller must carefully manage
 // changes.
-extern std::unique_ptr<Interpolator, Deleter<Interpolator>>
-make_interpolator(InterpolatorType type, double *x, double *y, unsigned int size, Allocator *A,
-		  const InterpolationOptions &options = InterpolationOptions());
+extern InterpolatorPointerType make_interpolator(InterpolatorType type, double *x, double *y, unsigned int size,
+						 Allocator *A = get_default_allocator(),
+						 const InterpolationOptions &options = InterpolationOptions());
 
 extern int test_interpolators();
 

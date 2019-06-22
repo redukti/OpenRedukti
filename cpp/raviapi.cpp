@@ -2053,7 +2053,7 @@ static int create_interpolator(lua_State *L)
 		if (errmsg)
 			break;
 		std::unique_ptr<Interpolator, Deleter<Interpolator>> interp =
-		    make_interpolator(it, xvalues.get(), yvalues.get(), xlen, &GlobalAllocator, options);
+		    make_interpolator(it, xvalues.get(), yvalues.get(), xlen, get_default_allocator(), options);
 		InterpolatorHolder *iptr = (InterpolatorHolder *)lua_newuserdata(L, sizeof(InterpolatorHolder));
 		new (iptr) InterpolatorHolder(std::move(xvalues), std::move(yvalues), std::move(interp));
 		luaL_getmetatable(L, Type_Interpolator);
@@ -2248,7 +2248,7 @@ static int add_curve_provider_mapping(lua_State *L)
 
 static int curve_provider_get_curves(lua_State *L)
 {
-	CurveProviderHolder *holder = check_Type_CurveProvider(L, 1);
+	check_Type_CurveProvider(L, 1);
 	// FIXME we should return a copy as else user may
 	// remove some curves causing a potential memory
 	// management issue
@@ -2362,7 +2362,7 @@ static int create_ircurve(lua_State *L)
 	if (!errmsg) {
 		auto curve_id = make_curve_id(curve_type, ccy, indexFamily, tenor, as_of_date, 0, qual, 0);
 		std::unique_ptr<YieldCurve, Deleter<YieldCurve>> curve =
-		    make_curve(&GlobalAllocator, curve_id, as_of_date, xvalues, yvalues, xn, it, rate_type, order, dfc);
+		    make_curve(get_default_allocator(), curve_id, as_of_date, xvalues, yvalues, xn, it, rate_type, order, dfc);
 		if (curve) {
 			IRCurveHolder *iptr = (IRCurveHolder *)lua_newuserdata(L, sizeof(IRCurveHolder));
 			new (iptr) IRCurveHolder(std::move(curve));
@@ -2659,7 +2659,6 @@ static const char *build_curve_definitions(lua_State *L, int idx, BootstrapCurve
 			Currency ccy = Currency::CURRENCY_UNSPECIFIED;
 			IndexFamily indexFamily = IndexFamily::INDEX_FAMILY_UNSPECIFIED;
 			Tenor tenor = Tenor::TENOR_UNSPECIFIED;
-			MarketDataQualifier qual = MarketDataQualifier::MDQ_NORMAL;
 			IRRateType interpolated_on = IRRateType::ZERO_RATE;
 			MaturityGenerationRule rule =
 			    MaturityGenerationRule::MATURITY_GENERATION_RULE_DERIVE_FROM_INSTRUMENTS;
@@ -3006,7 +3005,6 @@ static int collect_Type_FixingService(lua_State *L)
 // redukti table must be at the top of the stack
 static void setup_constants(lua_State *L)
 {
-	int top = lua_gettop(L);
 	lua_newtable(L);
 
 	Kint(PRICING_CURVE_TYPE_FORWARD, "FORWARD_CURVE");

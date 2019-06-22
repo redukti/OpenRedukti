@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	char server_address[80];
+	char server_address[100];
 	snprintf(server_address, sizeof server_address, "%s:%d", ip_address, port);
 
 	std::unique_ptr<CurveBuilderService> bootstrapper = get_curve_builder_service(script);
