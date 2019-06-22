@@ -74,7 +74,7 @@ YearMonthDay nth_weekday(unsigned n, unsigned wd, unsigned month, int year)
 // but if not (e.g. no 29th Feb in final date) then the day is adjusted to fit in the month
 // When handling year periods, the day and month are kept the same if possible
 // or adjusted as above.
-static Date advance(Date date, int n, PeriodUnit units) noexcept
+Date advance(Date date, int n, PeriodUnit units) noexcept
 {
 	switch (units) {
 	case PeriodUnit::DAYS:
