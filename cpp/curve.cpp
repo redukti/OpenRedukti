@@ -660,10 +660,18 @@ std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Allocator *A, CurveI
 }
 
 std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_svensson_curve(Allocator *A, CurveId id, Date as_of_date,
-								     std::array<double, 6> parameters,
+								     double parameters[], size_t n,
 								     DayCountFraction fraction) noexcept
 {
-	return std::unique_ptr<YieldCurve, Deleter<YieldCurve>>(new (*A) SvenssonCurve(id, as_of_date, parameters),
+	std::array<double, 6> param_array;
+	assert(n == param_array.size());
+	if (n != param_array.size()) {
+		error("Curve being constructed with missing parameters, expected %d but got %d\n",
+		      param_array.size(), n);
+		return std::unique_ptr<YieldCurve, Deleter<YieldCurve>>();
+	}
+	std::copy(parameters, parameters+n, std::begin(param_array));
+	return std::unique_ptr<YieldCurve, Deleter<YieldCurve>>(new (*A) SvenssonCurve(id, as_of_date, param_array),
 								Deleter<YieldCurve>(A));
 }
 
@@ -702,20 +710,20 @@ std::unique_ptr<YieldCurve, Deleter<YieldCurve>> make_curve(Date as_of_date, con
 				  defn->interpolator_type(), defn->interpolated_on(), deriv_order);
 	}
 	case CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC: {
-		std::array<double, 6> parameters;
+		double parameters[6];
 		auto n = curve.values_size();
-		assert(n == parameters.size());
-		if (n != parameters.size()) {
+		assert(n == std::size(parameters));
+		if (n != std::size(parameters)) {
 			error("Curve being constructed with missing parameters, expected %d but got %d\n",
-			      parameters.size(), n);
+			      std::size(parameters), n);
 			return std::unique_ptr<YieldCurve, Deleter<YieldCurve>>();
 		}
-		for (int i = 0; i < parameters.size(); i++) {
+		for (int i = 0; i < n; i++) {
 			parameters[i] = curve.values(i);
 		}
 		CurveId curveId = make_curve_id(type, defn->currency(), defn->index_family(), defn->tenor(), as_of_date,
 						cycle, mdq, scenario);
-		return make_svensson_curve(get_default_allocator(), curveId, as_of_date, parameters);
+		return make_svensson_curve(get_default_allocator(), curveId, as_of_date, parameters, n);
 	}
 	}
 }

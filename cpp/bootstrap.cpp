@@ -223,12 +223,10 @@ struct CurveHolder : public CurveReference {
 		case CurveType::CURVE_TYPE_SVENSSON_PARAMETRIC: {
 			// A this point the have the same initial guess parameters
 			// TODO check that input has 6 parameters
-			std::array<double, 6> parameters;
-			assert(parameters.size() == n_maturities_);
-			std::copy(values_, values_ + n_maturities_, std::begin(parameters));
-			base_curve_ = make_svensson_curve(alloc, curveId, asOfDate, parameters);
-			curve_plus_h_ = make_svensson_curve(alloc, curveId, asOfDate, parameters);
-			curve_minus_h_ = make_svensson_curve(alloc, curveId, asOfDate, parameters);
+			assert(6 == n_maturities_);
+			base_curve_ = make_svensson_curve(alloc, curveId, asOfDate, values_, n_maturities_);
+			curve_plus_h_ = make_svensson_curve(alloc, curveId, asOfDate, values_, n_maturities_);
+			curve_minus_h_ = make_svensson_curve(alloc, curveId, asOfDate, values_, n_maturities_);
 			break;
 		}
 		}

@@ -218,8 +218,7 @@ extern YieldCurvePointerType make_curve(Allocator *A, CurveId id, Date as_of_dat
 					IRRateType type = IRRateType::ZERO_RATE, int deriv_order = 0,
 					DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
 
-extern YieldCurvePointerType make_svensson_curve(Allocator *A, CurveId id, Date as_of_date,
-						 std::array<double, 6> parameters,
+extern YieldCurvePointerType make_svensson_curve(Allocator *A, CurveId id, Date as_of_date, double parameters[], size_t n,
 						 DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
 
 extern YieldCurvePointerType make_curve(Date as_of_date, const IRCurveDefinition *defn, const ZeroCurve &curve,
