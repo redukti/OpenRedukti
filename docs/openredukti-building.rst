@@ -25,11 +25,7 @@ I installed CMake manually.
 
 I built protobuf and grpc manually (see below).
 
-I enabled `EPEL <https://fedoraproject.org/wiki/EPEL>`_ repository as follows::
-
-  subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms"  --enable "rhel-ha-for-rhel-*-server-rpms"
-	
-Above was necessary to obtain openblas which I then installed as follows::
+I enabled `EPEL <https://fedoraproject.org/wiki/EPEL>`_ repository. This was necessary to obtain openblas which I then installed as follows::
 
   sudo yum install openblas-devel
 
@@ -48,18 +44,18 @@ Building GRPC
 
 I tried building GRPC from the release packages but this failed due to unsatisfied dependency on libcares. Somehow the default method is not compatible with RHEL.
 
-So then I cloned the `grpc github repo <https://github.com/grpc/grpc>`_ and built from there.
+So then I cloned the `gRPC github repo <https://github.com/grpc/grpc>`_ and built from there.
 
 Note that I had to modify following changes:
 
 In the Supplied ``Makefile``:
 
-* prefix - base path for installation
-* CPPFLAGS - I removed the ``-Werror`` option as this caused a failure with gcc 8.3
+* ``prefix`` - base path for installation
+* ``CPPFLAGS`` - I removed the ``-Werror`` option as this caused a failure with gcc 8.3
 
 In ``third_party/boringssl/CMakeLists.txt``:
 
-* C_CXX_FLAGS - remove ``-Werror`` option as this caused a failure with gcc 8.3
+* ``C_CXX_FLAGS`` - I removed the ``-Werror`` option as this caused a failure with gcc 8.3
 
 I executed following steps::
 
@@ -75,11 +71,11 @@ Building OpenRedukti
 
 OpenRedukti was built as follows::
 
-	mkdir build
-	cd build
-	cmake -DGRPC_SERVER=ON -DProtobuf_ROOT=~/Software/protobuf -DCMAKE_INSTALL_PREFIX=~/Software/redukti -DGRPC_ROOT=~/Software/grpc ..
+  mkdir build
+  cd build
+  cmake -DGRPC_SERVER=ON -DProtobuf_ROOT=~/Software/protobuf -DCMAKE_INSTALL_PREFIX=~/Software/redukti -DGRPC_ROOT=~/Software/grpc ..
 
-You can omit the GRPC_SERVER option if that is not needed.
+You can omit the ``GRPC_SERVER`` option if that is not needed.
 
 Build Instructions for Ubuntu Linux 18.04 LTS
 =============================================
