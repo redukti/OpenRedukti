@@ -18,7 +18,7 @@ Optionally if you want to enable a gRPC based server application then additional
 
 Note that the gRPC server is required if you want to use the pricing and curve building functions from the `Python interface <https://github.com/redukti/PyRedukti>`_.
 
-Build Instructions for RHEL 7.5
+Build Instructions for RHEL 7.6
 ===============================
 I am using gcc 8.3 on Redhat obtained via devtoolset-8.
 I installed CMake manually.
@@ -27,39 +27,46 @@ I built protobuf and grpc manually (see below).
 
 I enabled `EPEL <https://fedoraproject.org/wiki/EPEL>`_ repository as follows::
 
-	subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms"  --enable "rhel-ha-for-rhel-*-server-rpms"
+  subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms"  --enable "rhel-ha-for-rhel-*-server-rpms"
 	
 Above was necessary to obtain openblas which I then installed as follows::
 
-	sudo yum install openblas-devel
+  sudo yum install openblas-devel
 
 Building protobuf
 -----------------
 
 After downloading and unpacking the sources I executed::
 
-	./autogen.sh
-	./configure --prefix=$HOME/Software/protobuf
-	make
-	make install
+  autogen.sh
+  configure --prefix=$HOME/Software/protobuf
+  make
+  make install
 	
 Building GRPC
 -------------
 
 I tried building GRPC from the release packages but this failed due to unsatisfied dependency on libcares. Somehow the default method is not compatible with RHEL.
 
-So then I cloned the grpc github repo and built from there.
+So then I cloned the `grpc github repo <https://github.com/grpc/grpc>`_ and built from there.
 
-Note that I had to modify the following in the supplied Makefile:
+Note that I had to modify following changes:
+
+In the Supplied ``Makefile``:
 
 * prefix - base path for installation
 * CPPFLAGS - I removed the ``-Werror`` option as this caused a failure with gcc 8.3
 
-Then I executed following steps::
+In ``third_party/boringssl/CMakeLists.txt``:
 
-	git submodule update --init
-	make
-	make install
+* C_CXX_FLAGS - remove ``-Werror`` option as this caused a failure with gcc 8.3
+
+I executed following steps::
+
+  git submodule update --init
+  # Make changes above
+  make
+  make install
 	
 The installation churned out couple of permission denied messages but succeeded.
 
