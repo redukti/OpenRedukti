@@ -27,8 +27,8 @@
 #include <dayfractions.h>
 #include <interpolators.h>
 
-#include <inttypes.h>
 #include <array>
+#include <inttypes.h>
 
 namespace redukti
 {
@@ -76,6 +76,8 @@ class Curve
 	Curve(CurveId id) noexcept;
 	CurveId curve_id_;
 };
+
+typedef std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>> CurveSensitivitiesPointerType;
 
 class YieldCurve : public Curve
 {
@@ -143,8 +145,7 @@ class YieldCurve : public Curve
 	// Gets the sensitivities to pillars using the underlying
 	// interpolator.
 	// Note: only available on interolated curves
-	virtual std::unique_ptr<redukti_adouble_t, Deleter<redukti_adouble_t>>
-	get_sensitivities(double x, FixedRegionAllocator *A) const noexcept = 0;
+	virtual CurveSensitivitiesPointerType get_sensitivities(double x, FixedRegionAllocator *A) const noexcept = 0;
 
 	// Only available on interpolated curves
 	virtual std::vector<std::unique_ptr<YieldCurve, Deleter<YieldCurve>>>
@@ -169,7 +170,7 @@ class YieldCurve : public Curve
 };
 
 // When referencing a curve it is useful to have some
-// indirecton as this allows the curve to be modified without
+// indirection as this allows the curve to be modified without
 // affecting the client code. This is particularly needed when
 // bootstrapping curves. The CurveReference interface provides this
 // indirection.
@@ -210,19 +211,21 @@ class CurveWrapper : public CurveReference
 // changes to original values do not impact the curve. You can invoke
 // the method update_rates() to update the values after the curve is
 // created.
-extern std::unique_ptr<YieldCurve, Deleter<YieldCurve>>
-make_curve(Allocator *A, CurveId id, Date as_of_date, Date maturities[], double values[], size_t n,
-	   InterpolatorType interpolator, IRRateType type = IRRateType::ZERO_RATE, int deriv_order = 0,
-	   DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
 
-extern std::unique_ptr<YieldCurve, Deleter<YieldCurve>>
-make_svensson_curve(Allocator *A, CurveId id, Date as_of_date, std::array<double, 6> parameters,
-	   DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
+typedef std::unique_ptr<YieldCurve, Deleter<YieldCurve>> YieldCurvePointerType;
+extern YieldCurvePointerType make_curve(Allocator *A, CurveId id, Date as_of_date, Date maturities[], double values[],
+					size_t n, InterpolatorType interpolator,
+					IRRateType type = IRRateType::ZERO_RATE, int deriv_order = 0,
+					DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
 
-extern std::unique_ptr<YieldCurve, Deleter<YieldCurve>>
-make_curve(Date as_of_date, const IRCurveDefinition *defn, const ZeroCurve &curve, int deriv_order,
-	   PricingCurveType type = PRICING_CURVE_TYPE_UNSPECIFIED, MarketDataQualifier mdq = MDQ_NORMAL,
-	   short int cycle = 0, short int scenario = 0);
+extern YieldCurvePointerType make_svensson_curve(Allocator *A, CurveId id, Date as_of_date,
+						 std::array<double, 6> parameters,
+						 DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
+
+extern YieldCurvePointerType make_curve(Date as_of_date, const IRCurveDefinition *defn, const ZeroCurve &curve,
+					int deriv_order, PricingCurveType type = PRICING_CURVE_TYPE_UNSPECIFIED,
+					MarketDataQualifier mdq = MDQ_NORMAL, short int cycle = 0,
+					short int scenario = 0);
 
 // extern int test_curves();
 
