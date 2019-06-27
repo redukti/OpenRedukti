@@ -87,7 +87,7 @@ class Allocator
 template <typename T> class Deleter
 {
 	public:
-	explicit Deleter(Allocator *A = nullptr) : A_(A) {}
+	explicit Deleter(Allocator *allocator = nullptr) : allocator_(allocator) {}
 
 	void operator()(T *p)
 	{
@@ -95,14 +95,14 @@ template <typename T> class Deleter
 			// Call destructor
 			p->~T();
 			// Free memory
-			assert(A_ != nullptr);
-			if (A_ != nullptr)
-				A_->deallocate(p);
+			assert(allocator_ != nullptr);
+			if (allocator_ != nullptr)
+				allocator_->deallocate(p);
 		}
 	}
 
 	private:
-	Allocator *A_;
+	Allocator *allocator_;
 };
 
 // This allocator uses calloc/free
@@ -171,13 +171,6 @@ class RegionAllocator : public Allocator
 	virtual void release() noexcept = 0;
 };
 
-union alignment_type {
-	char c;
-	double d;
-	uint64_t i;
-	void *p;
-};
-
 // This is an allocator that returns memory from a fixed
 // sized memory buffer. The buffer may be externally provided or
 // owned. When the buffer is exhausted any allocation requests
@@ -185,18 +178,26 @@ union alignment_type {
 //
 // As it is a RegionAllocator, deallocate() is a no-op
 struct FixedRegionAllocator : public RegionAllocator {
+
+	union AlignmentType {
+		char c;
+		double d;
+		uint64_t i;
+		void *p;
+	};
+
 	// memory externally supplied
 	FixedRegionAllocator(char *start, char *end) noexcept
-	    : data_(start), offset_(0), size_(end - start), delete_(false)
+	    : memory_(start), offset_(0), size_(end - start), delete_(false)
 	{
-		std::fill(data_, data_ + size_, 0);
+		std::fill(memory_, memory_ + size_, 0);
 	}
 
 	// memory externally supplied
 	FixedRegionAllocator(void *start, size_t n) noexcept
-	    : data_(static_cast<char *>(start)), offset_(0), size_(n), delete_(false)
+	    : memory_(static_cast<char *>(start)), offset_(0), size_(n), delete_(false)
 	{
-		std::fill(data_, data_ + size_, 0);
+		std::fill(memory_, memory_ + size_, 0);
 	}
 
 	// Acquire memory
@@ -205,8 +206,8 @@ struct FixedRegionAllocator : public RegionAllocator {
 	explicit FixedRegionAllocator(size_t n) noexcept
 	{
 		assert(n != 0);
-		data_ = (char *)calloc(n, sizeof(char));
-		if (!data_) {
+		memory_ = (char *)get_default_allocator()->allocate(n);
+		if (!memory_) {
 			die("Out of memory, exiting\n");
 		}
 		size_ = n;
@@ -215,7 +216,7 @@ struct FixedRegionAllocator : public RegionAllocator {
 	}
 
 	// Base pointer
-	const char *ptr() const noexcept { return data_; }
+	const char *ptr() const noexcept { return memory_; }
 
 	// Current position
 	size_t pos() const noexcept { return offset_; }
@@ -242,7 +243,7 @@ struct FixedRegionAllocator : public RegionAllocator {
 		if (!size)
 			return nullptr;
 		// round to alignment multiple
-		constexpr size_t alignment = std::alignment_of<alignment_type>::value;
+		constexpr size_t alignment = std::alignment_of<AlignmentType>::value;
 		auto allocsize = (size + alignment - 1u) & ~(alignment - 1u);
 		assert(allocsize % alignment == 0);
 		assert(allocsize >= size);
@@ -251,7 +252,7 @@ struct FixedRegionAllocator : public RegionAllocator {
 		if (remaining() < allocsize) {
 			return nullptr;
 		}
-		void *result = static_cast<void *>(&data_[offset_]);
+		void *result = static_cast<void *>(&memory_[offset_]);
 		offset_ += allocsize;
 		return result;
 	}
@@ -267,8 +268,8 @@ struct FixedRegionAllocator : public RegionAllocator {
 
 	~FixedRegionAllocator() noexcept override
 	{
-		if (delete_ && data_) {
-			::free(data_);
+		if (delete_ && memory_) {
+			get_default_allocator()->deallocate(memory_);
 		}
 	}
 
@@ -278,7 +279,7 @@ struct FixedRegionAllocator : public RegionAllocator {
 	FixedRegionAllocator &operator=(const FixedRegionAllocator &) = delete;
 
 	private:
-	char *data_;    // buffer to use for memory allocations
+	char *memory_;    // buffer to use for memory allocations
 	size_t offset_; // Current position up to which memory is allocated,
 	// when offset_ == size_ memory is exhausted
 	size_t size_; // buffer size
@@ -384,8 +385,8 @@ class DynamicRegionAllocator : public RegionAllocator
 			buffers_[current_] = ::new FixedRegionAllocator(buffer_size_);
 			allocated_ += buffer_size_;
 		}
-		FixedRegionAllocator *buf_ = buffers_[current_];
-		void *result = buf_->allocate(size);
+		FixedRegionAllocator *buf = buffers_[current_];
+		void *result = buf->allocate(size);
 		if (result == nullptr) {
 			current_++;
 			goto try_again;
@@ -397,9 +398,9 @@ class DynamicRegionAllocator : public RegionAllocator
 	void release() noexcept final
 	{
 		for (size_t i = 0; i < N; i++) {
-			FixedRegionAllocator *buf_ = buffers_[i];
-			if (buf_)
-				buf_->release();
+			FixedRegionAllocator *buf = buffers_[i];
+			if (buf)
+				buf->release();
 		}
 		current_ = used_ = 0;
 	}
@@ -407,8 +408,8 @@ class DynamicRegionAllocator : public RegionAllocator
 	~DynamicRegionAllocator() noexcept override
 	{
 		for (size_t i = 0; i < N; i++) {
-			FixedRegionAllocator *buf_ = buffers_[i];
-			::delete buf_;
+			FixedRegionAllocator *buf = buffers_[i];
+			::delete buf;
 		}
 	}
 
@@ -426,20 +427,20 @@ class DynamicRegionAllocator : public RegionAllocator
 class FixedRegionAllocatorGuard
 {
 	public:
-	explicit FixedRegionAllocatorGuard(FixedRegionAllocator *A) : A_(A)
+	explicit FixedRegionAllocatorGuard(FixedRegionAllocator *allocator) : fixed_region_allocator_(allocator)
 	{
 		// The the current position
-		saved_pos_ = A_->pos();
+		saved_pos_ = fixed_region_allocator_->pos();
 	}
 
 	~FixedRegionAllocatorGuard()
 	{
 		// Restore original position
-		A_->pos(saved_pos_);
+		fixed_region_allocator_->pos(saved_pos_);
 	}
 
 	private:
-	FixedRegionAllocator *A_;
+	FixedRegionAllocator *fixed_region_allocator_;
 	size_t saved_pos_;
 };
 

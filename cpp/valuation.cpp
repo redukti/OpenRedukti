@@ -510,7 +510,7 @@ class ValuationServiceImpl : public ValuationService
 
 	~ValuationServiceImpl() {}
 	CurveInterpolationReply *handle_curve_interpolation_request(const CurveInterpolationRequest *request,
-								    CurveInterpolationReply *reply)
+								    CurveInterpolationReply *reply) final
 	{
 		ReplyHeader *header = reply->mutable_header();
 		header->set_response_code(StandardResponseCode::SRC_ERROR);

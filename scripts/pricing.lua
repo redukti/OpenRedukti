@@ -21,6 +21,20 @@ local bond_templates = {
 		fixed_day_fraction = "ACT/ACT.ISMA",
 		payment_day_convention = "MODFOLLOWING",
 		fixed_payment_frequency = "6M"
+	},
+	USD_GOVT_BOND_1Y = {
+		payment_calendar = "USNY",
+		start_delay = 2,
+		fixed_day_fraction = "ACT/ACT.ISMA",
+		payment_day_convention = "MODFOLLOWING",
+		fixed_payment_frequency = "1Y"
+	},
+	USD_GOVT_BOND_1T = {
+		payment_calendar = "USNY",
+		start_delay = 2,
+		fixed_day_fraction = "ACT/ACT.ISMA",
+		payment_day_convention = "MODFOLLOWING",
+		fixed_payment_frequency = "1T"
 	}
 }
 
@@ -557,12 +571,66 @@ function test_deposit_rate()
 	print(flows)
 end
 
+function fixed_bond_100_ZC(today: integer, ccy: string, index_family: string, tenor, inst_id: string, coupon_rate: number)
+	local issue_date, maturity_date, clean_price_str = string.match(inst_id, "([%d-]+):([%d-]+):([%d.]+)")
+	if not issue_date or
+		not maturity_date or
+		not clean_price_str then
+		error("Instrument id is not in correct format")
+		return nil
+	end
+
+	-- retrieve a template
+	-- if tenor specifi template is not found then
+	-- look for a generic template for the given index and currency
+
+	local tenor = '1T'
+	local template = bond_templates[ccy .. '_' .. index_family .. '_' .. tenor]
+	if not template then
+		error("template for not found for " .. ccy .. '_' .. index_family .. '_' .. tenor)
+		return nil
+	end
+  	local units = 1 -- to make the notional = 1m
+	local notional: number = 100.0
+	local clean_price: number = tonumber(clean_price_str)
+
+	-- bond maturity date
+	local maturity_date: integer = redukti.date(maturity_date)
+
+	local cfstream = {}	
+	local cfcollection = { cfstream }
+
+	cfstream[1] = {
+		type = 'simple',
+		currency = ccy,
+		amount = -clean_price * units,
+		payment_date = today
+	}
+	cfstream[2] = {
+		type = 'simple',
+		currency = ccy,
+		amount = notional * units,
+		payment_date = maturity_date		
+	}
+	local flows = redukti.cashflows(cfcollection)
+	return maturity_date, flows
+end
+
+
+function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, tenor, inst_id: string, coupon_rate: number)
+	return fixed_bond_100_(today, ccy, index_family, '6M', inst_id, coupon_rate)
+end
+
+function fixed_bond_100_1Y(today: integer, ccy: string, index_family: string, tenor, inst_id: string, coupon_rate: number)
+	return fixed_bond_100_(today, ccy, index_family, '1Y', inst_id, coupon_rate)
+end
+
 -- price a bond with par value of 100, and tenor 6M
 -- instrument_id must be made up of issue_date:maturity_date:clean_price
 -- par_rate must the coupon rate
 -- TODO make par value, frequency a parameter
 -- TODO and refactor this to a wrapper function
-function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, tenor, inst_id: string, coupon_rate: number)
+function fixed_bond_100_(today: integer, ccy: string, index_family: string, tenor, inst_id: string, coupon_rate: number)
 
 	local issue_date, maturity_date, clean_price_str = string.match(inst_id, "([%d-]+):([%d-]+):([%d.]+)")
 	if not issue_date or
@@ -576,14 +644,13 @@ function fixed_bond_100_6M(today: integer, ccy: string, index_family: string, te
 	-- if tenor specifi template is not found then
 	-- look for a generic template for the given index and currency
 
-	local tenor = '6M'
 	local template = bond_templates[ccy .. '_' .. index_family .. '_' .. tenor]
 	if not template then
 		error("template for not found for " .. ccy .. '_' .. index_family .. '_' .. tenor)
 		return nil
 	end
   
-	local units = 10000 -- to make the notional = 1m
+	local units = 1 -- to make the notional = 1m
 	local notional: number = 100.0
 	local clean_price: number = tonumber(clean_price_str)
 	local fixed_rate: number = coupon_rate

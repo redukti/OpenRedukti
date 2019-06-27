@@ -23,14 +23,15 @@
 namespace redukti
 {
 
-MallocAllocator GlobalAllocator;
+static MallocAllocator g_GlobalAllocator;
+static Allocator *g_DefaultAllocator = &g_GlobalAllocator;
 
 Allocator* get_default_allocator()
 {
-    return &GlobalAllocator;
+    return g_DefaultAllocator;
 }
 
-static thread_local AllocatorSet *allocSet = nullptr;
+static thread_local AllocatorSet *g_PAllocatorSet = nullptr;
 
 // Returns the thread specific allocators.
 // If they do not exist they are created
@@ -38,34 +39,34 @@ static thread_local AllocatorSet *allocSet = nullptr;
 // synchronize
 AllocatorSet *get_threadspecific_allocators()
 {
-	if (allocSet == nullptr) {
+	if (g_PAllocatorSet == nullptr) {
 		inform("Initializing thread specific allocators\n");
-		allocSet = new AllocatorSet();
-		allocSet->cashflow_allocator = new DynamicRegionAllocator(64 * 1024);
-		allocSet->sensitivities_allocator = new DynamicRegionAllocator(256 * 1024);
-		allocSet->tempspace_allocator = new FixedRegionAllocator(2 * 1024 * 1024);
+		g_PAllocatorSet = new AllocatorSet();
+		g_PAllocatorSet->cashflow_allocator = new DynamicRegionAllocator(64 * 1024);
+		g_PAllocatorSet->sensitivities_allocator = new DynamicRegionAllocator(256 * 1024);
+		g_PAllocatorSet->tempspace_allocator = new FixedRegionAllocator(2 * 1024 * 1024);
 	}
-	return allocSet;
+	return g_PAllocatorSet;
 }
 
-static void thread_func(AllocatorSet *mainAlloc, volatile int *result)
+static void thread_func(AllocatorSet *main_thread_allocator_set, volatile int *result)
 {
 	*result = 0;
-	auto allocSet = get_threadspecific_allocators();
-	if (!allocSet) {
-		printf("Failed to get allocSet\n");
+	auto this_thread_allocator_set = get_threadspecific_allocators();
+	if (!this_thread_allocator_set) {
+		printf("Failed to get AllocatorSet\n");
 		*result = 1;
 		return;
 	}
 
-	if (get_threadspecific_allocators() != allocSet) {
-		printf("AllocSet mismatched\n");
+	if (get_threadspecific_allocators() != this_thread_allocator_set) {
+		printf("AllocatorSet mismatched\n");
 		*result = 1;
 		return;
 	}
 
-	if (allocSet == mainAlloc) {
-		printf("AllocSet not thread specific\n");
+	if (this_thread_allocator_set == main_thread_allocator_set) {
+		printf("AllocatorSet not thread specific\n");
 		*result = 1;
 		return;
 	}
@@ -98,15 +99,15 @@ int test_allocators()
 	if (balloc.remaining() != 1024 - 64)
 		return 1;
 
-	auto allocSet = get_threadspecific_allocators();
-	if (!allocSet)
+	auto main_thread_allocator_set = get_threadspecific_allocators();
+	if (!main_thread_allocator_set)
 		return 1;
 
-	if (get_threadspecific_allocators() != allocSet)
+	if (get_threadspecific_allocators() != main_thread_allocator_set)
 		return 1;
 
 	int result = 2;
-	std::thread t = std::thread(thread_func, allocSet, &result);
+	std::thread t = std::thread(thread_func, main_thread_allocator_set, &result);
 	t.join();
 
 	if (result != 0)

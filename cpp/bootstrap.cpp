@@ -987,39 +987,39 @@ class SolverFunction
 	int max_iterations_;
 	Allocator *alloc_;
 	FILE *debug_output_;
-	double *A;  // sized m x n
-	double *bx; // sized m
+	double *A_;  // sized m x n
+	double *bx_; // sized m
 	double *upper_bounds_;
 	double *lower_bounds_;
-	Sensitivities dummy_sens;
+	Sensitivities dummy_sens_;
 	PenaltyFunction penalty_function_;
-	FixedRegionAllocator *pricing_allocator;
+	FixedRegionAllocator *pricing_allocator_;
 
 	public:
 	SolverFunction(CurveBuilder *builder, int max_iterations, Allocator *alloc, FILE *debug_output)
 	    : curve_builder_(builder), max_iterations_(max_iterations), alloc_(alloc), debug_output_(debug_output),
-	      dummy_sens(alloc), penalty_function_(default_penalty_function)
+	      dummy_sens_(alloc), penalty_function_(default_penalty_function)
 	{
-		A = new double[curve_builder_->num_instruments() * curve_builder_->num_pillars()];
+		A_ = new double[curve_builder_->num_instruments() * curve_builder_->num_pillars()];
 		// Note that bx is sized to be as big as the m() = num
 		// instruments although we are only interested in n (pillars)
 		// because the LAPACK routines require this. But when applying
 		// corrections and checking the solution we must only look at
 		// n() elements in bx
-		bx = new double[curve_builder_->num_instruments()];
+		bx_ = new double[curve_builder_->num_instruments()];
 		upper_bounds_ = new double[curve_builder_->num_pillars()];
 		std::fill_n(upper_bounds_, curve_builder_->num_pillars(), HUGE_VAL);
 		lower_bounds_ = new double[curve_builder_->num_pillars()];
 		std::fill_n(lower_bounds_, curve_builder_->num_pillars(), -HUGE_VAL);
-		pricing_allocator = get_threadspecific_allocators()->tempspace_allocator;
+		pricing_allocator_ = get_threadspecific_allocators()->tempspace_allocator;
 	}
 
 	virtual ~SolverFunction()
 	{
-		delete[] bx;
+		delete[] bx_;
 		delete[] upper_bounds_;
 		delete[] lower_bounds_;
-		delete[] A;
+		delete[] A_;
 	}
 	// number of functions
 	// each instrument is a row in the Jacobian
@@ -1031,9 +1031,9 @@ class SolverFunction
 	// each pillar is a column in the Jacobian
 	int32_t n() { return (int32_t)curve_builder_->num_pillars(); }
 
-	double *solution_vector() { return bx; }
+	double *solution_vector() { return bx_; }
 
-	double *jacobian() { return A; }
+	double *jacobian() { return A_; }
 
 	// Reset any cached data
 	void reset() {}
@@ -1046,7 +1046,7 @@ class SolverFunction
 		CurveReference *discount_curve = curve_builder_->get_curve_by_index(cfinst->discount_curve());
 		ValuationContextImpl ctx(curve_builder_->business_date());
 		BootstrapCurveProvider provider(discount_curve, forward_curve);
-		return cfinst->evaluate(pricing_allocator, ctx, &provider, dummy_sens, status) +
+		return cfinst->evaluate(pricing_allocator_, ctx, &provider, dummy_sens_, status) +
 		       (penalty_function_ != nullptr ? penalty_function_(x, lower_bounds_, upper_bounds_, n) : 0.0);
 	}
 
@@ -1059,7 +1059,7 @@ class SolverFunction
 		printf("%s\n", description);
 		for (auto &item : curve_builder_->sorted_instruments()) {
 			item.second->get_name(instrument_name, sizeof instrument_name);
-			printf("fx[%d] = %.12f, %s\n", instrument_num, bx[instrument_num], instrument_name);
+			printf("fx[%d] = %.12f, %s\n", instrument_num, bx_[instrument_num], instrument_name);
 			instrument_num++;
 		}
 		printf("Curve values\n");
@@ -1078,7 +1078,7 @@ class SolverFunction
 		// and populate vector
 		unsigned int instrument_num = 0;
 		for (auto &item : curve_builder_->sorted_instruments()) {
-			bx[instrument_num] = evaluate_instrument(item.second, status, x, n());
+			bx_[instrument_num] = evaluate_instrument(item.second, status, x, n());
 			if (status != StatusCode::kOk) {
 				char instrument_name[128];
 				item.second->get_name(instrument_name, sizeof instrument_name);
@@ -1103,7 +1103,7 @@ class SolverFunction
 		double epsmch = __cminpack_func__(dpmpar)(1);
 		double eps = sqrt(epsmch);
 
-		redukti_matrix_t X = {m(), n(), A};
+		redukti_matrix_t X = {m(), n(), A_};
 		// To populate the Jacobian , we process by curve pillar by
 		// instrument so that we can setup the curve once for each
 		// pillar rate_num tracks where we are in terms of the
@@ -1277,8 +1277,8 @@ class LinearLeastSquaresSolver : public SolverFunction
 		// We use a linear square solver - the -1.0 argument says that
 		// the solver should estimate the reciprocal condition number of
 		// the matrix
-		redukti_matrix_t X = {m(), n(), A};
-		redukti_matrix_t c = {m(), 1, bx}; // NOTE bx must be sized to m() not n()
+		redukti_matrix_t X = {m(), n(), A_};
+		redukti_matrix_t c = {m(), 1, bx_}; // NOTE bx must be sized to m() not n()
 		double rcond = -1.0;
 
 		if (!redukti_matrix_estimate_rcond(&X, &rcond)) {
@@ -1305,7 +1305,7 @@ class LinearLeastSquaresSolver : public SolverFunction
 			// for each pillar on the curve we
 			// compute the partial derivative for each instrument
 			unsigned n = ch->n_maturities_;
-			ch->set_vector(bx + rate_num, n, true);
+			ch->set_vector(bx_ + rate_num, n, true);
 			rate_num += n;
 		}
 	}
@@ -1318,7 +1318,7 @@ class LinearLeastSquaresSolver : public SolverFunction
 		// NOTE we are only interested in n() elements of bx as
 		// they correspond to pillars
 		for (size_t i = 0; i < n(); i++) {
-			if (std::fabs(bx[i]) > 1e-10) {
+			if (std::fabs(bx_[i]) > 1e-10) {
 				iterate = true;
 				break;
 			}
