@@ -741,7 +741,7 @@ Cashflows *construct_cashflows(RegionAllocator *A, const CFCollection *cfcollect
 		leg->factor = stream.factor() != 0.0 ? stream.factor() : 1.0;
 		for (int j = 0; j < stream.cashflows_size(); j++) {
 			auto &cf = stream.cashflows(j);
-			// Below we only setup vars if dervivatives are needed
+			// Below we only setup vars if derivatives are needed
 			// However we still need VariableResolvers populated to
 			// hold the logical curves used for mapping to real
 			// curves

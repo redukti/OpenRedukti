@@ -38,7 +38,7 @@ namespace redukti
 class CalendarImpl : public Calendar
 {
 	public:
-	CalendarImpl(BusinessCenter id, std::set<Date> &holidays) noexcept : id_(id), holidays_(holidays) {}
+	CalendarImpl(BusinessCenter id, const std::set<Date> &holidays) noexcept : id_(id), holidays_(holidays) {}
 	virtual int id() const noexcept override { return id_; }
 	virtual bool is_holiday(Date d) const noexcept override { return holidays_.find(d) != holidays_.end(); }
 
@@ -609,6 +609,21 @@ class CalendarFactoryImpl : public CalendarService
 		default_calendars_[id] = calendar.release();
 		default_calendars_allocstatus_[id] = true;
 		return true;
+	}
+
+	// Create a calendar from a set of holidays and assign it to the business center
+	// If the assignment is successful the service will take ownership of the instance
+	// May fail if calendar instance already set and has been
+	// accessed by a client - i.e. new calendars can only be set prior to
+	// any use.
+	virtual bool set_calendar(BusinessCenter id, const Date *holidays, size_t n) noexcept final
+	{
+		// This is kind of wasteful but we don't care as it is rare event
+		std::set<Date> holiday_set;
+		for (int i = 0; i < n; i++)
+			holiday_set.insert(holidays[i]);
+		auto calendar = std::make_unique<CalendarImpl>(id, holiday_set);
+		return set_calendar(id, std::move(calendar));
 	}
 
 	virtual Calendar *get_calendar(JointCalendarParameters calendars, JointCalendarRule rule) noexcept;

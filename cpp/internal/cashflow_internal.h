@@ -191,7 +191,7 @@ struct VariableResolvers {
 	// Searches for next date/var for given curve
 	// search starts at var - set to 0 for first call
 	// returns next var which can be used to iterate
-	// by passig var+1 in the next call
+	// by passing var+1 in the next call
 	// This method is primarily used by the iterator implementation
 	int next_var(int curve_id, Date *date, int var) const;
 
@@ -344,7 +344,7 @@ struct NFraCashflow {
 
 enum class CashflowType { CF_NONE, CF_SIMPLE, CF_FLOATING, CF_OIS, CF_FRA };
 
-// the Cashflow contains a union so that the PV templates can
+// The Cashflow contains a union so that the PV templates can
 // identify the correct PV function to execute
 struct Cashflow {
 	CashflowType type;
@@ -356,7 +356,7 @@ struct Cashflow {
 		NFraCashflow *fra;
 	};
 
-	VariableResolvers *resolvers;
+	VariableResolvers *resolvers;	// Each Cashflow instance has its own resolver but because of memory layout this is allocated by the caller
 	Cashflow *next;
 
 	Cashflow(VariableResolvers *r) : type(CashflowType::CF_NONE), simple(nullptr), resolvers(r), next(nullptr) {}

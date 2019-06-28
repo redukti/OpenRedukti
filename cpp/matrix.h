@@ -13,8 +13,8 @@
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
  */
 
-#ifndef _REDUKTI_MATRIX_H_
-#define _REDUKTI_MATRIX_H_
+#ifndef _REDUKTI_MATRIX_H
+#define _REDUKTI_MATRIX_H
 
 #include <linalg.h>
 #include <logger.h>

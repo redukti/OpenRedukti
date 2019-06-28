@@ -39,8 +39,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef _REDUKTI_DATE_H_
-#define _REDUKTI_DATE_H_
+#ifndef _REDUKTI_DATE_H
+#define _REDUKTI_DATE_H
 
 #include <enums.pb.h>
 

@@ -16,8 +16,8 @@
  * Portions derived from Quantlib.
  * License: http://quantlib.org/license.shtml
  */
-#ifndef _REDUKTI_CURVE_H_
-#define _REDUKTI_CURVE_H_
+#ifndef _REDUKTI_CURVE_H
+#define _REDUKTI_CURVE_H
 
 #include <enums.pb.h>
 
@@ -201,9 +201,8 @@ class CurveWrapper : public CurveReference
 // @param values - interpretation depends upon type below
 // @param n - Size of the arrays above
 // @param interpolator - Type of interpolator to be used
-// @param rateType - ZeroRate, DiscountFactor or FowardRate
-// @param derive_order - the order to which node sensitivities are to be
-// computed
+// @param rateType - ZeroRate, DiscountFactor or ForwardRate
+// @param derive_order - the order to which node sensitivities are to be computed
 // @fraction - day count fraction
 //
 // Note that the curve object will copy the maturities and values arrays
@@ -218,9 +217,15 @@ extern YieldCurvePointerType make_curve(Allocator *A, CurveId id, Date as_of_dat
 					IRRateType type = IRRateType::ZERO_RATE, int deriv_order = 0,
 					DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
 
-extern YieldCurvePointerType make_svensson_curve(Allocator *A, CurveId id, Date as_of_date, double parameters[], size_t n,
+extern YieldCurvePointerType make_svensson_curve(Allocator *A, CurveId id, Date as_of_date, double parameters[],
+						 size_t n,
 						 DayCountFraction fraction = DayCountFraction::ACT_365_FIXED) noexcept;
 
+// When constructed this way, inputs are always continuously compounded zero rates. If the curve definition
+// requires interpolation of discount factors then the zero rates are converted to discount factors
+// internally.
+// Note however, that when updating rates, values must be of the correct type - that is,
+// discount factors if that is what is being interpolated on.
 extern YieldCurvePointerType make_curve(Date as_of_date, const IRCurveDefinition *defn, const ZeroCurve &curve,
 					int deriv_order, PricingCurveType type = PRICING_CURVE_TYPE_UNSPECIFIED,
 					MarketDataQualifier mdq = MDQ_NORMAL, short int cycle = 0,

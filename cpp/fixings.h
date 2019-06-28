@@ -13,8 +13,8 @@
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
  */
 
-#ifndef _REDUKTI_FIXINGS_H_
-#define _REDUKTI_FIXINGS_H_
+#ifndef _REDUKTI_FIXINGS_H
+#define _REDUKTI_FIXINGS_H
 
 #include <index.h>
 #include <timeseries.h>

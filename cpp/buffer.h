@@ -13,8 +13,8 @@
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
  */
 
-#ifndef _REDUKTI_BUFFER_H_
-#define _REDUKTI_BUFFER_H_
+#ifndef _REDUKTI_BUFFER_H
+#define _REDUKTI_BUFFER_H
 
 #include <algorithm>
 

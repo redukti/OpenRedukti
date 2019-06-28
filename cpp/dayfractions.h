@@ -16,8 +16,8 @@
  * Portions derived from Quantlib.
  * License: http://quantlib.org/license.shtml
  */
-#ifndef _REDUKTI_DAYFRACTIONS_H_
-#define _REDUKTI_DAYFRACTIONS_H_
+#ifndef _REDUKTI_DAYFRACTIONS_H
+#define _REDUKTI_DAYFRACTIONS_H
 
 #include <calendars.h>
 #include <date.h>

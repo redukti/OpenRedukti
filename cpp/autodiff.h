@@ -12,8 +12,8 @@
  * The contents of this file are subject to the the GNU General Public License
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
  */
-#ifndef _REDUKTI_AUTODIFF_H_
-#define _REDUKTI_AUTODIFF_H_
+#ifndef _REDUKTI_AUTODIFF_H
+#define _REDUKTI_AUTODIFF_H
 
 #include <assert.h>
 #include <inttypes.h>

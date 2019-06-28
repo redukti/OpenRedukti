@@ -16,8 +16,8 @@
  * Portions derived from Quantlib.
  * License: http://quantlib.org/license.shtml
  */
-#ifndef _REDUKTI_CALENDARS_H_
-#define _REDUKTI_CALENDARS_H_
+#ifndef _REDUKTI_CALENDARS_H
+#define _REDUKTI_CALENDARS_H
 
 #include <date.h>
 #include <enums.pb.h>
@@ -63,27 +63,26 @@ class Calendar
 	// specified business days. For other period units the date is moved as
 	// per raw calendar and then adjusted if it falls on a holiday
 	Date advance(Date date, int n, PeriodUnit unit,
-		     BusinessDayConvention convention = BusinessDayConvention::FOLLOWING, bool endOfMonth = false) const
+		     BusinessDayConvention convention = BusinessDayConvention::FOLLOWING, bool end_of_month = false) const
 	    noexcept;
 	//  Advances the given date as specified by the given period and
 	//  returns the result.
 	//  The input date is not modified.
 	Date advance(Date date, const Period &period,
-		     BusinessDayConvention convention = BusinessDayConvention::FOLLOWING, bool endOfMonth = false) const
+		     BusinessDayConvention convention = BusinessDayConvention::FOLLOWING, bool end_of_month = false) const
 	    noexcept;
 
 	// Calculates the number of business days between two given
 	// dates and returns the result.
 	//
-	int business_days_between(Date from, Date to, bool includeFirst = true, bool includeLast = false) const
+	int business_days_between(Date from, Date to, bool include_first = true, bool include_last = false) const
 	    noexcept;
 };
 
 struct JointCalendarParameters {
 	std::array<BusinessCenter, 4> centers;
-	JointCalendarParameters(
-	            BusinessCenter center1 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED,   // For Cython
-	            BusinessCenter center2 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED,   // For Cython
+	JointCalendarParameters(BusinessCenter center1 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED, // For Cython
+				BusinessCenter center2 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED, // For Cython
 				BusinessCenter center3 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED,
 				BusinessCenter center4 = BusinessCenter::BUSINESS_CENTER_UNSPECIFIED)
 	{
@@ -119,6 +118,13 @@ class CalendarService
 	// accessed by a client - i.e. new calendars can only be set prior to
 	// any use.
 	virtual bool set_calendar(BusinessCenter id, std::unique_ptr<Calendar> calendar) noexcept = 0;
+
+	// Create a calendar from a set of holidays and assign it to the business center
+	// If the assignment is successful the service will take ownership of the instance
+	// May fail if calendar instance already set and has been
+	// accessed by a client - i.e. new calendars can only be set prior to
+	// any use.
+	virtual bool set_calendar(BusinessCenter id, const Date *holidays, size_t n) noexcept = 0;
 
 	// Create joint calendar
 	// Note that the order in which the business centers are given

@@ -13,8 +13,8 @@
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
  */
 
-#ifndef _REDUKTI_TIMESERIES_H_
-#define _REDUKTI_TIMESERIES_H_
+#ifndef _REDUKTI_TIMESERIES_H
+#define _REDUKTI_TIMESERIES_H
 
 #include <date.h>
 

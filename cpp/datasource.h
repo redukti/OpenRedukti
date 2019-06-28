@@ -13,8 +13,8 @@
  * Version 3 (https://www.gnu.org/licenses/gpl.txt).
  */
 
-#ifndef _REDUKTI_DATASOURCE_H_
-#define _REDUKTI_DATASOURCE_H_
+#ifndef _REDUKTI_DATASOURCE_H
+#define _REDUKTI_DATASOURCE_H
 
 #include <buffer.h>
 
