@@ -35,12 +35,20 @@
 namespace redukti
 {
 
+// Western calendars only
+// FIXME
+bool is_weekend(Weekday w) noexcept { return w == Saturday || w == Sunday; }
+
 class CalendarImpl : public Calendar
 {
 	public:
 	CalendarImpl(BusinessCenter id, const std::set<Date> &holidays) noexcept : id_(id), holidays_(holidays) {}
 	virtual int id() const noexcept override { return id_; }
-	virtual bool is_holiday(Date d) const noexcept override { return holidays_.find(d) != holidays_.end(); }
+	virtual bool is_holiday(Date d) const noexcept override
+	{
+		// FIXME this will only work for places where Sat/Sun are holidays
+		return is_weekend(weekday(d)) || holidays_.find(d) != holidays_.end();
+	}
 
 	private:
 	BusinessCenter id_;
@@ -163,8 +171,6 @@ int Calendar::business_days_between(Date from, Date to, bool includeFirst, bool 
 }
 
 // Western calendars
-
-bool is_weekend(Weekday w) noexcept { return w == Saturday || w == Sunday; }
 
 int easter_monday(int y) noexcept
 {
@@ -602,9 +608,9 @@ class CalendarFactoryImpl : public CalendarService
 	virtual bool set_calendar(BusinessCenter id, std::unique_ptr<Calendar> calendar) noexcept
 	{
 		std::lock_guard<std::mutex> guard(lock_);
-		if (inuse_)
-			return false;
 		if (id == BusinessCenter::BUSINESS_CENTER_UNSPECIFIED || !BusinessCenter_IsValid(id))
+			return false;
+		if (default_calendars_[id] && inuse_)
 			return false;
 		default_calendars_[id] = calendar.release();
 		default_calendars_allocstatus_[id] = true;
