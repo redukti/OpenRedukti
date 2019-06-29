@@ -96,6 +96,7 @@ message CFFra {
 
 // OIS cashflow
 message CFOis {
+    // FIXME Currency is missing
 	IsdaIndex index = 1;
 	double notional = 2;
 	int32 accrual_start_date = 3;
