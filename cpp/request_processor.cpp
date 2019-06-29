@@ -183,6 +183,16 @@ Response *RequestProcessorImpl::process(const Request *request, Response *respon
 		response = make_response(reply->header(), response);
 		break;
 	}
+	case Request::RequestCase::kRegisterCalendarRequest: {
+		auto reply = get_calendar_factory()->handle_register_calendar_request(
+		    &request->register_calendar_request(), response->mutable_register_calendar_reply());
+		response = make_response(reply->header(), response);
+	}
+	case Request::RequestCase ::kRegisterIndexDefinitionRequest: {
+		auto reply = get_default_index_service()->handle_register_index_definition_request(
+		    &request->register_index_definition_request(), response->mutable_register_index_definition_reply());
+		response = make_response(reply->header(), response);
+	}
 	default: {
 		response = handle_unknown_request(request, response);
 		break;

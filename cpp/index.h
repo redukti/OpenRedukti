@@ -17,18 +17,18 @@
 #define _REDUKTI_INDEX_H
 
 #include <enums.pb.h>
+#include <index.pb.h>
 
 #include <calendars.h>
 #include <date.h>
 #include <dayfractions.h>
+#include <status.h>
 
 #include <inttypes.h>
 #include <memory>
 
 namespace redukti
 {
-class IndexDefinition;
-
 // Unique identifier for an index
 typedef uint32_t IndexId;
 
@@ -96,7 +96,7 @@ class IndexService
 
 	// Adds a definition for use as a template for generating instances of
 	// InterestRateIndex
-	virtual bool register_index(const IndexDefinition &definition) = 0;
+	virtual StatusCode register_index(const IndexDefinition &definition) = 0;
 
 	// Obtains an instance of IntrestRateIndex - must return an existing
 	// instance if already defined
@@ -105,6 +105,11 @@ class IndexService
 	// Obtains an instance of IntrestRateIndex - must return an existing
 	// instance if already defined
 	virtual InterestRateIndex *get_index(Currency currency, IndexFamily index_family, Tenor tenor) = 0;
+
+	// front-end to register_index()
+	virtual RegisterIndexDefinitionReply *
+	handle_register_index_definition_request(const RegisterIndexDefinitionRequest *request,
+						 RegisterIndexDefinitionReply *reply) noexcept = 0;
 };
 
 extern IndexService *get_default_index_service();

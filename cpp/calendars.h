@@ -21,6 +21,7 @@
 
 #include <date.h>
 #include <enums.pb.h>
+#include <calendar.pb.h>
 
 #include <array>
 #include <iostream>
@@ -133,6 +134,9 @@ class CalendarService
 	// always the same
 	virtual Calendar *get_calendar(JointCalendarParameters calendars,
 				       JointCalendarRule rule = JointCalendarRule::JOIN_HOLIDAYS) noexcept = 0;
+
+    // Front end to set_calendar()
+	virtual RegisterCalendarReply *handle_register_calendar_request(const RegisterCalendarRequest *request, RegisterCalendarReply *reply) noexcept = 0;
 };
 
 // Get the calendar factory

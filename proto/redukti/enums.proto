@@ -509,4 +509,8 @@ enum ResponseSubCode {
   kSCH_PaymentFrequencyLessThanCalculationFrequency = 1307;
   kSCH_PaymentFrequencyNotMultipleOfCalculationFrequency = 1308;
 
+  kCAL_RegisterCalendarFailed = 1401;
+
+  kIDX_ValidFixingCalendarRequired = 1410;
+  kIDX_ValidDayCountFractionRequired = 1411;
 }

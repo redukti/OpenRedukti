@@ -22,6 +22,7 @@
 #include <allocators.h>
 #include <calendars.h>
 #include <hashtable.h>
+#include <status.h>
 
 #include <cstring>
 
@@ -630,6 +631,24 @@ class CalendarFactoryImpl : public CalendarService
 			holiday_set.insert(holidays[i]);
 		auto calendar = std::make_unique<CalendarImpl>(id, holiday_set);
 		return set_calendar(id, std::move(calendar));
+	}
+
+	RegisterCalendarReply *handle_register_calendar_request(const RegisterCalendarRequest *request,
+								RegisterCalendarReply *reply) noexcept
+	{
+		auto header = reply->mutable_header();
+		std::set<Date> holiday_set;
+		for (int i = 0; i < request->holidays_size(); i++)
+			holiday_set.insert(request->holidays(i));
+		auto calendar = std::make_unique<CalendarImpl>(request->business_center(), holiday_set);
+		if (set_calendar(request->business_center(), std::move(calendar))) {
+			header->set_response_code(StandardResponseCode::SRC_OK);
+		} else {
+			header->set_response_code(StandardResponseCode::SRC_ERROR);
+			header->set_response_sub_code(StatusCode::kCAL_RegisterCalendarFailed);
+			header->set_response_message(error_message(StatusCode::kCAL_RegisterCalendarFailed));
+		}
+		return reply;
 	}
 
 	virtual Calendar *get_calendar(JointCalendarParameters calendars, JointCalendarRule rule) noexcept;

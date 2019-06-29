@@ -17,6 +17,7 @@
 #include <index.pb.h>
 
 #include <dayfractions.h>
+#include <logger.h>
 
 #include <map>
 #include <mutex>
@@ -122,7 +123,7 @@ class IndexServiceImpl : public IndexService
 
 	private:
 	public:
-	bool register_index(const IndexDefinition &definition) override final
+	StatusCode register_index(const IndexDefinition &definition) override final
 	{
 		auto calendar_service = get_calendar_factory();
 		auto fixing_calendar = build_calendar(calendar_service, definition.fixing_calendars(),
@@ -132,8 +133,8 @@ class IndexServiceImpl : public IndexService
 		auto index_calendar = build_calendar(calendar_service, definition.index_calendars(),
 						     definition.index_calendars_join_rule());
 		if (fixing_calendar == nullptr) {
-			fprintf(stderr, "Error: fixing calendar must be specified\n");
-			return false;
+			error("Fixing calendar must be specified\n");
+			return StatusCode::kIDX_ValidFixingCalendarRequired;
 		}
 		if (value_date_calendar == nullptr)
 			value_date_calendar = fixing_calendar;
@@ -141,8 +142,8 @@ class IndexServiceImpl : public IndexService
 			index_calendar = fixing_calendar;
 		const DayFraction *dfc = get_day_fraction(definition.day_count_fraction());
 		if (dfc == nullptr) {
-			fprintf(stderr, "Error: Day count fraction must be specified\n");
-			return false;
+			error("Day count fraction must be specified\n");
+			return StatusCode::kIDX_ValidDayCountFractionRequired;
 		}
 		std::unique_ptr<InterestRateIndexTemplate> index =
 		    std::unique_ptr<InterestRateIndexTemplate>(new InterestRateIndexTemplate(
@@ -157,7 +158,7 @@ class IndexServiceImpl : public IndexService
 			if (index_family_to_isdaindex_.find(family_id) == index_family_to_isdaindex_.end())
 				index_family_to_isdaindex_[family_id] = definition.isda_index();
 		}
-		return true;
+		return StatusCode::kOk;
 	}
 
 	InterestRateIndex *get_index(IsdaIndex isda_index, Tenor tenor) override final
@@ -205,6 +206,22 @@ class IndexServiceImpl : public IndexService
 		if (index == ISDA_INDEX_UNSPECIFIED)
 			return nullptr;
 		return get_index(index, tenor);
+	}
+
+	RegisterIndexDefinitionReply *
+	handle_register_index_definition_request(const RegisterIndexDefinitionRequest *request,
+						 RegisterIndexDefinitionReply *reply) noexcept final
+	{
+		auto header = reply->mutable_header();
+		auto status = register_index(request->index_definition());
+		if (status == StatusCode::kOk) {
+			header->set_response_code(StandardResponseCode::SRC_OK);
+		} else {
+			header->set_response_code(StandardResponseCode::SRC_ERROR);
+			header->set_response_sub_code(status);
+			header->set_response_message(error_message(status));
+		}
+		return reply;
 	}
 };
 

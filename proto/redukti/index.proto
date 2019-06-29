@@ -21,6 +21,7 @@ option java_multiple_files = true;
 option java_outer_classname = "Types";
 
 import "redukti/enums.proto";
+import "redukti/shared.proto";
 
 // Captures information about an interest rate 
 // index so that various operations associated with the
@@ -68,4 +69,12 @@ message IndexDefinition {
 	DayCountFraction day_count_fraction = 16;
 	// Is this Isda Index default for the currency and index family?
 	bool default_for_index_family = 17;
+}
+
+message RegisterIndexDefinitionRequest {
+    IndexDefinition index_definition = 1;
+}
+
+message RegisterIndexDefinitionReply {
+	ReplyHeader header = 1;
 }

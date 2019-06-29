@@ -169,6 +169,15 @@ const char *error_message(StatusCode code)
 	case StatusCode::kSCH_PaymentFrequencyNotMultipleOfCalculationFrequency:
 		return "SCH1308: Payment frequency must be a multiple of the calculation frequency";
 
+	case StatusCode::kCAL_RegisterCalendarFailed:
+		return "CAL1401: Failed to register calendar: note calendars can only be registered before calendar "
+		       "service is used";
+
+	case StatusCode::kIDX_ValidFixingCalendarRequired:
+		return "IDX1410: Failed to register index definition because definition lacks valid fixing calendar";
+	case StatusCode::kIDX_ValidDayCountFractionRequired:
+		return "IDX1411: Failed to register index definition because definition lacks valid day count fraction";
+
 	default:
 		return "ERR0000: unexpected error";
 	}

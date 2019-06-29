@@ -22,6 +22,8 @@ option java_outer_classname = "Types";
 
 import "redukti/enums.proto";
 import "redukti/infra.proto";
+import "redukti/calendar.proto";
+import "redukti/index.proto";
 import "redukti/valuation.proto";
 import "redukti/bootstrap.proto";
 
@@ -76,6 +78,8 @@ message Request {
 		ValuationRequest valuation_request = 32;
 		ShutdownRequest shutdown_request = 49;
 		ResetValuationServiceRequest reset_valuation_service_request = 59;
+		RegisterIndexDefinitionRequest register_index_definition_request = 61;
+		RegisterCalendarRequest register_calendar_request = 62;
 	}
 }
 
@@ -96,6 +100,8 @@ message Response {
 		ValuationReply valuation_reply = 32;
 		ShutdownReply shutdown_reply = 49;
 		ResetValuationServiceReply reset_valuation_service_reply = 59;
+		RegisterIndexDefinitionReply register_index_definition_reply = 61;
+		RegisterCalendarReply register_calendar_reply = 62;
 	}
 }
 

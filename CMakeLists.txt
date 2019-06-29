@@ -132,6 +132,7 @@ endif()
 set(PROTO_FILES 
     proto/redukti/enums.proto
 		proto/redukti/common.proto
+		proto/redukti/calendar.proto
 		proto/redukti/index.proto
 		proto/redukti/schedule.proto
 		proto/redukti/cashflow.proto
