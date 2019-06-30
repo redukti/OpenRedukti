@@ -10,7 +10,6 @@ RUN set -x \
     && apt-get install -y libuv1-dev librocksdb-dev libprotobuf-dev protobuf-compiler \
     && apt-get install -y build-essential autoconf libtool pkg-config \
     && apt-get install -y libgflags-dev libgtest-dev git curl wget
-##     && apt-get install -y clang libc++-dev git curl
 
 ## Sadly we have to build grpc from source
 RUN set -x \
