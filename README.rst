@@ -26,9 +26,7 @@ Main Features
 
 Background
 ==========
-OpenRedukti is part of the `MyCCP <http://redukti.com/>`_ product that was being developed by REDUKTI LIMITED. The development of MyCPP
-was halted in June 2017 due to lack of funding. A decision was taken then to Open Source parts of the MyCCP product, leading to
-the release of OpenRedukti.
+OpenRedukti is part of the `MyCCP <http://redukti.com/>`_ product that is being developed by REDUKTI LIMITED. 
 
 The main differences between the Open Source release and the proprietary version used in MyCCP are:
 
