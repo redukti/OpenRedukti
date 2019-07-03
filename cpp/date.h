@@ -53,7 +53,7 @@
 namespace redukti
 {
 
-// This class provides a Period (length + TimeUnit) class
+// This class provides a Period (length + PeriodUnit) class
 // and implements a limited algebra.
 // Must be standard layout for C compatibility
 class Period

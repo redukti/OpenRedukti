@@ -394,8 +394,9 @@ enum CurveGroup {
 	CURVE_GROUP_F = 6;
 }
 
+// CurveType identifies how the curve operates on its input
 enum CurveType {
-	// Curve uses an interpolator and a vecor of
+	// Curve uses an interpolator and a vector of
 	// rates or discount factors
 	CURVE_TYPE_INTERPOLATED = 0;
 	// Curve uses parameters 

@@ -129,7 +129,7 @@ class CalendarService
 
 	// Create joint calendar
 	// Note that the order in which the business centers are given
-	// should not matter - i.e. the constituents must be sorted and then
+	// should not matter - i.e. the constituents are sorted and then
 	// combined so that for a given combination the returned instance is
 	// always the same
 	virtual Calendar *get_calendar(JointCalendarParameters calendars,
