@@ -68,6 +68,13 @@ std::unique_ptr<RequestProcessor> get_request_processor(std::unique_ptr<CurveBui
 	return std::make_unique<RequestProcessorImpl>(std::move(bootstrapper), std::move(valuation_service));
 }
 
+std::unique_ptr<RequestProcessor> get_request_processor(const char *pricing_scipt)
+{
+	return std::make_unique<RequestProcessorImpl>(
+	    get_curve_builder_service(std::string(pricing_scipt)),
+	    get_valuation_service(get_default_index_service(), get_calendar_factory()));
+}
+
 Response *RequestProcessorImpl::handle_hello_request(const Request *request, Response *response)
 {
 	HelloReply *helloReply = response->mutable_hello_reply();

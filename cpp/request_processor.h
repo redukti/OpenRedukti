@@ -16,8 +16,8 @@
 #ifndef _REDUKTI_REQUEST_PROCESSOR_H
 #define _REDUKTI_REQUEST_PROCESSOR_H
 
-#include <valuation.h>
 #include <bootstrap.h>
+#include <valuation.h>
 
 #include <services.pb.h>
 
@@ -36,10 +36,13 @@ class RequestProcessor
 
 // Note that the RequestProcessor will take ownership
 // of the CurveBuilderService and ValuationService
-std::unique_ptr<RequestProcessor> get_request_processor(
-	std::unique_ptr<CurveBuilderService> bootstrapper,
-	std::unique_ptr<ValuationService> valuation_service);
+std::unique_ptr<RequestProcessor> get_request_processor(std::unique_ptr<CurveBuilderService> bootstrapper,
+							std::unique_ptr<ValuationService> valuation_service);
 
-} // namespace
+// Create an instance that creates its own internal instances
+// of bootstrapper and valuation service. This is useful for creating Cython interface
+std::unique_ptr<RequestProcessor> get_request_processor(const char* pricing_scipt);
+
+} // namespace redukti
 
 #endif
