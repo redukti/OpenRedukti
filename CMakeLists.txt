@@ -131,7 +131,6 @@ endif()
 
 set(PROTO_FILES 
     proto/redukti/enums.proto
-		proto/redukti/common.proto
 		proto/redukti/calendar.proto
 		proto/redukti/index.proto
 		proto/redukti/schedule.proto
@@ -140,8 +139,8 @@ set(PROTO_FILES
 		proto/redukti/shared.proto
 		proto/redukti/bootstrap.proto
 		proto/redukti/valuation.proto
-		proto/redukti/infra.proto
 		proto/redukti/services.proto
+		proto/redukti/instrument_templates.proto
     )
 
 protobuf_generate_cpp_new(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})

@@ -438,6 +438,14 @@ enum MaturityGenerationRule {
 	MATURITY_GENERATION_RULE_SVENSSON = 2;
 }
 
+enum ProductSubType {
+	PRODUCT_SUB_TYPE_UNRECOGNIZED = 0;
+	FRA_FRA = 1;
+	IRSWAP_FIXEDFLOAT = 2;
+	IRSWAP_BASIS = 3;
+	IRSWAP_OIS = 4;
+}
+
 enum ResponseSubCode {
 	kOk = 0;
 	kBadArgument = 1;

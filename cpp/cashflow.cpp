@@ -507,6 +507,15 @@ static FloatingPeriod *create_floating_period(RegionAllocator *A, const Valuatio
 		error("unexpected error: day fraction is null\n");
 		return nullptr;
 	}
+	// Some basic sanity checks
+	if (tenor == TENOR_UNSPECIFIED || tenor < TENOR_1D || tenor > TENOR_12M) {
+		error("Invalid tenor specified\n");
+		return nullptr;
+	}
+	if (tenor2 != TENOR_UNSPECIFIED && (tenor2 < TENOR_1D || tenor2 > TENOR_12M || tenor == tenor2)) {
+		error("Invalid second tenor specified\n");
+		return nullptr;
+	}
 	double year_fraction = fraction->year_fraction(accrual_start, accrual_end);
 
 	auto index = get_default_index_service()->get_index(isda_index, tenor);
