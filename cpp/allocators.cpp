@@ -40,7 +40,7 @@ static thread_local AllocatorSet *g_PAllocatorSet = nullptr;
 AllocatorSet *get_threadspecific_allocators()
 {
 	if (g_PAllocatorSet == nullptr) {
-		inform("Initializing thread specific allocators\n");
+		debug("Initializing thread specific allocators\n");
 		g_PAllocatorSet = new AllocatorSet();
 		g_PAllocatorSet->cashflow_allocator = new DynamicRegionAllocator(64 * 1024);
 		g_PAllocatorSet->sensitivities_allocator = new DynamicRegionAllocator(256 * 1024);
