@@ -18,15 +18,16 @@ option cc_enable_arenas = true;
 option csharp_namespace = "Redukti.Types";
 option java_package = "com.redukti.types";
 option java_multiple_files = true;
-option java_outer_classname = "Types";
+option java_outer_classname = "IndexProtos";
 
 import "redukti/enums.proto";
 import "redukti/shared.proto";
 
-// Captures information about an interest rate 
+// Captures information about an interest rate
 // index so that various operations associated with the
 // index can be performed.
-message IndexDefinition {
+message IndexDefinition
+{
 	// This is the FpML / ISDA name of the index
 	// Excludes tenor
 	IsdaIndex isda_index = 1;
@@ -37,7 +38,7 @@ message IndexDefinition {
 	// Tenor of the index
 	// May be left unspecified to use as the default configuration
 	// for all tenors for the index family
-	Tenor tenor = 4; 
+	Tenor tenor = 4;
 	// Number of business days between a value date and fixing date
 	int32 fixing_lag = 5;
 	// Used to select the business day convention
@@ -57,7 +58,7 @@ message IndexDefinition {
 	JointCalendarRule fixing_calendars_join_rule = 11;
 	// The value date is checked against the value date
 	// calendars and if it falls on a holiday then
-	// an adjustment is applied using business day convention 
+	// an adjustment is applied using business day convention
 	repeated BusinessCenter value_date_calendars = 12;
 	// How value date calendars are to be combined
 	JointCalendarRule value_date_calendars_join_rule = 13;
@@ -71,10 +72,6 @@ message IndexDefinition {
 	bool default_for_index_family = 17;
 }
 
-message RegisterIndexDefinitionRequest {
-    IndexDefinition index_definition = 1;
-}
+message RegisterIndexDefinitionRequest { IndexDefinition index_definition = 1; }
 
-message RegisterIndexDefinitionReply {
-	ReplyHeader header = 1;
-}
+message RegisterIndexDefinitionReply { ReplyHeader header = 1; }

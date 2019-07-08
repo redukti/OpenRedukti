@@ -18,7 +18,7 @@ option cc_enable_arenas = true;
 option csharp_namespace = "Redukti.Types";
 option java_package = "com.redukti.types";
 option java_multiple_files = true;
-option java_outer_classname = "Types";
+option java_outer_classname = "EnumsProtos";
 
 // These standard codes are meant to be
 // used in service definitions
@@ -29,7 +29,7 @@ enum StandardResponseCode {
 	SRC_SERVICE_UNAVAILABLE = 3;
 }
 
-// Currencies - we use enums as more efficient 
+// Currencies - we use enums as more efficient
 // communication formats
 // Note that max value allowed is 31
 enum Currency {
@@ -97,7 +97,7 @@ enum IsdaIndex {
 	SGD_SOR_Reuters = 33;
 	SGD_SOR_VWAP = 34;
 	UK_RPI = 35;
-	USA_CPI_U = 36;	
+	USA_CPI_U = 36;
 	USD_Federal_Funds_H_15 = 37;
 	USD_Federal_Funds_H_15_OIS_COMPOUND = 38;
 	USD_LIBOR_BBA = 39;
@@ -172,7 +172,7 @@ enum BusinessCenter {
 	CATO = 2;
 	CHZU = 3;
 	CZPR = 4;
-	EUTA = 5;			
+	EUTA = 5;
 	GBLO = 6;
 	USNY = 7;
 	HKHK = 8;
@@ -211,10 +211,10 @@ enum BusinessDayConvention {
 }
 
 // WARNING - various things will break if the tenors
-// are changed or reordered. 
-// 
+// are changed or reordered.
+//
 // IMPORTANT
-// 
+//
 // 1. Each tenor has a value that is consistent
 //    with its sort order - i.e. ID < 2D < 3D < 1W
 // 2. Secondly the conversion from other representations
@@ -224,7 +224,7 @@ enum BusinessDayConvention {
 //    here - so if a tenor is not defined here it cannot
 //    be used.
 //
-// Note that max value allowed is 127 (7 bits)    
+// Note that max value allowed is 127 (7 bits)
 enum Tenor {
 	TENOR_UNSPECIFIED = 0;
 	TENOR_1D = 1;
@@ -378,7 +378,7 @@ enum InterpolatorType {
 	CUBIC_SPLINE_NOT_A_KNOT = 5;
 	CUBIC_SPLINE_NATURAL = 6;
 	LOG_CUBIC_SPLINE_NATURAL = 7;
-	CUBIC_SPLINE_CLAMPED = 8; 
+	CUBIC_SPLINE_CLAMPED = 8;
 }
 
 // Curves can be assigned to a logical
@@ -399,16 +399,15 @@ enum CurveType {
 	// Curve uses an interpolator and a vector of
 	// rates or discount factors
 	CURVE_TYPE_INTERPOLATED = 0;
-	// Curve uses parameters 
+	// Curve uses parameters
 	CURVE_TYPE_SVENSSON_PARAMETRIC = 1;
 }
 
 // The type of value used in a curve
-enum IRRateType 
-{ 
-	ZERO_RATE = 0; 
-	DISCOUNT_FACTOR = 1; 
-	FORWARD_RATE = 2; 
+enum IRRateType {
+	ZERO_RATE = 0;
+	DISCOUNT_FACTOR = 1;
+	FORWARD_RATE = 2;
 }
 
 // The usage of a curve
@@ -433,7 +432,7 @@ enum MarketDataQualifier {
 enum MaturityGenerationRule {
 	MATURITY_GENERATION_RULE_DERIVE_FROM_INSTRUMENTS = 0;
 	MATURITY_GENERATION_RULE_FIXED_TENORS = 1;
-	// For Svensson curves the curve is based on 
+	// For Svensson curves the curve is based on
 	// 6 parameters rather than maturity pillars
 	MATURITY_GENERATION_RULE_SVENSSON = 2;
 }
@@ -455,71 +454,71 @@ enum ResponseSubCode {
 	kInternalError = 5;
 	kShuttingDown = 6;
 
-  kBTS_LuaInitFailure = 1201;
-  kBTS_BadInputCurves = 1202;
-  kBTS_InstrumentError = 1203;
-  kBTS_SolverFailure = 1204;
-  kBTS_BadBusinessDate = 1205;
-  kBTS_BadInterpolatedOn = 1206;
-  kBTS_MissingFixedTenors = 1207;
-  kBTS_BadMaturitiesSortOrder = 1208;
-  kBTS_CurveDefinitionNotFound = 1209;
-  kBTS_CashflowDefinitionFailed = 1210;
-  kBTS_LuaScriptFailure = 1211;
-  kBTS_LuaPricingRoutineNotFound = 1212;
-  kBTS_DuplicateCurve = 1213;
-  kBTS_ForwardCurveReferenceNotFound = 1214;
-  kBTS_DiscountCurveReferenceNotFound = 1215;
-  kBTS_CashflowGenerationFailed = 1216;
-  kBTS_MissingCurveDefinitions = 1217;
-  kBTS_MissingParCurves = 1218;
-  kBTS_DefinitonsAndCurvesMismatch = 1219;
-  kBTS_BadMaturityGenerationRule = 1220;
+	kBTS_LuaInitFailure = 1201;
+	kBTS_BadInputCurves = 1202;
+	kBTS_InstrumentError = 1203;
+	kBTS_SolverFailure = 1204;
+	kBTS_BadBusinessDate = 1205;
+	kBTS_BadInterpolatedOn = 1206;
+	kBTS_MissingFixedTenors = 1207;
+	kBTS_BadMaturitiesSortOrder = 1208;
+	kBTS_CurveDefinitionNotFound = 1209;
+	kBTS_CashflowDefinitionFailed = 1210;
+	kBTS_LuaScriptFailure = 1211;
+	kBTS_LuaPricingRoutineNotFound = 1212;
+	kBTS_DuplicateCurve = 1213;
+	kBTS_ForwardCurveReferenceNotFound = 1214;
+	kBTS_DiscountCurveReferenceNotFound = 1215;
+	kBTS_CashflowGenerationFailed = 1216;
+	kBTS_MissingCurveDefinitions = 1217;
+	kBTS_MissingParCurves = 1218;
+	kBTS_DefinitonsAndCurvesMismatch = 1219;
+	kBTS_BadMaturityGenerationRule = 1220;
 
-  kVAL_BadBusinessDate = 1231;
-  kVAL_BadMaturityDate = 1232;
-  kVAL_BadZeroRate = 1233;
-  kVAL_CurveDefinitionNotRegistered = 1234;
-  kVAL_MismatchedMaturitiesAndValues = 1235;
-  kVAL_InsufficientMaturities = 1236;
-  kVAL_BadFixingDate = 1237;
-  kVAL_BadFixingValue = 1238;
-  kVAL_UnsupportedIndexOrTenor = 1239;
-  kVAL_MissingCashflow = 1240;
-  kVAL_MissingPricingContext = 1241;
-  kVAL_FixingDataUnavailable = 1242;
-  kVAL_FixingNotFound = 1243;
-  kVAL_MappedCurveNotFound = 1244;
-  kVAL_UnsupportedCashflowType = 1245;
-  kVAL_CurveGroupNotFound = 1246;
-  kVAL_CashflowConversionFailed = 1247;
-  kVAL_CurveMappingsForCurveGroupNotFound = 1248;
-  kVAL_DetectedTooManyRiskFactorsInCashflow = 1249;
-  kVAL_MissingParSensitivitiesForCurve = 1250;
-  kVAL_ParSensitivitiesForCurveMismatchedMaturities = 1251;
-  kVAL_ParSensitivitiesForCurveInstrumentsOutOfRange = 1252;
-  kVAL_MissingMarketDataEpoch = 1253;
+	kVAL_BadBusinessDate = 1231;
+	kVAL_BadMaturityDate = 1232;
+	kVAL_BadZeroRate = 1233;
+	kVAL_CurveDefinitionNotRegistered = 1234;
+	kVAL_MismatchedMaturitiesAndValues = 1235;
+	kVAL_InsufficientMaturities = 1236;
+	kVAL_BadFixingDate = 1237;
+	kVAL_BadFixingValue = 1238;
+	kVAL_UnsupportedIndexOrTenor = 1239;
+	kVAL_MissingCashflow = 1240;
+	kVAL_MissingPricingContext = 1241;
+	kVAL_FixingDataUnavailable = 1242;
+	kVAL_FixingNotFound = 1243;
+	kVAL_MappedCurveNotFound = 1244;
+	kVAL_UnsupportedCashflowType = 1245;
+	kVAL_CurveGroupNotFound = 1246;
+	kVAL_CashflowConversionFailed = 1247;
+	kVAL_CurveMappingsForCurveGroupNotFound = 1248;
+	kVAL_DetectedTooManyRiskFactorsInCashflow = 1249;
+	kVAL_MissingParSensitivitiesForCurve = 1250;
+	kVAL_ParSensitivitiesForCurveMismatchedMaturities = 1251;
+	kVAL_ParSensitivitiesForCurveInstrumentsOutOfRange = 1252;
+	kVAL_MissingMarketDataEpoch = 1253;
 
-  kCFG_ScheduleGenerationFailed = 1260;
-  kCFG_MissingTrade = 1261;
-  kCFG_UnsupportedLegType = 1262;
-  kCFG_BadInput = 1263;
-  kCFG_UnsupportedTradeType = 1264;
-  kCFG_SteppedCashflowsNotImplementedYet = 1265;
-  kCFG_IndexConfigurationMissing = 1266;
+	kCFG_ScheduleGenerationFailed = 1260;
+	kCFG_MissingTrade = 1261;
+	kCFG_UnsupportedLegType = 1262;
+	kCFG_BadInput = 1263;
+	kCFG_UnsupportedTradeType = 1264;
+	kCFG_SteppedCashflowsNotImplementedYet = 1265;
+	kCFG_IndexConfigurationMissing = 1266;
 
-  kSCH_FirstRegularStartDateInconsistent = 1300;
-  kSCH_LastRegularEndDateInconsistent = 1301;
-  kSCH_EffectiveDateRequired = 1302;
-  kSCH_TerminateDateOrTermRequired = 1303;
-  kSCH_TerminationDateRequired = 1304;
-  kSCH_CalculationFrequencyRequired = 1305;
-  kSCH_IncompatiblePaymentAndCalculationFrequencies = 1306;
-  kSCH_PaymentFrequencyLessThanCalculationFrequency = 1307;
-  kSCH_PaymentFrequencyNotMultipleOfCalculationFrequency = 1308;
+	kSCH_FirstRegularStartDateInconsistent = 1300;
+	kSCH_LastRegularEndDateInconsistent = 1301;
+	kSCH_EffectiveDateRequired = 1302;
+	kSCH_TerminateDateOrTermRequired = 1303;
+	kSCH_TerminationDateRequired = 1304;
+	kSCH_CalculationFrequencyRequired = 1305;
+	kSCH_IncompatiblePaymentAndCalculationFrequencies = 1306;
+	kSCH_PaymentFrequencyLessThanCalculationFrequency = 1307;
+	kSCH_PaymentFrequencyNotMultipleOfCalculationFrequency = 1308;
 
-  kCAL_RegisterCalendarFailed = 1401;
+	kCAL_RegisterCalendarFailed = 1401;
 
-  kIDX_ValidFixingCalendarRequired = 1410;
-  kIDX_ValidDayCountFractionRequired = 1411;
+	kIDX_ValidFixingCalendarRequired = 1410;
+	kIDX_ValidDayCountFractionRequired = 1411;
 }

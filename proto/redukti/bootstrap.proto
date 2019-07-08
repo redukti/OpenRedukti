@@ -17,20 +17,21 @@ option cc_enable_arenas = true;
 option csharp_namespace = "Redukti.Types";
 option java_package = "com.redukti.types";
 option java_multiple_files = true;
-option java_outer_classname = "Types";
+option java_outer_classname = "BootstrapProtos";
 
 import "redukti/enums.proto";
 import "redukti/curve.proto";
 import "redukti/shared.proto";
 
-message ParInstrument {
+message ParInstrument
+{
 	// instrument type is used to decide the pricing algorithm to use
 	// the type needs to match a Lua function name that can be used
 	// to define the instrument cashflow structure
 	string instrument_type = 1;
 	// The instrument_key is a way to identify the instrument
 	// for futures it must be MmmYY where MMM is the expiry month
-	// for Fras its must be nnxnnF 
+	// for Fras its must be nnxnnF
 	// For Bonds the key is used to specify issue date,
 	// maturity date, dirty or clean price
 	string instrument_key = 2;
@@ -44,8 +45,9 @@ message ParInstrument {
 	Tenor floating_tenor = 5;
 };
 
-message ParRates {
-	// We assume that all instrument definitions can be located by 
+message ParRates
+{
+	// We assume that all instrument definitions can be located by
 	// a numeric id - that is given the id there is a way to locate the
 	// instrument, maybe by looking up in a database
 	// Note that the bootstrapper does not use these ids
@@ -55,19 +57,21 @@ message ParRates {
 	repeated double values = 2;
 }
 
-message ParCurve {
+message ParCurve
+{
 	int32 curve_definition_id = 1;
 	repeated ParInstrument instruments = 2;
 	ParRates par_rates = 3;
 }
 
-message ParCurveSet {
+message ParCurveSet
+{
 	// It is not clear that any meaningful values can be
 	// assigned to ctycle, qualifier or scenario prior to bootstrapping
 	// so these fields probably only make sense afterwards
 	int32 as_of_date = 1;
 	int32 cycle = 2;
-	MarketDataQualifier qualifier = 3; 
+	MarketDataQualifier qualifier = 3;
 	int32 scenario = 4;
 	repeated ParCurve par_curves = 5;
 }
@@ -81,17 +85,19 @@ enum SolverType {
 // The bootstrap request is self contained
 // i.e. all required data must be submitted so that
 // the request can be handled in a stateless manner
-message BootstrapCurvesRequest {
+message BootstrapCurvesRequest
+{
 	int32 business_date = 1;
-	repeated IRCurveDefinition curve_definitions = 2;	
+	repeated IRCurveDefinition curve_definitions = 2;
 	ParCurveSet par_curve_set = 3;
-	// If true will attempt to generate par sensitvities	
+	// If true will attempt to generate par sensitvities
 	bool generate_par_sensitivities = 4;
 	SolverType solver_type = 5;
 	int32 max_solver_iterations = 6;
 }
 
-message BootstrapCurvesReply {
+message BootstrapCurvesReply
+{
 	ReplyHeader header = 1;
 	repeated ZeroCurve curves = 2;
 	// The sensitivity of zero rates to par rates

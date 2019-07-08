@@ -18,7 +18,7 @@ option cc_enable_arenas = true;
 option csharp_namespace = "Redukti.Types";
 option java_package = "com.redukti.types";
 option java_multiple_files = true;
-option java_outer_classname = "Types";
+option java_outer_classname = "ServicesProtos";
 
 import "redukti/enums.proto";
 import "redukti/calendar.proto";
@@ -27,26 +27,28 @@ import "redukti/valuation.proto";
 import "redukti/bootstrap.proto";
 
 // Common RequestHeader for messages
-message RequestHeader {
-  string user_id = 1;
-  string user_role = 2;
-  // Number of items requested per page
-  int32 page_size = 3;
-  // requested page number
-  int32 requested_page_number = 4;
-  // time at which the request was submitted
-  // TODO should use Google Timestamp here
-  int64 request_time = 5;
+message RequestHeader
+{
+	string user_id = 1;
+	string user_role = 2;
+	// Number of items requested per page
+	int32 page_size = 3;
+	// requested page number
+	int32 requested_page_number = 4;
+	// time at which the request was submitted
+	// TODO should use Google Timestamp here
+	int64 request_time = 5;
 }
 
-message ResponseHeader {
+message ResponseHeader
+{
 	StandardResponseCode response_code = 1;
 	// A message that can be conveyed back
 	// typically used for error responses
 	// where payload is generally missing
 	string response_message = 2;
-	// Optional sub code for more detailed 
-	// error information	
+	// Optional sub code for more detailed
+	// error information
 	int32 response_sub_code = 3;
 	// Page number being returned
 	int32 page_number = 4;
@@ -59,39 +61,37 @@ message ResponseHeader {
 }
 
 // The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
-  // Optional delay time in millisecs
-  // If specified the service will cause a delay
-  // before returning a response.
-  uint32 delay_for = 2;
-  // Optional flag to indicate that
-  // request should be handled by the first
-  // recipient
-  bool immediate = 3;
+message HelloRequest
+{
+	string name = 1;
+	// Optional delay time in millisecs
+	// If specified the service will cause a delay
+	// before returning a response.
+	uint32 delay_for = 2;
+	// Optional flag to indicate that
+	// request should be handled by the first
+	// recipient
+	bool immediate = 3;
 }
 
 // The response message containing the greetings
-message HelloReply {
-  string message = 1;
-}
+message HelloReply { string message = 1; }
 
-message ShutdownRequest {
-	string password = 1;
-}
+message ShutdownRequest { string password = 1; }
 
-message ShutdownReply {
-}
+message ShutdownReply {}
 
 // We adopt the strategy that there is common request wrapper
 // which contains a union of different request types
-// This strategy is adopted so that we can evolve the service 
+// This strategy is adopted so that we can evolve the service
 // without requiring too many changes in the codebase
 // Missing field numbers are because this is a subset of the
 // full MyCCP services definition
-message Request {
+message Request
+{
 	RequestHeader header = 1;
-	oneof request {
+	oneof request
+	{
 		HelloRequest hello_request = 2;
 		BootstrapCurvesRequest bootstrap_curves_request = 22;
 		CurveInterpolationRequest curve_interpolation_request = 23;
@@ -111,9 +111,11 @@ message Request {
 // which contains a union of different reply types
 // Missing field numbers are because this is a subset of the
 // full MyCCP services definition
-message Response {
+message Response
+{
 	ResponseHeader header = 1;
-	oneof response {
+	oneof response
+	{
 		HelloReply hello_reply = 2;
 		BootstrapCurvesReply bootstrap_curves_reply = 22;
 		CurveInterpolationReply curve_interpolation_reply = 23;
@@ -129,6 +131,7 @@ message Response {
 	}
 }
 
-service OpenReduktiServices {
-	rpc serve (Request) returns (Response) {}
+service OpenReduktiServices
+{
+	rpc serve(Request) returns (Response) {}
 }

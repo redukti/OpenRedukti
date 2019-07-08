@@ -18,12 +18,13 @@ option cc_enable_arenas = true;
 option csharp_namespace = "Redukti.Types";
 option java_package = "com.redukti.types";
 option java_multiple_files = true;
-option java_outer_classname = "Types";
+option java_outer_classname = "CashflowProtos";
 
 import "redukti/enums.proto";
 
 // Simple cashflow (known amount)
-message CFSimple {
+message CFSimple
+{
 	Currency currency = 1;
 	double amount = 2;
 	// Adjusted payment date
@@ -49,7 +50,8 @@ message CFSimple {
 }
 
 // A floating calculation period
-message CFFloatingPeriod {
+message CFFloatingPeriod
+{
 	double notional = 1;
 	double spread = 2;
 	int32 accrual_start_date = 3;
@@ -60,9 +62,10 @@ message CFFloatingPeriod {
 	Tenor tenor2 = 8;
 }
 
-// Floating Coupon 
+// Floating Coupon
 // May contain more than one calculation period
-message CFFloating { 
+message CFFloating
+{
 	Currency currency = 1;
 	repeated CFFloatingPeriod floating_periods = 2;
 	CompoundingMethod compounding_method = 3;
@@ -86,7 +89,8 @@ message CFFloating {
 }
 
 // FRA Cashflow
-message CFFra {
+message CFFra
+{
 	Currency currency = 1;
 	double fixed_rate = 2;
 	int32 payment_date = 3;
@@ -95,8 +99,9 @@ message CFFra {
 }
 
 // OIS cashflow
-message CFOis {
-    // FIXME Currency is missing
+message CFOis
+{
+	// FIXME Currency is missing
 	IsdaIndex index = 1;
 	double notional = 2;
 	int32 accrual_start_date = 3;
@@ -107,8 +112,10 @@ message CFOis {
 
 // Single cashflow
 // This is a union type
-message CFSingle {
-	oneof cashflow {
+message CFSingle
+{
+	oneof cashflow
+	{
 		CFSimple simple = 1;
 		CFFloating floating = 2;
 		CFFra fra = 3;
@@ -117,7 +124,8 @@ message CFSingle {
 }
 
 // Cashflow stream
-message CFStream {
+message CFStream
+{
 	repeated CFSingle cashflows = 1;
 	// multiplicative factor
 	// typically used to reverse direction using -1.0
@@ -125,6 +133,4 @@ message CFStream {
 }
 
 // Collection of cashflow streams
-message CFCollection {
-	repeated CFStream streams = 1;
-}
+message CFCollection { repeated CFStream streams = 1; }

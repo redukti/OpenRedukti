@@ -18,14 +18,15 @@ option cc_enable_arenas = true;
 option csharp_namespace = "Redukti.Types";
 option java_package = "com.redukti.types";
 option java_multiple_files = true;
-option java_outer_classname = "Types";
+option java_outer_classname = "ValuationProtos";
 
 import "redukti/enums.proto";
 import "redukti/curve.proto";
 import "redukti/cashflow.proto";
 import "redukti/shared.proto";
 
-message PricingContext {
+message PricingContext
+{
 	int32 as_of_date = 1;
 	MarketDataQualifier qualifier = 2;
 	int32 cycle = 3;
@@ -55,13 +56,14 @@ enum SensitivityRiskCode {
 	SRC_DISCOUNT = 2;
 }
 
-message IRCurveSensitivities {
+message IRCurveSensitivities
+{
 	// Zeror or PAR sensitivities?
 	SensitivityTypeCode sensitivity_type = 1;
 	// Delta or Gamma ?
 	SensitivityOrderCode order = 2;
 	// For each dimension a curve identifier is needed
-	// For delta curves there is only one dimension so only 
+	// For delta curves there is only one dimension so only
 	// one curve will be present
 	// Second order sensitivities have two dimensions
 	// -1 if not applicable
@@ -81,24 +83,28 @@ message IRCurveSensitivities {
 	map<uint32, double> values = 7;
 }
 
-message ValuationRequest {
+message ValuationRequest
+{
 	PricingContext pricing_context = 1;
 	CFCollection cashflows = 2;
 }
 
-message ValuationResult {
+message ValuationResult
+{
 	// Valuations by scenario
 	map<int32, double> valuations = 1;
 	// Sensitivities for scenario 0 only
 	repeated IRCurveSensitivities sensitivities = 2;
 }
 
-message ValuationReply {
-	ReplyHeader header = 1;	
+message ValuationReply
+{
+	ReplyHeader header = 1;
 	ValuationResult result = 2;
 }
 
-message FixingsByIndexTenor {
+message FixingsByIndexTenor
+{
 	IsdaIndex index = 1;
 	Tenor tenor = 2;
 	// Map of fixing date to fixing value
@@ -106,28 +112,21 @@ message FixingsByIndexTenor {
 }
 
 // Publish fixings data to the backend
-message SetFixingsRequest {
-	FixingsByIndexTenor fixings_by_index_tenor = 1;
-}
+message SetFixingsRequest { FixingsByIndexTenor fixings_by_index_tenor = 1; }
 
-message SetFixingsReply {
-	ReplyHeader header = 1;
-}
+message SetFixingsReply { ReplyHeader header = 1; }
 
 // Publish curve definitions to the backend
-message RegisterCurveDefinitionsRequest {
-	repeated IRCurveDefinition curve_definitions = 1;
-}
+message RegisterCurveDefinitionsRequest { repeated IRCurveDefinition curve_definitions = 1; }
 
-message RegisterCurveDefinitionsReply {
-	ReplyHeader header = 1;
-}
+message RegisterCurveDefinitionsReply { ReplyHeader header = 1; }
 
 // Publish zero curves to the backend
-message SetZeroCurvesRequest {
+message SetZeroCurvesRequest
+{
 	int32 as_of_date = 1;
 	int32 cycle = 2;
-	MarketDataQualifier qualifier = 3; 
+	MarketDataQualifier qualifier = 3;
 	int32 scenario = 4;
 	CurveGroup curve_group = 5;
 	repeated ZeroCurve forward_curves = 6;
@@ -135,16 +134,15 @@ message SetZeroCurvesRequest {
 	repeated ZeroCurveParSensitivities par_sensitivities = 8;
 }
 
-message SetZeroCurvesReply {
-	ReplyHeader header = 1;
-}
+message SetZeroCurvesReply { ReplyHeader header = 1; }
 
 // A logical way of identifying a curve
 // Note that curves are assumed to belong to the same
 // context - i.e. business date, curve group,
 // scenario etc.
-message PricingCurveIdentifier {
-	PricingCurveType type = 1;	
+message PricingCurveIdentifier
+{
+	PricingCurveType type = 1;
 	Currency currency = 2;
 	IndexFamily index_family = 3;
 	Tenor tenor = 4;
@@ -156,13 +154,14 @@ message PricingCurveIdentifier {
 // Note that the mapping is not recursive, i.e.
 // if 'to_id' was mapped also then that would not affect
 // the outcome of mapping 'from_id'
-message CurveMapping {
+message CurveMapping
+{
 	PricingCurveIdentifier from_id = 1;
 	PricingCurveIdentifier to_id = 2;
 }
 
 // Before any cashflow valuation can be done
-// one of the pre-requisites is to provide 
+// one of the pre-requisites is to provide
 // mappings for the logical curves. If a mapping
 // is not provided then the logical curve maps
 // to itself. The aim of the mapping is to allow
@@ -170,23 +169,23 @@ message CurveMapping {
 // assignments when performing valuations. Note that the
 // sensitivites are calculated against each logic curve
 // so the mappings affect PV and sensitivities.
-message SetCurveMappingsRequest {
+message SetCurveMappingsRequest
+{
 	CurveGroup curve_group = 1;
-	//PricingCurveType default_curve_type = 2;
+	// PricingCurveType default_curve_type = 2;
 	repeated CurveMapping mappings = 3;
 }
 
-message SetCurveMappingsReply {
-	ReplyHeader header = 1;
-}
+message SetCurveMappingsReply { ReplyHeader header = 1; }
 
-message CurveInterpolationRequest {
+message CurveInterpolationRequest
+{
 	int32 business_date = 1;
 	IRCurveDefinition definition = 2;
 	ZeroCurve curve = 3;
 	// Specify the rate type for which values are being
 	// requested. If forward rate is requested then
-	// forward_tenor attribute can be set to request a 
+	// forward_tenor attribute can be set to request a
 	// specific tenor
 	IRRateType rate_type = 4;
 	// If forward rates are requested then
@@ -197,14 +196,12 @@ message CurveInterpolationRequest {
 	repeated int32 dates = 6;
 }
 
-message CurveInterpolationReply {
-	ReplyHeader header = 1;	
+message CurveInterpolationReply
+{
+	ReplyHeader header = 1;
 	repeated double values = 2;
 }
 
-message ResetValuationServiceRequest {
-}
+message ResetValuationServiceRequest {}
 
-message ResetValuationServiceReply {
-	ReplyHeader header = 1;	
-}
+message ResetValuationServiceReply { ReplyHeader header = 1; }

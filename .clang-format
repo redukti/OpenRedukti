@@ -1,10 +1,6 @@
 ---
-#Language:      Cpp
 BasedOnStyle: LLVM
-#AllowShortBlocksOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
-#AllowShortLoopsOnASingleLine: false
-#AllowShortFunctionsOnASingleLine: false
 UseTab: Always
 BreakBeforeBraces: Linux
 IndentWidth: 8
@@ -12,5 +8,3 @@ AccessModifierOffset: 0
 ColumnLimit: 120
 IndentCaseLabels: false
 CompactNamespaces: true
-...
-

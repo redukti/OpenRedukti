@@ -18,41 +18,43 @@ option cc_enable_arenas = true;
 option csharp_namespace = "Redukti.Types";
 option java_package = "com.redukti.types";
 option java_multiple_files = true;
-option java_outer_classname = "Types";
+option java_outer_classname = "ScheduleProtos";
 
 import "redukti/enums.proto";
 
 enum StubLocation {
-  STUB_TYPE_AUTO = 0;
-  SHORT_FRONT_STUB = 1;
-  LONG_FRONT_STUB = 2;
-  SHORT_BACK_STUB = 3;
-  LONG_BACK_STUB = 4;
+	STUB_TYPE_AUTO = 0;
+	SHORT_FRONT_STUB = 1;
+	LONG_FRONT_STUB = 2;
+	SHORT_BACK_STUB = 3;
+	LONG_BACK_STUB = 4;
 }
 
-message ScheduleParameters {
+message ScheduleParameters
+{
 	int32 effective_date = 1;
 	int32 termination_date = 2;
-  	RollConvention roll_convention = 3;
-  	int32 first_regular_period_start_date = 4;
- 	int32 last_regular_period_end_date = 5;
+	RollConvention roll_convention = 3;
+	int32 first_regular_period_start_date = 4;
+	int32 last_regular_period_end_date = 5;
 	Tenor term = 6;
 	Tenor calculation_frequency = 7;
- 	Tenor payment_frequency = 8;
+	Tenor payment_frequency = 8;
 	StubLocation stub_location = 9;
 	int32 first_payment_date = 10;
 	int32 last_regular_payment_date = 11;
-  	BusinessDayConvention period_convention = 12;
-  	BusinessDayConvention payment_convention = 13;
-  	sint32 payment_lag = 14;
-  	repeated BusinessCenter period_calendars = 15;
-  	repeated BusinessCenter payment_calendars = 16;
-  	sint32 ex_coupon_lag = 17;
-  	BusinessDayConvention ex_coupon_convention = 18;
-  	repeated BusinessCenter ex_coupon_calendars = 19;
+	BusinessDayConvention period_convention = 12;
+	BusinessDayConvention payment_convention = 13;
+	sint32 payment_lag = 14;
+	repeated BusinessCenter period_calendars = 15;
+	repeated BusinessCenter payment_calendars = 16;
+	sint32 ex_coupon_lag = 17;
+	BusinessDayConvention ex_coupon_convention = 18;
+	repeated BusinessCenter ex_coupon_calendars = 19;
 }
 
-message Schedule {
+message Schedule
+{
 	// TODO review the structure below
 	bool has_front_stub = 1;
 	bool has_back_stub = 2;

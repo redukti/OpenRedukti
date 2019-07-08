@@ -18,18 +18,19 @@ option cc_enable_arenas = true;
 option csharp_namespace = "Redukti.Types";
 option java_package = "com.redukti.types";
 option java_multiple_files = true;
-option java_outer_classname = "Types";
+option java_outer_classname = "SharedProtos";
 
 import "redukti/enums.proto";
 
 // Should form part of every reply message
-message ReplyHeader {
+message ReplyHeader
+{
 	StandardResponseCode response_code = 1;
 	// A message that can be conveyed back
 	// typically used for error responses
 	// where payload is generally missing
 	string response_message = 2;
-	// Optional sub code for more detailed 
-	// error information	
+	// Optional sub code for more detailed
+	// error information
 	int32 response_sub_code = 3;
 }
