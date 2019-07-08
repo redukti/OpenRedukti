@@ -2,9 +2,10 @@
 //
 // Contributor(s):
 //
-// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
-// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
-// Authors: Dibyendu Majumdar
+// The Original Software is OpenRedukti
+// (https://github.com/redukti/OpenRedukti). The Initial Developer of the
+// Original Software is REDUKTI LIMITED (http://redukti.com). Authors: Dibyendu
+// Majumdar
 //
 // Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
 //
@@ -23,83 +24,77 @@ import "redukti/enums.proto";
 import "redukti/curve.proto";
 import "redukti/shared.proto";
 
-message ParInstrument
-{
-	// instrument type is used to decide the pricing algorithm to use
-	// the type needs to match a Lua function name that can be used
-	// to define the instrument cashflow structure
-	string instrument_type = 1;
-	// The instrument_key is a way to identify the instrument
-	// for futures it must be MmmYY where MMM is the expiry month
-	// for Fras its must be nnxnnF
-	// For Bonds the key is used to specify issue date,
-	// maturity date, dirty or clean price
-	string instrument_key = 2;
-	// A reference to a curve within the owning set
-	int32 discount_curve_definition_id = 3;
-	// A reference to a curve within the owning set
-	int32 forward_curve_definition_id = 4;
-	// For instruments that reset on the floating side there
-	// needs to be a floating reset frequency
-	// Only required if different from the curve tenor
-	Tenor floating_tenor = 5;
+message ParInstrument {
+  // instrument type is used to decide the pricing algorithm to use
+  // the type needs to match a Lua function name that can be used
+  // to define the instrument cashflow structure
+  string instrument_type = 1;
+  // The instrument_key is a way to identify the instrument
+  // for futures it must be MmmYY where MMM is the expiry month
+  // for Fras its must be nnxnnF
+  // For Bonds the key is used to specify issue date,
+  // maturity date, dirty or clean price
+  string instrument_key = 2;
+  // A reference to a curve within the owning set
+  int32 discount_curve_definition_id = 3;
+  // A reference to a curve within the owning set
+  int32 forward_curve_definition_id = 4;
+  // For instruments that reset on the floating side there
+  // needs to be a floating reset frequency
+  // Only required if different from the curve tenor
+  Tenor floating_tenor = 5;
 };
 
-message ParRates
-{
-	// We assume that all instrument definitions can be located by
-	// a numeric id - that is given the id there is a way to locate the
-	// instrument, maybe by looking up in a database
-	// Note that the bootstrapper does not use these ids
-	repeated int32 instrument_ids = 1;
-	// Normally these are the PAR rates
-	// For Bonds these are the fixed rates
-	repeated double values = 2;
+message ParRates {
+  // We assume that all instrument definitions can be located by
+  // a numeric id - that is given the id there is a way to locate the
+  // instrument, maybe by looking up in a database
+  // Note that the bootstrapper does not use these ids
+  repeated int32 instrument_ids = 1;
+  // Normally these are the PAR rates
+  // For Bonds these are the fixed rates
+  repeated double values = 2;
 }
 
-message ParCurve
-{
-	int32 curve_definition_id = 1;
-	repeated ParInstrument instruments = 2;
-	ParRates par_rates = 3;
+message ParCurve {
+  int32 curve_definition_id = 1;
+  repeated ParInstrument instruments = 2;
+  ParRates par_rates = 3;
 }
 
-message ParCurveSet
-{
-	// It is not clear that any meaningful values can be
-	// assigned to ctycle, qualifier or scenario prior to bootstrapping
-	// so these fields probably only make sense afterwards
-	int32 as_of_date = 1;
-	int32 cycle = 2;
-	MarketDataQualifier qualifier = 3;
-	int32 scenario = 4;
-	repeated ParCurve par_curves = 5;
+message ParCurveSet {
+  // It is not clear that any meaningful values can be
+  // assigned to ctycle, qualifier or scenario prior to bootstrapping
+  // so these fields probably only make sense afterwards
+  int32 as_of_date = 1;
+  int32 cycle = 2;
+  MarketDataQualifier qualifier = 3;
+  int32 scenario = 4;
+  repeated ParCurve par_curves = 5;
 }
 
 enum SolverType {
-	SOLVER_TYPE_LEVENBERG_MARQUARDT = 0;
-	SOLVER_TYPE_LINEAR_LEAST_SQUARE = 1;
-	SOLVER_TYPE_LINEAR_LUFACTOR = 2;
+  SOLVER_TYPE_LEVENBERG_MARQUARDT = 0;
+  SOLVER_TYPE_LINEAR_LEAST_SQUARE = 1;
+  SOLVER_TYPE_LINEAR_LUFACTOR = 2;
 }
 
 // The bootstrap request is self contained
 // i.e. all required data must be submitted so that
 // the request can be handled in a stateless manner
-message BootstrapCurvesRequest
-{
-	int32 business_date = 1;
-	repeated IRCurveDefinition curve_definitions = 2;
-	ParCurveSet par_curve_set = 3;
-	// If true will attempt to generate par sensitvities
-	bool generate_par_sensitivities = 4;
-	SolverType solver_type = 5;
-	int32 max_solver_iterations = 6;
+message BootstrapCurvesRequest {
+  int32 business_date = 1;
+  repeated IRCurveDefinition curve_definitions = 2;
+  ParCurveSet par_curve_set = 3;
+  // If true will attempt to generate par sensitvities
+  bool generate_par_sensitivities = 4;
+  SolverType solver_type = 5;
+  int32 max_solver_iterations = 6;
 }
 
-message BootstrapCurvesReply
-{
-	ReplyHeader header = 1;
-	repeated ZeroCurve curves = 2;
-	// The sensitivity of zero rates to par rates
-	repeated ZeroCurveParSensitivities par_sensitivities = 3;
+message BootstrapCurvesReply {
+  ReplyHeader header = 1;
+  repeated ZeroCurve curves = 2;
+  // The sensitivity of zero rates to par rates
+  repeated ZeroCurveParSensitivities par_sensitivities = 3;
 }

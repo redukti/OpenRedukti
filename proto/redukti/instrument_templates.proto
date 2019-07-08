@@ -2,9 +2,10 @@
 //
 // Contributor(s):
 //
-// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
-// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
-// Authors: Dibyendu Majumdar
+// The Original Software is OpenRedukti
+// (https://github.com/redukti/OpenRedukti). The Initial Developer of the
+// Original Software is REDUKTI LIMITED (http://redukti.com). Authors: Dibyendu
+// Majumdar
 //
 // Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
 //
@@ -24,23 +25,22 @@ import "redukti/enums.proto";
 // Template for generating trades
 // This does not cover a full trade data model
 // First leg is taken as Fixed leg for Vanilla/OIS swaps
-message InstrumentTemplate
-{
-	ProductSubType product_sub_type = 1;
-	Currency currency = 2;
-	repeated BusinessCenter payment_calendars = 3;
-	Tenor payment_frequency1 = 4;
-	Tenor payment_frequency2 = 5;
-	DayCountFraction day_count_fraction1 = 6;
-	DayCountFraction day_count_fraction2 = 7;
-	BusinessDayConvention payment_day_convention = 8;
-	IsdaIndex floating_index1 = 9;
-	Tenor floating_tenor1 = 10;
-	IsdaIndex floating_index2 = 11;
-	Tenor floating_tenor2 = 12;
-	IndexFamily fixed_discounting_index_family = 13;
-	CompoundingMethod compounding_method1 = 14;
-	CompoundingMethod compounding_method2 = 15;
-	Tenor reset_frequency_if_compounding1 = 16;
-	Tenor reset_frequency_if_compounding2 = 17;
+message InstrumentTemplate {
+  ProductSubType product_sub_type = 1;
+  Currency currency = 2;
+  repeated BusinessCenter payment_calendars = 3;
+  Tenor payment_frequency1 = 4;
+  Tenor payment_frequency2 = 5;
+  DayCountFraction day_count_fraction1 = 6;
+  DayCountFraction day_count_fraction2 = 7;
+  BusinessDayConvention payment_day_convention = 8;
+  IsdaIndex floating_index1 = 9;
+  Tenor floating_tenor1 = 10;
+  IsdaIndex floating_index2 = 11;
+  Tenor floating_tenor2 = 12;
+  IndexFamily fixed_discounting_index_family = 13;
+  CompoundingMethod compounding_method1 = 14;
+  CompoundingMethod compounding_method2 = 15;
+  Tenor reset_frequency_if_compounding1 = 16;
+  Tenor reset_frequency_if_compounding2 = 17;
 }

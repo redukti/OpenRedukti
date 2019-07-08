@@ -2,9 +2,10 @@
 //
 // Contributor(s):
 //
-// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
-// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
-// Authors: Dibyendu Majumdar
+// The Original Software is OpenRedukti
+// (https://github.com/redukti/OpenRedukti). The Initial Developer of the
+// Original Software is REDUKTI LIMITED (http://redukti.com). Authors: Dibyendu
+// Majumdar
 //
 // Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
 //
@@ -27,74 +28,70 @@ import "redukti/enums.proto";
 // this separately from actual curve data
 // The definitions are static i.e. they do not change
 // from day to day
-message IRCurveDefinition
-{
-	// All curve definitions must be given a unique id
-	// This can be considered to be some sort of primary key
-	// for the definition - i.e. no two curve definitions may
-	// have the same id
-	int32 id = 1;
-	// Curves may be interpolated from values
-	// or parametric
-	CurveType curve_type = 2;
-	// The curve group is intended to allow the different
-	// configurations of the same curve to be created for
-	// different use cases, e.g. different interpolation methods
-	// may be used for IM versus VM, or a reduced set of tenors
-	// may be used for computing Liquidity Margin
-	CurveGroup curve_group = 3;
-	Currency currency = 4;
-	IndexFamily index_family = 5;
-	// Tenor is optional; if specified implies a tenor
-	// specific curve
-	Tenor tenor = 6;
-	InterpolatorType interpolator_type = 7;
-	// If interpolated_on is discount factors then it means
-	// that the interpolator should operate on discount factors
-	// rather than zero rates
-	IRRateType interpolated_on = 8;
-	// The maturity generation rule defines how the the bootstrapper
-	// should generate the maturities of the curve
-	MaturityGenerationRule maturity_generation_rule = 9;
-	// If the curve is defined to have fixed maturity tenors
-	// then a list of tenors is needed
-	// If the maturities are defined from input instruments then
-	// tenors need not be defined
-	repeated Tenor tenors = 10;
+message IRCurveDefinition {
+  // All curve definitions must be given a unique id
+  // This can be considered to be some sort of primary key
+  // for the definition - i.e. no two curve definitions may
+  // have the same id
+  int32 id = 1;
+  // Curves may be interpolated from values
+  // or parametric
+  CurveType curve_type = 2;
+  // The curve group is intended to allow the different
+  // configurations of the same curve to be created for
+  // different use cases, e.g. different interpolation methods
+  // may be used for IM versus VM, or a reduced set of tenors
+  // may be used for computing Liquidity Margin
+  CurveGroup curve_group = 3;
+  Currency currency = 4;
+  IndexFamily index_family = 5;
+  // Tenor is optional; if specified implies a tenor
+  // specific curve
+  Tenor tenor = 6;
+  InterpolatorType interpolator_type = 7;
+  // If interpolated_on is discount factors then it means
+  // that the interpolator should operate on discount factors
+  // rather than zero rates
+  IRRateType interpolated_on = 8;
+  // The maturity generation rule defines how the the bootstrapper
+  // should generate the maturities of the curve
+  MaturityGenerationRule maturity_generation_rule = 9;
+  // If the curve is defined to have fixed maturity tenors
+  // then a list of tenors is needed
+  // If the maturities are defined from input instruments then
+  // tenors need not be defined
+  repeated Tenor tenors = 10;
 }
 
-message ZeroCurve
-{
-	int32 curve_definition_id = 1;
-	// Maturities will only be present for interpolated curves
-	repeated int32 maturities = 2;
-	repeated double values = 3;
+message ZeroCurve {
+  int32 curve_definition_id = 1;
+  // Maturities will only be present for interpolated curves
+  repeated int32 maturities = 2;
+  repeated double values = 3;
 }
 
-message ZeroCurveParSensitivities
-{
-	int32 curve_definition_id = 1;
-	int32 num_instruments = 2;
-	int32 num_maturities = 3;
-	// Map from <row,col> to value
-	// The lower 16 bits represent the row index
-	// The higher 16 bits represent the column index
-	// We use this format as protobuf requires the map keys to be
-	// integral type
-	map<uint32, double> values = 4;
+message ZeroCurveParSensitivities {
+  int32 curve_definition_id = 1;
+  int32 num_instruments = 2;
+  int32 num_maturities = 3;
+  // Map from <row,col> to value
+  // The lower 16 bits represent the row index
+  // The higher 16 bits represent the column index
+  // We use this format as protobuf requires the map keys to be
+  // integral type
+  map<uint32, double> values = 4;
 }
 
-message ZeroCurveSet
-{
-	// It is not clear that any meaningful values can be
-	// assigned to cycle, qualifier or scenario prior to bootstrapping
-	// so these fields probably only make sense afterwards
-	int32 as_of_date = 1;
-	int32 cycle = 2;
-	MarketDataQualifier qualifier = 3;
-	int32 scenario = 4;
-	CurveGroup curve_group = 5;
-	Currency currency = 6;
-	repeated ZeroCurve zero_curves = 7;
-	repeated ZeroCurveParSensitivities zero_par_sensitivities = 8;
+message ZeroCurveSet {
+  // It is not clear that any meaningful values can be
+  // assigned to cycle, qualifier or scenario prior to bootstrapping
+  // so these fields probably only make sense afterwards
+  int32 as_of_date = 1;
+  int32 cycle = 2;
+  MarketDataQualifier qualifier = 3;
+  int32 scenario = 4;
+  CurveGroup curve_group = 5;
+  Currency currency = 6;
+  repeated ZeroCurve zero_curves = 7;
+  repeated ZeroCurveParSensitivities zero_par_sensitivities = 8;
 }

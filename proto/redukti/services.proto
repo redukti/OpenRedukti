@@ -2,9 +2,10 @@
 //
 // Contributor(s):
 //
-// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
-// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
-// Authors: Dibyendu Majumdar
+// The Original Software is OpenRedukti
+// (https://github.com/redukti/OpenRedukti). The Initial Developer of the
+// Original Software is REDUKTI LIMITED (http://redukti.com). Authors: Dibyendu
+// Majumdar
 //
 // Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
 //
@@ -27,59 +28,61 @@ import "redukti/valuation.proto";
 import "redukti/bootstrap.proto";
 
 // Common RequestHeader for messages
-message RequestHeader
-{
-	string user_id = 1;
-	string user_role = 2;
-	// Number of items requested per page
-	int32 page_size = 3;
-	// requested page number
-	int32 requested_page_number = 4;
-	// time at which the request was submitted
-	// TODO should use Google Timestamp here
-	int64 request_time = 5;
+message RequestHeader {
+  string user_id = 1;
+  string user_role = 2;
+  // Number of items requested per page
+  int32 page_size = 3;
+  // requested page number
+  int32 requested_page_number = 4;
+  // time at which the request was submitted
+  // TODO should use Google Timestamp here
+  int64 request_time = 5;
 }
 
-message ResponseHeader
-{
-	StandardResponseCode response_code = 1;
-	// A message that can be conveyed back
-	// typically used for error responses
-	// where payload is generally missing
-	string response_message = 2;
-	// Optional sub code for more detailed
-	// error information
-	int32 response_sub_code = 3;
-	// Page number being returned
-	int32 page_number = 4;
-	// Items counted per page
-	int32 page_size = 5;
-	// Number of available pages is at least this number
-	int32 available_pages = 6;
-	// Time taken to serve the request in nanoseconds
-	int64 elapsed_time = 7;
+message ResponseHeader {
+  StandardResponseCode response_code = 1;
+  // A message that can be conveyed back
+  // typically used for error responses
+  // where payload is generally missing
+  string response_message = 2;
+  // Optional sub code for more detailed
+  // error information
+  int32 response_sub_code = 3;
+  // Page number being returned
+  int32 page_number = 4;
+  // Items counted per page
+  int32 page_size = 5;
+  // Number of available pages is at least this number
+  int32 available_pages = 6;
+  // Time taken to serve the request in nanoseconds
+  int64 elapsed_time = 7;
 }
 
 // The request message containing the user's name.
-message HelloRequest
-{
-	string name = 1;
-	// Optional delay time in millisecs
-	// If specified the service will cause a delay
-	// before returning a response.
-	uint32 delay_for = 2;
-	// Optional flag to indicate that
-	// request should be handled by the first
-	// recipient
-	bool immediate = 3;
+message HelloRequest {
+  string name = 1;
+  // Optional delay time in millisecs
+  // If specified the service will cause a delay
+  // before returning a response.
+  uint32 delay_for = 2;
+  // Optional flag to indicate that
+  // request should be handled by the first
+  // recipient
+  bool immediate = 3;
 }
 
 // The response message containing the greetings
-message HelloReply { string message = 1; }
+message HelloReply {
+  string message = 1;
+}
 
-message ShutdownRequest { string password = 1; }
+message ShutdownRequest {
+  string password = 1;
+}
 
-message ShutdownReply {}
+message ShutdownReply {
+}
 
 // We adopt the strategy that there is common request wrapper
 // which contains a union of different request types
@@ -87,51 +90,47 @@ message ShutdownReply {}
 // without requiring too many changes in the codebase
 // Missing field numbers are because this is a subset of the
 // full MyCCP services definition
-message Request
-{
-	RequestHeader header = 1;
-	oneof request
-	{
-		HelloRequest hello_request = 2;
-		BootstrapCurvesRequest bootstrap_curves_request = 22;
-		CurveInterpolationRequest curve_interpolation_request = 23;
-		SetCurveMappingsRequest set_curve_mappings_request = 27;
-		SetZeroCurvesRequest set_zero_curves_request = 29;
-		RegisterCurveDefinitionsRequest register_curve_definitions_request = 30;
-		SetFixingsRequest set_fixings_request = 31;
-		ValuationRequest valuation_request = 32;
-		ShutdownRequest shutdown_request = 49;
-		ResetValuationServiceRequest reset_valuation_service_request = 59;
-		RegisterIndexDefinitionRequest register_index_definition_request = 61;
-		RegisterCalendarRequest register_calendar_request = 62;
-	}
+message Request {
+  RequestHeader header = 1;
+  oneof request {
+    HelloRequest hello_request = 2;
+    BootstrapCurvesRequest bootstrap_curves_request = 22;
+    CurveInterpolationRequest curve_interpolation_request = 23;
+    SetCurveMappingsRequest set_curve_mappings_request = 27;
+    SetZeroCurvesRequest set_zero_curves_request = 29;
+    RegisterCurveDefinitionsRequest register_curve_definitions_request = 30;
+    SetFixingsRequest set_fixings_request = 31;
+    ValuationRequest valuation_request = 32;
+    ShutdownRequest shutdown_request = 49;
+    ResetValuationServiceRequest reset_valuation_service_request = 59;
+    RegisterIndexDefinitionRequest register_index_definition_request = 61;
+    RegisterCalendarRequest register_calendar_request = 62;
+  }
 }
 
 // Likewise there is common Response wrapper
 // which contains a union of different reply types
 // Missing field numbers are because this is a subset of the
 // full MyCCP services definition
-message Response
-{
-	ResponseHeader header = 1;
-	oneof response
-	{
-		HelloReply hello_reply = 2;
-		BootstrapCurvesReply bootstrap_curves_reply = 22;
-		CurveInterpolationReply curve_interpolation_reply = 23;
-		SetCurveMappingsReply set_curve_mappings_reply = 27;
-		SetZeroCurvesReply set_zero_curves_reply = 29;
-		RegisterCurveDefinitionsReply register_curve_definitions_reply = 30;
-		SetFixingsReply set_fixings_reply = 31;
-		ValuationReply valuation_reply = 32;
-		ShutdownReply shutdown_reply = 49;
-		ResetValuationServiceReply reset_valuation_service_reply = 59;
-		RegisterIndexDefinitionReply register_index_definition_reply = 61;
-		RegisterCalendarReply register_calendar_reply = 62;
-	}
+message Response {
+  ResponseHeader header = 1;
+  oneof response {
+    HelloReply hello_reply = 2;
+    BootstrapCurvesReply bootstrap_curves_reply = 22;
+    CurveInterpolationReply curve_interpolation_reply = 23;
+    SetCurveMappingsReply set_curve_mappings_reply = 27;
+    SetZeroCurvesReply set_zero_curves_reply = 29;
+    RegisterCurveDefinitionsReply register_curve_definitions_reply = 30;
+    SetFixingsReply set_fixings_reply = 31;
+    ValuationReply valuation_reply = 32;
+    ShutdownReply shutdown_reply = 49;
+    ResetValuationServiceReply reset_valuation_service_reply = 59;
+    RegisterIndexDefinitionReply register_index_definition_reply = 61;
+    RegisterCalendarReply register_calendar_reply = 62;
+  }
 }
 
-service OpenReduktiServices
-{
-	rpc serve(Request) returns (Response) {}
+service OpenReduktiServices {
+  rpc serve(Request) returns (Response) {
+  }
 }

@@ -2,9 +2,10 @@
 //
 // Contributor(s):
 //
-// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
-// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
-// Authors: Dibyendu Majumdar
+// The Original Software is OpenRedukti
+// (https://github.com/redukti/OpenRedukti). The Initial Developer of the
+// Original Software is REDUKTI LIMITED (http://redukti.com). Authors: Dibyendu
+// Majumdar
 //
 // Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
 //
@@ -26,52 +27,55 @@ import "redukti/shared.proto";
 // Captures information about an interest rate
 // index so that various operations associated with the
 // index can be performed.
-message IndexDefinition
-{
-	// This is the FpML / ISDA name of the index
-	// Excludes tenor
-	IsdaIndex isda_index = 1;
-	// Index family may be common across several indices
-	IndexFamily index_family = 2;
-	// Currency of the index
-	Currency currency = 3;
-	// Tenor of the index
-	// May be left unspecified to use as the default configuration
-	// for all tenors for the index family
-	Tenor tenor = 4;
-	// Number of business days between a value date and fixing date
-	int32 fixing_lag = 5;
-	// Used to select the business day convention
-	// tenors <= short_tenor_threshold use the short tenor convention
-	Tenor short_tenor_threshold = 6;
-	// Convention used if tenor is <= short_tenor_threshold
-	BusinessDayConvention short_tenor_convention = 7;
-	// Convention used if tenor is > than short_tenor_threshold
-	BusinessDayConvention long_tenor_convention = 8;
-	// Whether to apply EOM roll convention for tenors >= month
-	bool eom = 9;
-	// fixing calendars are used to move from accrual start date
-	// to fixing date, and also to move from fixing date to
-	// value date
-	repeated BusinessCenter fixing_calendars = 10;
-	// How to combine fixing calendars
-	JointCalendarRule fixing_calendars_join_rule = 11;
-	// The value date is checked against the value date
-	// calendars and if it falls on a holiday then
-	// an adjustment is applied using business day convention
-	repeated BusinessCenter value_date_calendars = 12;
-	// How value date calendars are to be combined
-	JointCalendarRule value_date_calendars_join_rule = 13;
-	// The index calendars are used to calculate the maturity date
-	repeated BusinessCenter index_calendars = 14;
-	// How index date calendars are to be combined
-	JointCalendarRule index_calendars_join_rule = 15;
-	// The day count fraction associated with the index
-	DayCountFraction day_count_fraction = 16;
-	// Is this Isda Index default for the currency and index family?
-	bool default_for_index_family = 17;
+message IndexDefinition {
+  // This is the FpML / ISDA name of the index
+  // Excludes tenor
+  IsdaIndex isda_index = 1;
+  // Index family may be common across several indices
+  IndexFamily index_family = 2;
+  // Currency of the index
+  Currency currency = 3;
+  // Tenor of the index
+  // May be left unspecified to use as the default configuration
+  // for all tenors for the index family
+  Tenor tenor = 4;
+  // Number of business days between a value date and fixing date
+  int32 fixing_lag = 5;
+  // Used to select the business day convention
+  // tenors <= short_tenor_threshold use the short tenor convention
+  Tenor short_tenor_threshold = 6;
+  // Convention used if tenor is <= short_tenor_threshold
+  BusinessDayConvention short_tenor_convention = 7;
+  // Convention used if tenor is > than short_tenor_threshold
+  BusinessDayConvention long_tenor_convention = 8;
+  // Whether to apply EOM roll convention for tenors >= month
+  bool eom = 9;
+  // fixing calendars are used to move from accrual start date
+  // to fixing date, and also to move from fixing date to
+  // value date
+  repeated BusinessCenter fixing_calendars = 10;
+  // How to combine fixing calendars
+  JointCalendarRule fixing_calendars_join_rule = 11;
+  // The value date is checked against the value date
+  // calendars and if it falls on a holiday then
+  // an adjustment is applied using business day convention
+  repeated BusinessCenter value_date_calendars = 12;
+  // How value date calendars are to be combined
+  JointCalendarRule value_date_calendars_join_rule = 13;
+  // The index calendars are used to calculate the maturity date
+  repeated BusinessCenter index_calendars = 14;
+  // How index date calendars are to be combined
+  JointCalendarRule index_calendars_join_rule = 15;
+  // The day count fraction associated with the index
+  DayCountFraction day_count_fraction = 16;
+  // Is this Isda Index default for the currency and index family?
+  bool default_for_index_family = 17;
 }
 
-message RegisterIndexDefinitionRequest { IndexDefinition index_definition = 1; }
+message RegisterIndexDefinitionRequest {
+  IndexDefinition index_definition = 1;
+}
 
-message RegisterIndexDefinitionReply { ReplyHeader header = 1; }
+message RegisterIndexDefinitionReply {
+  ReplyHeader header = 1;
+}

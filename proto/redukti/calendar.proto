@@ -2,9 +2,10 @@
 //
 // Contributor(s):
 //
-// The Original Software is OpenRedukti (https://github.com/redukti/OpenRedukti).
-// The Initial Developer of the Original Software is REDUKTI LIMITED (http://redukti.com).
-// Authors: Dibyendu Majumdar
+// The Original Software is OpenRedukti
+// (https://github.com/redukti/OpenRedukti). The Initial Developer of the
+// Original Software is REDUKTI LIMITED (http://redukti.com). Authors: Dibyendu
+// Majumdar
 //
 // Copyright 2017-2019 REDUKTI LIMITED. All Rights Reserved.
 //
@@ -22,14 +23,15 @@ option java_outer_classname = "CalendarProtos";
 import "redukti/enums.proto";
 import "redukti/shared.proto";
 
-message RegisterCalendarRequest
-{
-	BusinessCenter business_center = 1;
-	// A bit mask to say which week days should be considered weekend days
-	// Sun = 0, Sat = 6
-	int32 weekend_mask = 2;
-	// Array of dates that are holidays, weekens excluded
-	repeated int32 holidays = 3;
+message RegisterCalendarRequest {
+  BusinessCenter business_center = 1;
+  // A bit mask to say which week days should be considered weekend days
+  // Sun = 0, Sat = 6
+  int32 weekend_mask = 2;
+  // Array of dates that are holidays, weekens excluded
+  repeated int32 holidays = 3;
 }
 
-message RegisterCalendarReply { ReplyHeader header = 1; }
+message RegisterCalendarReply {
+  ReplyHeader header = 1;
+}
