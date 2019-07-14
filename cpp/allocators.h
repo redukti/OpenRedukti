@@ -44,10 +44,13 @@ namespace redukti
 class Allocator
 {
 	public:
+	// Derived classes should override the destructor.
+	// Region allocators should free all memory in the destructor.
 	virtual ~Allocator() = default;
 
 	// Allocate at least size bytes
 	// A size of 0 will result in nullptr being returned
+	// Allocated memory must be suitably aligned
 	virtual void *allocate(size_t size) noexcept = 0;
 
 	// Allocate at least size bytes
@@ -68,7 +71,8 @@ class Allocator
 	}
 
 	// Depending upon the type of allocator a deallocate may
-	// not do anything
+	// not do anything. Note that this will never invoke
+	// a destructor
 	virtual void deallocate(void *address) noexcept = 0;
 };
 
@@ -108,7 +112,7 @@ template <typename T> class Deleter
 // This allocator uses calloc/free
 // This is the only allocator that is thread
 // safe!
-// Memory allocation falures are treated as fatal
+// Memory allocation failures are treated as fatal
 // errors as they are generally unrecoverable anyway
 // and it is better to fail fast.
 class MallocAllocator : public Allocator
@@ -141,7 +145,7 @@ class MallocAllocator : public Allocator
 
 // Returns the default allocator which should normally be the
 // malloc allocator
-extern Allocator* get_default_allocator();
+extern Allocator *get_default_allocator();
 
 // Allocator interface where it is not necessary
 // to destroy or free individual objects
@@ -238,22 +242,24 @@ struct FixedRegionAllocator : public RegionAllocator {
 	// Memory is allocated from the buffer we
 	// were given - we simply bump the current
 	// position
+	// If buffer is exhausted then allocate() will
+	// return nullptr
 	void *allocate(size_t size) noexcept final
 	{
 		if (!size)
 			return nullptr;
 		// round to alignment multiple
 		constexpr size_t alignment = std::alignment_of<AlignmentType>::value;
-		auto allocsize = (size + alignment - 1u) & ~(alignment - 1u);
-		assert(allocsize % alignment == 0);
-		assert(allocsize >= size);
-		assert(allocsize < size + alignment);
+		auto alloc_size = (size + alignment - 1u) & ~(alignment - 1u);
+		assert(alloc_size % alignment == 0);
+		assert(alloc_size >= size);
+		assert(alloc_size < size + alignment);
 		// Is there enough space?
-		if (remaining() < allocsize) {
+		if (remaining() < alloc_size) {
 			return nullptr;
 		}
 		void *result = static_cast<void *>(&memory_[offset_]);
-		offset_ += allocsize;
+		offset_ += alloc_size;
 		return result;
 	}
 
@@ -279,14 +285,14 @@ struct FixedRegionAllocator : public RegionAllocator {
 	FixedRegionAllocator &operator=(const FixedRegionAllocator &) = delete;
 
 	private:
-	char *memory_;    // buffer to use for memory allocations
+	char *memory_;  // buffer to use for memory allocations
 	size_t offset_; // Current position up to which memory is allocated,
 	// when offset_ == size_ memory is exhausted
 	size_t size_; // buffer size
-	bool delete_; // if set the memory will be freed
+	bool delete_; // if set the memory will be freed, i.e. memory owned by this allocator
 };
 
-// This allocator uses a fixed size array internal array
+// This allocator uses a fixed size internal array
 // if the requested memory allocation request can fit. Else
 // memory is allocated via a fallback allocator. Note
 // that the fallback allocator is a RegionAllocator,
@@ -317,9 +323,9 @@ template <int N> struct StackRegionWithFallbackAllocator : public RegionAllocato
 		if (!p && fallback_allocator_) {
 			p = fallback_allocator_->allocate(size);
 			overflowed_ = overflowed_ || p != nullptr;
-			if (!p) {
-				die("Out of memory, exiting\n");
-			}
+		}
+		if (!p) {
+			die("Out of memory, exiting\n");
 		}
 		return p;
 	}
@@ -328,7 +334,7 @@ template <int N> struct StackRegionWithFallbackAllocator : public RegionAllocato
 	void release() noexcept final
 	{
 		if (overflowed_) {
-			warn("WARNING: possible memory leak\n");
+			warn("WARNING: potential for memory leak, allocator overflowed and used fallback allocator\n");
 		}
 		my_allocator_.release();
 	}
@@ -355,12 +361,17 @@ template <int N> struct StackRegionWithFallbackAllocator : public RegionAllocato
 class DynamicRegionAllocator : public RegionAllocator
 {
 	private:
+	// Instead of allocating a huge chunk of memory at the beginning,
+	// we allocate upto 32 chunks if needed. This strategy ensures that in the
+	// best case we only allocate one chunk, but if that chunk isn't sufficient
+	// then we still have 31 more chunks we can expand to.
 	enum { N = 32 };
-	FixedRegionAllocator *buffers_[N];
-	int current_;
-	size_t buffer_size_;
-	size_t used_;
-	size_t allocated_;
+	// Each memory chunk is a FixedRegionAllocator
+	FixedRegionAllocator *buffers_[N]; // N chunks
+	int current_;			   // Current chunk
+	size_t buffer_size_;		   // Size of each chunk
+	size_t used_;			   // How much memory has the user requested all total?
+	size_t allocated_;		   // How much memory have we allocated?
 
 	public:
 	explicit DynamicRegionAllocator(size_t buffer_size = 5 * 1024 * 1024) noexcept
@@ -421,7 +432,7 @@ class DynamicRegionAllocator : public RegionAllocator
 
 // This guard can be used to restore a FixedRegionAllocator to
 // its previous allocation state. It relies on the fact that
-// a FixedRegionAllocator is a bump the pointer allocator, and
+// a FixedRegionAllocator is a 'bump the pointer' allocator, and
 // can be restored by simply resetting the pointer to the previous
 // position
 class FixedRegionAllocatorGuard
@@ -447,6 +458,16 @@ class FixedRegionAllocatorGuard
 // Each thread is given a set of allocators to use
 // To obtain the thread specific allocator set call
 // get_threadspecific_allocators().
+// TODO we should have some way to configure the sizes of these
+// For now following sizes are hard-coded:
+// cashflow_allocator: 32 * 64k
+// sensitivities_allocator: 32 * 256K
+// tempspace_allocator: 2MB
+//
+// Usage notes:
+// The thread local allocator strategy assumes
+// that each request is handled by a thread and that at the
+// start of each request the AllocatorSet is reset.
 struct AllocatorSet {
 	RegionAllocator *cashflow_allocator;
 	RegionAllocator *sensitivities_allocator;

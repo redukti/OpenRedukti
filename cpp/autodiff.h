@@ -67,7 +67,7 @@ struct redukti_adouble_t {
 	uint32_t order_ : 2;
 	// number of variables
 	uint32_t vars_;
-	// data
+	// data - sized based on order_ and vars_
 	double data_[1];
 
 	redukti_adouble_t(const redukti_adouble_t &) = delete;
@@ -76,7 +76,7 @@ struct redukti_adouble_t {
 
 // Compute memory requirement for given number of variables and order
 // Supported orders are 0,1,2.
-// Returns the estimated size in bytes
+// Returns the required size in bytes
 size_t redukti_adouble_alloc_size(int vars, int order);
 
 // Initialize A; caller must have allocated memory of correct
@@ -188,7 +188,7 @@ static inline void redukti_adouble_set_derivative2(redukti_adouble_t *x, int par
 	int m = x->vars_;
 	assert(parameter1 >= 0 && parameter1 < m && parameter2 >= 0 && parameter2 < m);
 	double *matrix = &x->data_[1 + m];
-	int pos = parameter1 * m + parameter2;
+	int pos = parameter2 * m + parameter1;
 	matrix[pos] = v;
 }
 

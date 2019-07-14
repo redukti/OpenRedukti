@@ -61,7 +61,7 @@ size_t redukti_adouble_alloc_size(int vars, int order)
 }
 
 // Initialize - it is assumed that the autodiff structure has been
-// sized correcly
+// sized correctly
 void redukti_adouble_init(redukti_adouble_t *x, int n_vars, int order, int var, double v)
 {
 	assert(var < n_vars);
@@ -199,10 +199,6 @@ void redukti_adouble_multiply(redukti_adouble_t *A, redukti_adouble_t *B, redukt
 					auto pos = i * m + j;
 					buf[pos] = A_scalar * B_hessian[pos] + B_scalar * A_hessian[pos] +
 						   A_grad[i] * B_grad[j] + A_grad[j] * B_grad[i];
-					// printf("// i == %d, j == %d, pos == %d\n", i, j, pos);
-					// printf("buf[%d] = A_scalar * B_hessian[%d] + B_scalar * A_hessian[%d] +\n",
-					// pos, pos, pos); printf("A_grad[%d] * B_grad[%d] + A_grad[%d] *
-					// B_grad[%d];\n", i, j, j, i);
 				}
 			}
 			memcpy(A_hessian, buf, mn * sizeof(double));
