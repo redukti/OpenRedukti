@@ -6,10 +6,7 @@ OpenRedukti is a C++ library for working with Interest Rate Derivative products 
 FRAs. It allows you to build Interest Rate curves with different interpolation methods, and then use these curves
 to compute present value and sensitivities of Interest Rate Derivatives.
 
-OpenRedukti is Free Software, licensed under the GNU General Public License, v3. If you wish to use OpenRedukti
-under a non-GPL license, you can raise an issue on `GitHub repository <https://github.com/redukti/OpenRedukti>`_. 
-A liberal license will be granted to your company at zero cost, provided you agree to allow your company
-to be listed as a user of OpenRedukti.
+OpenRedukti is Free Software, licensed under the GNU General Public License, v3. 
 
 Main Features
 =============
@@ -26,7 +23,7 @@ Main Features
 
 Background
 ==========
-OpenRedukti is part of the `MyCCP <http://redukti.com/>`_ product that is being developed by REDUKTI LIMITED. 
+OpenRedukti is part of the `MyCCP <http://redukti.com/>`_ product that was being developed by REDUKTI LIMITED. Sadly development of MyCCP ceased in 2017 due to lack of funding.
 
 The main differences between the Open Source release and the proprietary version used in MyCCP are:
 
@@ -34,8 +31,6 @@ The main differences between the Open Source release and the proprietary version
 * The functionality for generating cashflows from FpML trades has not been released as this is fine tuned for the needs of MyCCP
 * The Limit Checker and VaR Calculator have not been released
 * The MyCCP front-end and middle tier components, written in C#, have not been released as these are very specific to requirements of a CCP.
-
-For further details of the full scope of the MyCCP product, please visit `Redukti.Com <http://redukti.com/myccp-product-specifications.html>`_. 
 
 Documentation
 =============
